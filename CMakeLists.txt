@@ -121,6 +121,7 @@ target_link_libraries(pendulum_example_partial_tightening acados hpmpc blasfeo o
 #add_executable(acados_controller_mem ${ACADOS_CONTROLLER_MEM_SRC})
 #target_link_libraries(acados_controller_mem acados hpmpc blasfeo openblas m)
 
+
 add_library(acados_controller_mem ${ACADOS_CONTROLLER_MEM_SRC})
 target_link_libraries(acados_controller_mem acados hpmpc blasfeo openblas m)
 
