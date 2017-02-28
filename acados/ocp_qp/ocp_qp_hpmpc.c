@@ -315,7 +315,8 @@ int ocp_qp_hpmpc_libstr(ocp_qp_in *qp_in, ocp_qp_out *qp_out, ocp_qp_hpmpc_args 
     // IPM constants
     int hpmpc_status;
     double alpha_min = 1e-8;
-    double *stat; d_zeros(&stat, k_max, 5);
+    double *stat = ptr_memory;
+    ptr_memory+=6*k_max;
     // int compute_res = 0;
     int compute_mult = 1;
 
@@ -327,17 +328,16 @@ int ocp_qp_hpmpc_libstr(ocp_qp_in *qp_in, ocp_qp_out *qp_out, ocp_qp_hpmpc_args 
       warm_start, stat, N, nx, nu, nb, hsidxb, ng, hsBAbt, hsRSQrq, hsDCt,
       hsd, hsux, compute_mult, hspi, hslam, hst, ptr_memory);
 
-    double **temp_u;
+    // double **temp_u;
     // copy result to qp_out
     for ( ii = 0; ii < N; ii++ ) {
-      hu[ii] = hsux[ii].pa;
-      temp_u = &hsux[ii].pa;
-      hx[ii] = &temp_u[0][nu[ii]];
+      for ( int jj=0; jj<nu[ii]; jj++) hu[ii][jj] = hsux[ii].pa[jj];
+      for ( int jj=0; jj<nx[ii]; jj++) hx[ii][jj] = hsux[ii].pa[jj+nu[ii]];
     }
 
     // hu[N] = hsux[N].pa;
-    temp_u = &hsux[N].pa;
-    hx[N] = &temp_u[0][nu[N]];
+    for ( int jj=0; jj<nx[N]; jj++) hx[N][jj] = hsux[N].pa[jj];
+
 
     if (hpmpc_status == 1) acados_status = ACADOS_MAXITER;
 
