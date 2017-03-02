@@ -315,8 +315,7 @@ int ocp_qp_hpmpc_libstr(ocp_qp_in *qp_in, ocp_qp_out *qp_out, ocp_qp_hpmpc_args 
     // IPM constants
     int hpmpc_status;
     double alpha_min = 1e-8;
-    double *stat = ptr_memory;
-    ptr_memory+=6*k_max;
+    double stat[5*100];
     // int compute_res = 0;
     int compute_mult = 1;
 
