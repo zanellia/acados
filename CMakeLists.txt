@@ -72,9 +72,9 @@ add_definitions(-DUSE_ACADOS_TYPES)
 include(external/openblas)
 include(external/blasfeo)
 include(external/hpmpc)
-include(external/qpoases)
-include(external/qpdunes)
-include_directories("${PROJECT_SOURCE_DIR}/external/qpDUNES-dev/include/")
+#include(external/qpoases)
+#include(external/qpdunes)
+#include_directories("${PROJECT_SOURCE_DIR}/external/qpDUNES-dev/include/")
 
 if (EXISTS ${PROJECT_SOURCE_DIR}/external/OOQP)
     add_definitions(-DOOQP)
@@ -84,7 +84,8 @@ endif ()
 
 # Define acados library
 add_library(acados STATIC ${ACADOS_SRC})
-add_dependencies(acados qpoases hpmpc blasfeo qpdunes)
+add_dependencies(acados hpmpc blasfeo)
+#add_dependencies(acados qpoases hpmpc blasfeo qpdunes)
 
 if (EXISTS ${PROJECT_SOURCE_DIR}/external/OOQP)
     add_dependencies(ooqpbase ma27)
