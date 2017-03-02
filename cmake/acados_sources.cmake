@@ -41,6 +41,7 @@ file(GLOB ACADOS_CONTROLLER_SRC
 file(GLOB ACADOS_CONTROLLER_MEM_SRC
 
 ${PROJECT_SOURCE_DIR}/../../optimal_control/ocps/acados_kitty_interface.c
+    ${PROJECT_SOURCE_DIR}/../../optimal_control/ocps/plotting.c
     ${PROJECT_SOURCE_DIR}/../../optimal_control/utils/eispack.c
     ${PROJECT_SOURCE_DIR}/../../optimal_control/models/aircraft_integrator.c
     ${PROJECT_SOURCE_DIR}/../../optimal_control/autogen/ocp_xtracking_banana1_casadi.c
