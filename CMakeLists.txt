@@ -119,10 +119,10 @@ endif ()
 #add_library(acados_controller ${ACADOS_CONTROLLER_SRC})
 #target_link_libraries(acados_controller acados hpmpc blasfeo openblas m)
 
-#add_executable(acados_controller_mem SHAERED ${ACADOS_CONTROLLER_MEM_rojectSRC})
+#add_executable(acados_controller_mem  ${ACADOS_CONTROLLER_MEM_rojectSRC})
 #target_link_libraries(acados_controller_mem acados hpmpc blasfeo openblas m)
 
-add_library(acados_controller_mem ${ACADOS_CONTROLLER_MEM_SRC})
+add_library(acados_controller_mem SHARED ${ACADOS_CONTROLLER_MEM_SRC})
 target_link_libraries(acados_controller_mem acados hpmpc blasfeo openblas m)
 
 # Automatic generation of unit testing data
