@@ -59,10 +59,10 @@ if(CMAKE_BUILD_TYPE MATCHES Test)
 endif()
 
 # external ocps
-include_directories("../../optimal_control/ocps/")
-include_directories("../../optimal_control/models/")
-include_directories("../../optimal_control/autogen/")
-include_directories("../../optimal_control/utils/")
+include_directories("${PROJECT_SOURCE_DIR}/experimental/andrea/modular_interface/ocps/")
+include_directories("${PROJECT_SOURCE_DIR}/experimental/andrea/modular_interface/models/")
+include_directories("${PROJECT_SOURCE_DIR}/experimental/andrea/modular_interface/autogen/")
+include_directories("${PROJECT_SOURCE_DIR}/experimental/andrea/modular_interface/utils/")
 
 # Define source files
 include(acados_sources)
