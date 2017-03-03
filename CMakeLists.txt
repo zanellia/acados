@@ -123,7 +123,7 @@ endif ()
 #target_link_libraries(acados_controller_mem acados hpmpc blasfeo openblas m)
 
 add_library(acados_controller_mem SHARED ${ACADOS_CONTROLLER_MEM_SRC})
-target_link_libraries(acados_controller_mem acados hpmpc blasfeo openblas m)
+target_link_libraries(acados_controller_mem acados hpmpc blasfeo m)
 
 # Automatic generation of unit testing data
 if(CMAKE_BUILD_TYPE MATCHES Test)
