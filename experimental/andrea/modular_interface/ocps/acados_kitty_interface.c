@@ -40,18 +40,11 @@
 #include "acados/ocp_qp/ocp_qp_hpmpc.h"
 #include "acados/utils/tools.h"
 
-// #include "acados/sim/sim_erk_integrator.h"
-// #include "aircraft_integrator.h"
-// #include "residual_x_eval_wrapper.h"
-
 #include "acados_kitty_interface.h"
 #include "../models/aircraft_integrator.h"
 #include "../ocps/residual_x_eval_wrapper.h"
 #include "../ocps/residual_u_eval_wrapper.h"
 
-// #include "ocp_xtracking_banana1_casadi.h"
-// #include "ocp_utracking_banana1_casadi.h"
-// #include "ocp_integrate_ode_banana1_casadi.h"
 
 #include <fenv.h>
 #include "eispack.h"
@@ -128,13 +121,6 @@ extern int d_ip2_res_mpc_hard_work_space_size_bytes_libstr(int N, int *nx,
 extern  int d_size_strmat(int m, int n);
 extern  int d_size_strvec(int m);
 
-// extern void ocp_xtracking_banana1_work(int *sz_arg, int* sz_res, int *sz_iw, int *sz_w);
-// extern void ocp_utracking_banana1_work(int *sz_arg, int* sz_res, int *sz_iw, int *sz_w);
-
-// extern void ocp_xtracking_banana1_casadi(const real_t** arg, real_t** res, int* iw, real_t* w, int mem);
-
-// Simple SQP example for acados
-
 void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_data, acados_options *acados_options){
 
     // get dimensions
@@ -159,9 +145,7 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
     nmpc_data->NB = init_data->NB;   // number of input bounds on stage 1 to N-1
     nmpc_data->NBN = init_data->NBN; // number of input bounds on stage N
 
-    //--------------------------------------------------------------------------
     // allocate memory for rk4_int
-    //--------------------------------------------------------------------------
     real_t h  = 0.1;
     real_t t0 = 0.0;
 
@@ -196,9 +180,7 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
     rk4_int->eval_dynamics_work(&sz_arg, &sz_res, &sz_iw, &sz_w);
     rk4_int->internal_mem = malloc(sizeof(real_t)*(sz_w));
 
-    //--------------------------------------------------------------------------
     // allocate memory for qp_in
-    //--------------------------------------------------------------------------
     int_t *nx;
     int_zeros(&nx, NN+1, 1);
     int_t *nu;
@@ -252,9 +234,7 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
     real_t **pug;
     pug = malloc((NN+1)*sizeof(real_t*));
 
-    /************************************************
-    * box constraints
-    ************************************************/
+    // box constraints
     int ii, jj;
     nb[0] = NB0;
     for (ii = 1; ii < NN; ii++ ) nb[ii] = NB;
@@ -315,9 +295,7 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
     for (ii = 0; ii < NN; ii++) ngg[ii] = ng;
     ngg[NN] = ngN;
 
-    /************************************************
-    * general constraints
-    ************************************************/
+    // general constraints
     double *C0;
     d_zeros(&C0, 0, NX);
     double *D0;
@@ -370,10 +348,6 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
     plg[NN] = lgN;
     pug[NN] = ugN;
 
-    /************************************************
-    * solver arguments
-    ************************************************/
-
     // solver arguments
     ocp_qp_hpmpc_args *hpmpc_args;
     hpmpc_args = malloc(sizeof *hpmpc_args);
@@ -385,9 +359,7 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
     hpmpc_args->warm_start = 0;
     hpmpc_args->N2 = NN;
 
-    /************************************************
-    * work space
-    ************************************************/
+    // work space
 
     int work_space_size = d_ip2_res_mpc_hard_work_space_size_bytes_libstr(NN,
       nx, nu, nb, ngg);
@@ -420,8 +392,7 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
 
     v_zeros_align(&workspace, work_space_size);
 
-    // double workspace[500000];
-    // Allocate OCP QP variables
+    // allocate OCP QP variables
     ocp_qp_in *qp_in;
     qp_in = malloc(sizeof *qp_in);
     qp_in->N = NN;
@@ -453,14 +424,10 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
     qp_out->pi = ppi;
     qp_out->lam = plam;
 
-    // -------------------------------------------------------------------------
     // allocate memory for nmpc_data
-    //--------------------------------------------------------------------------
-
     // Problem data
     real_t  *w; // States and controls stacked
     d_zeros(&w, NN*(NX+NU)+NX, 1);
-    // for (int i = 0; i <= NN; i++) w[i*(NX+NU)] = 0.2;
 
     real_t *lb0 = malloc(sizeof(real_t)*NB0);
     real_t *lb = malloc(sizeof(real_t)*NB);
@@ -496,7 +463,6 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
 
     // allocate memory for residual evalutation
     // get internal memory dimension
-
     nmpc_data->res_x_work(&sz_arg, &sz_res, &sz_iw, &sz_w);
 
     d_zeros((double **)&nmpc_data->residual_x_eval_mem, sz_w, 1);
@@ -539,10 +505,7 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
 
       free(rk4_int->internal_mem);
 
-      //--------------------------------------------------------------------------
-      // de-allocate memory for qp_in
-      //--------------------------------------------------------------------------
-
+      // free memory for qp_in
       free((void *)nmpc_data->qp_in->nx);
       free((void *)nmpc_data->qp_in->nu);
       free((void *)nmpc_data->qp_in->nb);
@@ -588,9 +551,7 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
 
       free((void *)nmpc_data->qp_out->x[NN]);
 
-      /************************************************
-      * general constraints
-      ************************************************/
+      // general constraints
       free((void *)nmpc_data->qp_in->Cx[0]);
       free((void *)nmpc_data->qp_in->Cu[0]);
       free((void *)nmpc_data->qp_in->lc[0]);
@@ -641,17 +602,14 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
       free(nmpc_data->qp_out->pi);
       free(nmpc_data->qp_out->lam);
 
-      // solver arguments
+      // free solver arguments
       free(nmpc_data->hpmpc_args);
 
-      // work space
-
+      // free work space
       free(nmpc_data->workspace);
 
 
       // free memory for nmpc_data
-
-      // Problem data
       free(nmpc_data->w);
 
       free(nmpc_data->lb0);
@@ -959,22 +917,10 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
           }
 
           // compute eta_tilde
-          // for (int_t j = 0; j < NR; j++) rref[j]  = 0;
-          // rref[10] = 1;
           for (int_t j = 0; j < NR; j++) rref[j]= -rref[j] + r[j];
           for (int_t j = 0; j < NX; j++) pq[i][j] = 0.0;
 
-          // scale !+
-          // real_t weight[11] = {10000 ,10000, 10000,    10000, 1, 1, 1,  1, 1, 1, 1};
-          // for (int_t j = 0; j < NR; j++) rref[j] = rref[j]*weight[j];
-          // end of scale !+
-
           dgemv_n_3l(NX, NR, drdx_tran, NX, rref, pq[i]);
-
-          // scale !+
-          // for (int_t j = 0; j < NX; j++) pQ[i][j*(NX+1) ] = pQ[i][j*(NX+1)]*weight[j]*weight[j];
-          // end of scale !+
-
 
           // inputs
           for (int_t j = 0; j < NU; j++) residual_u_in[j] = w[i*(NX+NU)+NX+j];
@@ -1175,9 +1121,6 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
       drdx = &residual_x_out[NR];
       rref = &residual_x_out[NR+NR*NX];
 
-      // extract residuals TODO(Andrea): need to change this such that it is clearer what is going on
-      // TODO(Andrea): make this parametric and allocate mem somewhere else...
-
       for (int_t j = 0; j < NX; j++) {
         for (int_t k = 0; k < NR; k++)
           drdx_tran[k*NX + j] = drdx[j*NR + k];
@@ -1197,24 +1140,12 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
           }
         }
       }
+
       // compute eta_tilde
-      // for (int_t j = 0; j < NR; j++) rref[j]  = 0;
-      // rref[10] = 1;
       for (int_t j = 0; j < NR; j++) rref[j]= -rref[j] + r[j];
       for (int_t j = 0; j < NX; j++) pq[NN][j] = 0.0;
 
-
-      // scale !+
-      // real_t weight[11] = {10000 ,10000, 10000,    10000, 1, 1, 1,  1, 1, 1, 1};
-      // for (int_t j = 0; j < NR; j++) rref[j] = rref[j]*weight[j];
-      // end of scale !+
-
       dgemv_n_3l(NX, NR, drdx_tran, NX, rref, pq[NN]);
-
-      // scale !+
-      // for (int_t j = 0; j < NX; j++) pQ[NN][j*(NX+1)] = pQ[NN][j*(NX+1)]*weight[j]*weight[j];
-      // end of scale !+
-
 
       // regularize
       for (int_t j = 0; j < NX; j++) pQ[NN][j*(NX+1)] += regQ;
@@ -1254,7 +1185,6 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
       status = 3; // sanity checks failed
     } // int status = 0;
 
-    // printf("hpmpc_status=%i\n", status);
     if (status == 1) printf("status = ACADOS_MAXITER\n");
 
     if (status == 2) printf("status = ACADOS_MINSTEP\n");
