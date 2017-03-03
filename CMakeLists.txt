@@ -123,7 +123,7 @@ endif ()
 #target_link_libraries(acados_controller_mem acados hpmpc blasfeo openblas m)
 
 add_library(acados_controller_mem SHARED ${ACADOS_CONTROLLER_MEM_SRC})
-target_link_libraries(acados_controller_mem acados hpmpc blasfeo m)
+#target_link_libraries(acados_controller_mem acados hpmpc blasfeo m)
 
 # Automatic generation of unit testing data
 if(CMAKE_BUILD_TYPE MATCHES Test)
@@ -147,4 +147,5 @@ if(CMAKE_BUILD_TYPE MATCHES Test)
     set_target_properties(unit_tests PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/test)
 endif()
 
-install(TARGETS acados_controller_mem acados DESTINATION ${PROJECT_SOURCE_DIR}/build)
+# use, i.e. don't skip the full RPATH for the build tree
+install(TARGETS acados acados_controller_mem DESTINATION /usr/lib)

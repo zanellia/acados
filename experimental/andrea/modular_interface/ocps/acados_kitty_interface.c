@@ -1087,23 +1087,23 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
       }
     }
 
-    for (int_t j = 0; j < NB0; j++) if (plb[0] > pub[0])  {
-      printf("infeasbile QP!");
-      sanity_checks = 0;
-    }
-
-
-    for (int_t j = 0; j < NB; j++) if (plb[1] > pub[1]) {
-      printf("infeasbile QP!");
-      sanity_checks = 0;
-
-    }
-
-
-    for (int_t j = 0; j < NB; j++) if (plb[NN] > pub[NN]) {
-      printf("infeasbile QP!");
-      sanity_checks = 0;
-    }
+    // for (int_t j = 0; j < NB0; j++) if (plb[0] > pub[0])  {
+    //   printf("infeasbile QP!");
+    //   sanity_checks = 0;
+    // }
+    //
+    //
+    // for (int_t j = 0; j < NB; j++) if (plb[1] > pub[1]) {
+    //   printf("infeasbile QP!");
+    //   sanity_checks = 0;
+    //
+    // }
+    //
+    //
+    // for (int_t j = 0; j < NB; j++) if (plb[NN] > pub[NN]) {
+    //   printf("infeasbile QP!");
+    //   sanity_checks = 0;
+    // }
 
     if (nls){
       // build Gauss-Newton Hessian and gradient
