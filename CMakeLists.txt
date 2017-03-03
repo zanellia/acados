@@ -146,3 +146,5 @@ if(CMAKE_BUILD_TYPE MATCHES Test)
 
     set_target_properties(unit_tests PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/test)
 endif()
+
+install(TARGETS acados_controller_mem acados DESTINATION ${PROJECT_SOURCE_DIR}/build)
