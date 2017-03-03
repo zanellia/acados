@@ -83,7 +83,7 @@ if (EXISTS ${PROJECT_SOURCE_DIR}/external/OOQP)
 endif ()
 
 # Define acados library
-add_library(acados SHARED ${ACADOS_SRC})
+add_library(acados STATIC ${ACADOS_SRC})
 add_dependencies(acados hpmpc blasfeo)
 #add_dependencies(acados qpoases hpmpc blasfeo qpdunes)
 
@@ -122,7 +122,7 @@ endif ()
 #add_executable(acados_controller_mem ${ACADOS_CONTROLLER_MEM_rojectSRC})
 #target_link_libraries(acados_controller_mem acados hpmpc blasfeo openblas m)
 
-add_library(acados_controller_mem SHARED ${ACADOS_CONTROLLER_MEM_SRC})
+add_library(acados_controller_mem STATIC ${ACADOS_CONTROLLER_MEM_SRC})
 target_link_libraries(acados_controller_mem acados hpmpc blasfeo openblas m)
 
 # Automatic generation of unit testing data

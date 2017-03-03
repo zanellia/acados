@@ -414,7 +414,7 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
 
     work_space_size += sizeof(int_t)*MAX_IP_ITER*5;
 
-    work_space_size += 100*sizeof(double)*(NN+1); // TODO(Andrea): ??
+    work_space_size += 1000*sizeof(double)*(NN+1); // TODO(Andrea): ??
 
     void *workspace;
 
