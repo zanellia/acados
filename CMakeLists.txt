@@ -119,9 +119,30 @@ endif ()
 #add_library(acados_controller ${ACADOS_CONTROLLER_SRC})
 #target_link_libraries(acados_controller acados hpmpc blasfeo openblas m)
 
-#add_executable(acados_controller_mem ${ACADOS_CONTROLLER_MEM_SRC})
+#add_executable(acados_controller_mem ${ACADOS_CONTROLLER_MEM_rojectSRC})
 #target_link_libraries(acados_controller_mem acados hpmpc blasfeo openblas m)
-
 
 add_library(acados_controller_mem ${ACADOS_CONTROLLER_MEM_SRC})
 target_link_libraries(acados_controller_mem acados hpmpc blasfeo openblas m)
+
+# Automatic generation of unit testing data
+if(CMAKE_BUILD_TYPE MATCHES Test)
+    include(test_sources)
+    add_custom_command(OUTPUT ${UNIT_TESTS_SRC_CASADI}
+        COMMAND ${CMAKE_COMMAND} -P ../cmake/generate_test_data.cmake
+        COMMENT "Generating unit testing files")
+    add_custom_target(generate_test_data
+        DEPENDS ${UNIT_TESTS_SRC_CASADI}
+        COMMENT "Checking if regeneration of test data is needed")
+    add_executable(unit_tests ${UNIT_TESTS_SRC} ${UNIT_TESTS_SRC_SIM} ${UNIT_TESTS_SRC_OCP_QP} ${UNIT_TESTS_SRC_OCP_NLP} ${UNIT_TESTS_SRC_TEST_UTILS})
+    add_dependencies(unit_tests generate_test_data)
+
+    target_link_libraries(unit_tests acados qpoases hpmpc blasfeo qpdunes m)
+
+    if (EXISTS ${PROJECT_SOURCE_DIR}/external/OOQP)
+        find_library(FLIB gfortran HINTS /usr/lib/gcc/x86_64-linux-gnu/* /usr/local/lib/gcc/*)
+        target_link_libraries(unit_tests ooqpgensparse ooqpsparse ooqpgondzio ooqpbase ma27 blas ${FLIB} m)
+    endif ()
+
+    set_target_properties(unit_tests PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/test)
+endif()

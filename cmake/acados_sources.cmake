@@ -26,29 +26,17 @@ file(GLOB PENDULUM_EXAMPLE_SRC ${PROJECT_SOURCE_DIR}/examples/casadi_pendulum/pe
     ${PROJECT_SOURCE_DIR}/examples/test_nmpc_pendulum_hpmpc_libstr.c
 )
 
-file(GLOB ACADOS_CONTROLLER_SRC
-
-    ${PROJECT_SOURCE_DIR}/../../optimal_control/models/aircraft_integrator.c
-    ${PROJECT_SOURCE_DIR}/../../optimal_control/autogen/ocp_xtracking_banana1_casadi.c
-    ${PROJECT_SOURCE_DIR}/../../optimal_control/autogen/ocp_utracking_banana1_casadi.c
-    ${PROJECT_SOURCE_DIR}/../../optimal_control/autogen/ocp_integrate_ode_banana1_casadi.c
-    ${PROJECT_SOURCE_DIR}/../../optimal_control/ocps/test_aircraft2_nmpc.c
-    ${PROJECT_SOURCE_DIR}/../../optimal_control/ocps/residual_x_eval_wrapper.c
-    ${PROJECT_SOURCE_DIR}/../../optimal_control/ocps/residual_u_eval_wrapper.c
-
-)
-
 file(GLOB ACADOS_CONTROLLER_MEM_SRC
 
-${PROJECT_SOURCE_DIR}/../../optimal_control/ocps/acados_kitty_interface.c
-    ${PROJECT_SOURCE_DIR}/../../optimal_control/ocps/plotting.c
-    ${PROJECT_SOURCE_DIR}/../../optimal_control/utils/eispack.c
-    ${PROJECT_SOURCE_DIR}/../../optimal_control/models/aircraft_integrator.c
-    ${PROJECT_SOURCE_DIR}/../../optimal_control/autogen/ocp_xtracking_banana1_casadi.c
-    ${PROJECT_SOURCE_DIR}/../../optimal_control/autogen/ocp_utracking_banana1_casadi.c
-    ${PROJECT_SOURCE_DIR}/../../optimal_control/autogen/ocp_integrate_ode_banana1_casadi.c
-    ${PROJECT_SOURCE_DIR}/../../optimal_control/ocps/residual_x_eval_wrapper.c
-    ${PROJECT_SOURCE_DIR}/../../optimal_control/ocps/residual_u_eval_wrapper.c
+    ${PROJECT_SOURCE_DIR}/experimental/andrea/modular_interface/ocps/acados_kitty_interface.c
+    ${PROJECT_SOURCE_DIR}/experimental/andrea/modular_interface/ocps/plotting.c
+    ${PROJECT_SOURCE_DIR}/experimental/andrea/modular_interface/utils/eispack.c
+    ${PROJECT_SOURCE_DIR}/experimental/andrea/modular_interface/models/aircraft_integrator.c
+    ${PROJECT_SOURCE_DIR}/experimental/andrea/modular_interface/autogen/ocp_xtracking_banana1_casadi.c
+    ${PROJECT_SOURCE_DIR}/experimental/andrea/modular_interface/autogen/ocp_utracking_banana1_casadi.c
+    ${PROJECT_SOURCE_DIR}/experimental/andrea/modular_interface/autogen/ocp_integrate_ode_banana1_casadi.c
+    ${PROJECT_SOURCE_DIR}/experimental/andrea/modular_interface/ocps/residual_x_eval_wrapper.c
+    ${PROJECT_SOURCE_DIR}/experimental/andrea/modular_interface/ocps/residual_u_eval_wrapper.c
 
 )
 
