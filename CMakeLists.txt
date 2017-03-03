@@ -148,4 +148,4 @@ if(CMAKE_BUILD_TYPE MATCHES Test)
 endif()
 
 # use, i.e. don't skip the full RPATH for the build tree
-install(TARGETS acados acados_controller_mem DESTINATION /usr/lib)
+#install(TARGETS acados acados_controller_mem DESTINATION /usr/lib)
