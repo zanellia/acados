@@ -1,13 +1,13 @@
 [submodule "hpmpc"]
 	path = external/hpmpc
-	url = https://github.com/giaf/hpmpc.git
+	url = https://github.com/zanellia/hpmpc.git
 [submodule "casadi"]
 	path = external/casadi
 	url = https://github.com/acados/casadi.git
 	branch = develop
 [submodule "blasfeo"]
 	path = external/blasfeo
-	url = https://github.com/giaf/blasfeo.git
+	url = https://github.com/zanellia/blasfeo.git
 [submodule "qpdunes"]
 	path = external/qpDUNES-dev
 	url = https://github.com/acados/qpDUNES-dev.git
