@@ -1,3 +1,8 @@
+#pragma GCC diagnostic ignored "-Wuninitialized"
+#pragma GCC diagnostic ignored "-Wunused-variable"
+#pragma GCC diagnostic ignored "-Wunused-but-set-variable"
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+
 # include <stdlib.h>
 # include <stdio.h>
 # include <math.h>

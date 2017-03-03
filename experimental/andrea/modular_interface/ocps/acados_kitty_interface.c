@@ -482,9 +482,6 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
     nmpc_data->idxb = idxb;
     nmpc_data->idxbN = idxbN;
 
-    real_t regQ = nmpc_data->regQ;
-    real_t regR = nmpc_data->regR;
-
     int_t   max_sqp_iters = 1;
     int_t   max_iters     = 1;
 
@@ -502,14 +499,14 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
 
     nmpc_data->res_x_work(&sz_arg, &sz_res, &sz_iw, &sz_w);
 
-    d_zeros(&nmpc_data->residual_x_eval_mem, sz_w, 1);
+    d_zeros((double **)&nmpc_data->residual_x_eval_mem, sz_w, 1);
     d_zeros(&nmpc_data->residual_x_out, NR + NR*NX + NR, 1 );
     d_zeros(&nmpc_data->residual_x_in, NR + NP + 1 +1, 1);
     d_zeros(&nmpc_data->drdx_tran, NR*NX, 1 );
 
     nmpc_data->res_u_work(&sz_arg, &sz_res, &sz_iw, &sz_w);
 
-    d_zeros(&nmpc_data->residual_u_eval_mem, sz_w, 1);
+    d_zeros((double **)&nmpc_data->residual_u_eval_mem, sz_w, 1);
     d_zeros(&nmpc_data->residual_u_out, NU + NU*NU + NU, 1 );
     d_zeros(&nmpc_data->residual_u_in, NU + NP + 1 +1, 1 );
     d_zeros(&nmpc_data->drdu_tran, NU*NU, 1 );
@@ -522,7 +519,7 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
     return;
   }
 
-  int_t de_init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_data, acados_options *acados_options){
+  int_t de_init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int){
 
       const int NN = nmpc_data->NN;   // number of stages
 
@@ -546,67 +543,67 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
       // de-allocate memory for qp_in
       //--------------------------------------------------------------------------
 
-      free(nmpc_data->qp_in->nx);
-      free(nmpc_data->qp_in->nu);
-      free(nmpc_data->qp_in->nb);
-      free(nmpc_data->qp_in->nc);
+      free((void *)nmpc_data->qp_in->nx);
+      free((void *)nmpc_data->qp_in->nu);
+      free((void *)nmpc_data->qp_in->nb);
+      free((void *)nmpc_data->qp_in->nc);
       // free(nmpc_data->qp_in->idxb[0]);
       // free(nmpc_data->qp_in->idxb[1]);
       // free(nmpc_data->qp_in->idxb[NN]);
 
-      free(nmpc_data->qp_in->lb[0]);
-      free(nmpc_data->qp_in->ub[0]);
-      free(nmpc_data->qp_in->A[0]);
-      free(nmpc_data->qp_in->B[0]);
-      free(nmpc_data->qp_in->b[0]);
-      free(nmpc_data->qp_in->Q[0]);
-      free(nmpc_data->qp_in->R[0]);
-      free(nmpc_data->qp_in->S[0]);
-      free(nmpc_data->qp_in->q[0]);
-      free(nmpc_data->qp_in->r[0]);
+      free((void *)nmpc_data->qp_in->lb[0]);
+      free((void *)nmpc_data->qp_in->ub[0]);
+      free((void *)nmpc_data->qp_in->A[0]);
+      free((void *)nmpc_data->qp_in->B[0]);
+      free((void *)nmpc_data->qp_in->b[0]);
+      free((void *)nmpc_data->qp_in->Q[0]);
+      free((void *)nmpc_data->qp_in->R[0]);
+      free((void *)nmpc_data->qp_in->S[0]);
+      free((void *)nmpc_data->qp_in->q[0]);
+      free((void *)nmpc_data->qp_in->r[0]);
 
       free(nmpc_data->qp_out->x[0]);
       free(nmpc_data->qp_out->u[0]);
 
       for (int_t i = 1; i < NN; i++) {
-          free(nmpc_data->qp_in->A[i]);
-          free(nmpc_data->qp_in->B[i]);
-          free(nmpc_data->qp_in->b[i]);
-          free(nmpc_data->qp_in->Q[i]);
-          free(nmpc_data->qp_in->R[i]);
-          free(nmpc_data->qp_in->S[i]);
-          free(nmpc_data->qp_in->q[i]);
-          free(nmpc_data->qp_in->r[i]);
-          free(nmpc_data->qp_in->lb[i]);
-          free(nmpc_data->qp_in->ub[i]);
+          free((void *)nmpc_data->qp_in->A[i]);
+          free((void *)nmpc_data->qp_in->B[i]);
+          free((void *)nmpc_data->qp_in->b[i]);
+          free((void *)nmpc_data->qp_in->Q[i]);
+          free((void *)nmpc_data->qp_in->R[i]);
+          free((void *)nmpc_data->qp_in->S[i]);
+          free((void *)nmpc_data->qp_in->q[i]);
+          free((void *)nmpc_data->qp_in->r[i]);
+          free((void *)nmpc_data->qp_in->lb[i]);
+          free((void *)nmpc_data->qp_in->ub[i]);
 
           free(nmpc_data->qp_out->x[i]);
           free(nmpc_data->qp_out->u[i]);
       }
 
-      free(nmpc_data->qp_in->lb[NN]);
-      free(nmpc_data->qp_in->ub[NN]);
-      free(nmpc_data->qp_in->q[NN]);
-      free(nmpc_data->qp_in->Q[NN]);
+      free((void *)nmpc_data->qp_in->lb[NN]);
+      free((void *)nmpc_data->qp_in->ub[NN]);
+      free((void *)nmpc_data->qp_in->q[NN]);
+      free((void *)nmpc_data->qp_in->Q[NN]);
 
-      free(nmpc_data->qp_out->x[NN]);
+      free((void *)nmpc_data->qp_out->x[NN]);
 
       /************************************************
       * general constraints
       ************************************************/
-      free(nmpc_data->qp_in->Cx[0]);
-      free(nmpc_data->qp_in->Cu[0]);
-      free(nmpc_data->qp_in->lc[0]);
-      free(nmpc_data->qp_in->uc[0]);
+      free((void *)nmpc_data->qp_in->Cx[0]);
+      free((void *)nmpc_data->qp_in->Cu[0]);
+      free((void *)nmpc_data->qp_in->lc[0]);
+      free((void *)nmpc_data->qp_in->uc[0]);
 
-      free(nmpc_data->qp_in->Cx[1]);
-      free(nmpc_data->qp_in->Cu[1]);
-      free(nmpc_data->qp_in->lc[1]);
-      free(nmpc_data->qp_in->uc[1]);
+      free((void *)nmpc_data->qp_in->Cx[1]);
+      free((void *)nmpc_data->qp_in->Cu[1]);
+      free((void *)nmpc_data->qp_in->lc[1]);
+      free((void *)nmpc_data->qp_in->uc[1]);
 
-      free(nmpc_data->qp_in->Cx[NN]);
-      free(nmpc_data->qp_in->lc[NN]);
-      free(nmpc_data->qp_in->uc[NN]);
+      free((void *)nmpc_data->qp_in->Cx[NN]);
+      free((void *)nmpc_data->qp_in->lc[NN]);
+      free((void *)nmpc_data->qp_in->uc[NN]);
 
 
       free(nmpc_data->qp_out->pi[0]);
@@ -716,8 +713,8 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
     real_t *ubN = nmpc_data->ubN;
 
     real_t *w = nmpc_data->w;
-    int_t max_sqp_iters=  nmpc_data->max_sqp_iters;
-    int_t max_iters= nmpc_data->max_iters;
+    // int_t max_sqp_iters=  nmpc_data->max_sqp_iters;
+    // int_t max_iters= nmpc_data->max_iters;
 
     const int nls = acados_options->nls;
 
@@ -729,9 +726,9 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
     void *workspace = nmpc_data->workspace;
 
     int_t *nx = (int_t *)qp_in->nx;
-    int_t *nu = qp_in->nu;
-    int_t *nb = qp_in->nb;
-    int_t *nc = qp_in->nc;
+    // int_t *nu = (int_t *)qp_in->nu;
+    // int_t *nb = (int_t *)qp_in->nb;
+    // int_t *nc = (int_t *)qp_in->nc;
     real_t **pA = (real_t **)qp_in->A;
     real_t **pB = (real_t **)qp_in->B;
     real_t **pb = (real_t **)qp_in->b;
@@ -779,7 +776,6 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
     real_t *drdx = &residual_x_out[NR];
     real_t *drdu = &residual_u_out[NU];
     real_t *rref = &residual_x_out[NR+NR*NX];
-    real_t r_temp[NR];
 
     if (nls){
       // build Gauss-Newton Hessian and gradient

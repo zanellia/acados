@@ -111,7 +111,7 @@ extern "C" {
 
 int_t run_acados(nmpc_data *nmpc_data, rk4_int* rk4_int, acados_options* acados_options);
 void init_acados(nmpc_data *nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_data, acados_options* acados_options);
-int_t de_init_acados(nmpc_data *nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_data, acados_options *acados_options);
+int_t de_init_acados(nmpc_data *nmpc_data, rk4_int* rk4_int);
 
 #if defined (__cplusplus)
 }
