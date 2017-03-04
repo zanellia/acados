@@ -17,7 +17,7 @@ ExternalProject_Add(
     SOURCE_DIR "${PROJECT_SOURCE_DIR}/external/hpmpc"
     BUILD_IN_SOURCE 1
     BUILD_COMMAND make clean static_library -j 2 TARGET=${HPMPC_TARGET} BLASFEO_PATH=${HPMPC_BLASFEO_PATH}
-    INSTALL_COMMAND ""
+		INSTALL_COMMAND cp libhpmpc.a /usr/lib/libhpmpc.a
 )
 
 ExternalProject_Get_Property(hpmpc_project source_dir)
