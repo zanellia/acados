@@ -34,14 +34,6 @@ if(CMAKE_BUILD_TYPE MATCHES Test)
     enable_testing(true)
 endif()
 
-set(VIRTUAL_ENV $ENV{VIRTUAL_ENV})
-if(VIRTUAL_ENV)
-    set(CMAKE_INSTALL_PREFIX ${VIRTUAL_ENV})
-    message(STATUS "Detected a python virtualenv in use, setting install prefix to ${VIRTUAL_ENV}")
-else(VIRTUAL_ENV)
-    set(CMAKE_INSTALL_PREFIX ${PROJECT_BINARY_DIR}/swig )
-    message(STATUS "Setting install prefix to ${CMAKE_INSTALL_PREFIX}")
-endif(VIRTUAL_ENV)
 
 # Define include folders
 include_directories("${PROJECT_SOURCE_DIR}")
@@ -148,4 +140,8 @@ if(CMAKE_BUILD_TYPE MATCHES Test)
 endif()
 
 # use, i.e. don't skip the full RPATH for the build tree
-install(TARGETS acados acados_controller_mem DESTINATION /usr/lib)
+set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
+
+set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+
+install(TARGETS acados acados_controller_mem DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
