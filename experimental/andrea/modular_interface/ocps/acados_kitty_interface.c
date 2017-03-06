@@ -378,15 +378,17 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
         work_space_size+= d_size_strvec(2*nb[ii]+2*ngg[ii]);
     }
 
-    work_space_size+= d_size_strvec(nu[NN]+nx[NN]);
+
+    work_space_size+= d_size_strmat(nu[NN]+nx[NN]+1, nu[NN]+nx[NN]);
     work_space_size+= d_size_strvec(2*nb[NN]+2*ngg[NN]);
     work_space_size+= d_size_strvec(nu[NN]+nx[NN]);
+    work_space_size+= d_size_strvec(nx[NN]);
     work_space_size+= d_size_strvec(2*nb[NN]+2*ngg[NN]);
     work_space_size+= d_size_strvec(2*nb[NN]+2*ngg[NN]);
 
     work_space_size += sizeof(int_t)*MAX_IP_ITER*5;
 
-    work_space_size += 1000*sizeof(double)*(NN+1); // TODO(Andrea): ??
+    // work_space_size += 1*sizeof(double)*(NN+1); // TODO(Andrea): ??
 
     void *workspace;
 
