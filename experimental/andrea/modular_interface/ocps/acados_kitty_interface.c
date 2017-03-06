@@ -482,7 +482,9 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
     acados_options->non_symmetry_tol = 1e-4;
     acados_options->print_level = 1;
 
-    nmpc_data->gnuplotPipe = popen("gnuplot -persist", "w");
+    if (acados_options->use_gnuplot){
+      nmpc_data->gnuplotPipe = popen("gnuplot -persist", "w");
+    }
 
     return;
   }

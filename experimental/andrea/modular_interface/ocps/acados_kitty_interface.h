@@ -12,13 +12,12 @@
 
 #include <stdio.h>
 
-
 typedef struct _init_data {  // data needed to allocate memory (cannot be changed online)
 
   int_t NN;  // number  of stages
   int_t NX;  // number  of states
   int_t NU;  // number  of inputs
-  int_t NB0; // number  of bounds on stage 0
+  int_t NB0; // number  of b  ounds on stage 0
   int_t NB;  // number  of bounds on stage 1 to N-1
   int_t NBN; // number  of bounds on stage N
   int_t NP;  // number  of parameters
@@ -103,6 +102,9 @@ typedef struct _acados_options {
 
   // linear vs nonlinear residuals
   int nls;
+
+  int_t use_gnuplot;
+  
 } acados_options;
 
 #if defined (__cplusplus)
