@@ -169,6 +169,8 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
     // allocate internal buffers for rk4 integrator
     rk4_int->intermediate_Sx_in = malloc(sizeof(rk4_int->intermediate_Sx_in)*NX*NX);
     rk4_int->intermediate_Sx_out = malloc(sizeof(rk4_int->intermediate_Sx_out)*NX*NX);
+    rk4_int->intermediate_x_in = malloc(sizeof(rk4_int->intermediate_x_in)*NX);
+    rk4_int->intermediate_x_out = malloc(sizeof(rk4_int->intermediate_x_out)*NX);
     rk4_int->intermediate_Su = malloc(sizeof(rk4_int->intermediate_Su)*NX*NU);
     rk4_int->temp_Sx_out = malloc(sizeof(rk4_int->temp_Sx_out)*NX*NX);
     rk4_int->temp_Su_out = malloc(sizeof(rk4_int->temp_Su_out)*NX*NX);
@@ -503,6 +505,8 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
 
       free(rk4_int->intermediate_Sx_in);
       free(rk4_int->intermediate_Sx_out);
+      free(rk4_int->intermediate_x_in);
+      free(rk4_int->intermediate_x_out);
       free(rk4_int->intermediate_Su);
       free(rk4_int->temp_Sx_out);
       free(rk4_int->temp_Su_out);

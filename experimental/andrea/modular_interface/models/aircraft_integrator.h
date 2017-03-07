@@ -27,6 +27,8 @@ typedef struct _rk4_int{
   // additional internal buffers
   real_t *intermediate_Sx_in;
   real_t *intermediate_Sx_out;
+  real_t *intermediate_x_in;
+  real_t *intermediate_x_out;
   real_t *intermediate_Su;
   real_t *temp_Sx_out;
   real_t *temp_Su_out;

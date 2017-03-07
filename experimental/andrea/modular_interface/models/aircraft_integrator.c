@@ -24,8 +24,8 @@ void integrate_aircraft_ode(rk4_int* rk4_int) {
     const real_t *casadi_arg[5];
     real_t *casadi_res[3];
 
-    real_t intermediate_x_in[NX];
-    real_t intermediate_x_out[NX];
+    real_t *intermediate_x_in = rk4_int->intermediate_x_in;
+    real_t *intermediate_x_out = rk4_int->intermediate_x_out;
 
     for (int_t i = 0; i < NX; i++) {
       intermediate_x_in[i] = rk4_int->x_in[i];
