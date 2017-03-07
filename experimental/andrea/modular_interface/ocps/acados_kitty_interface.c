@@ -727,8 +727,9 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
     real_t timings = 0;
     printf("running acados\n");
     // printf("\n------ ITERATION %d ------\n", iter);
-    acado_tic(&timer);
     // for ( int_t ii = 0; ii < NX; ii++ ) w[ii] = lb0[ii];
+    acado_tic(&timer);
+    printf("performing %i sqp iterations\n", acados_options->sqp_steps);
     for (int_t sqp_iter = 0; sqp_iter < acados_options->sqp_steps; sqp_iter++) {
 
     // Pass state and control to integrator
@@ -1233,9 +1234,8 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
     // for (int_t i = 0; i < NX; i++) x0[i] = w[NX+NU+i];
     // shift_states(w, x_end, NN);
     // shift_controls(w, u_end, NN);
-    timings += acado_toc(&timer);
   }
-
+  timings = acado_toc(&timer);
 
   real_t Th = (real_t)NN*rk4_int->h_in;
   if (acados_options->print_level > 1)  print_states_controls(&w[0], Th, NN, NX, NU);
