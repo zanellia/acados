@@ -99,12 +99,13 @@ typedef struct _acados_options {
   real_t newton_step_size;
   int_t sqp_steps;
   int_t plot_open_loop;
+  int_t shifting;
 
   // linear vs nonlinear residuals
   int nls;
 
   int_t use_gnuplot;
-  
+
 } acados_options;
 
 #if defined (__cplusplus)

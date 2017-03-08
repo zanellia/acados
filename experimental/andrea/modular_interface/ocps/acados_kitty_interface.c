@@ -61,17 +61,17 @@
 #endif
 
 // define IP solver arguments && number of repetitions
-#define NREP 1000
+// #define NREP 1000
 #define MAX_IP_ITER 50
 #define TOL 1e-8
 #define MINSTEP 1e-8
+//
+// #define NP_dummy 43
 
-#define NP_dummy 43
-
-#define STEP_SIZE 0.05   // shooting interval size
-#define nn 10
-#define RKSTEPS 10 // intermediate rk4 steps
-#define NSIM 100
+// #define STEP_SIZE 0.05   // shooting interval size
+// #define nn 10
+// #define RKSTEPS 10 // intermediate rk4 steps
+// #define NSIM 100
 
 
 static void print_states_controls(real_t *w, real_t T, int_t N, int_t NX, int_t NU) {
@@ -95,24 +95,24 @@ static void print_states_controls(real_t *w, real_t T, int_t N, int_t NX, int_t 
     // print to log file too
     fprintf(fp, "%e,\t%+e, %+e, %+e, %+e, %+e, %+e, %+e, %+e, %+e, %+e, %+e, %+e, %+e,%+e, %+e\n", N*T/N, w[N*(NX+NU)], w[N*(NX+NU)+1],
     w[N*(NX+NU)+2], w[N*(NX+NU)+3], w[N*(NX+NU)+4], w[N*(NX+NU)+5] , w[N*(NX+NU)+6] , w[N*(NX+NU)+7],
-    w[N*(NX+NU)+8], w[N*(NX+NU)+9], w[N*(NX+NU)]+10, 0.0, 0.0, 0.0, 0.0);
+    w[N*(NX+NU)+8], w[N*(NX+NU)+9], w[N*(NX+NU)+10], 0.0, 0.0, 0.0, 0.0);
     fclose(fp);
 }
 
 
-// static void shift_states(real_t *w, real_t *x_end, int_t N) {
-//     for (int_t i = 0; i < N; i++) {
-//         for (int_t j = 0; j < NX; j++) w[i*(NX+NU)+j] = w[(i+1)*(NX+NU)+j];
-//     }
-//     for (int_t j = 0; j < NX; j++) w[N*(NX+NU)+j] = x_end[j];
-// }
+static void shift_states(real_t *w, int_t N, int_t NX, int_t NU) {
+    for (int_t i = 0; i < N; i++) {
+        for (int_t j = 0; j < NX; j++) w[i*(NX+NU)+j] = w[(i+1)*(NX+NU)+j];
+    }
+    for (int_t j = 0; j < NX; j++) w[N*(NX+NU)+j] = w[(N-1)*(NX+NU)+j];
+}
 
-// static void shift_controls(real_t *w, real_t *u_end, int_t N) {
-//     for (int_t i = 0; i < N-1; i++) {
-//         for (int_t j = 0; j < NU; j++) w[i*(NX+NU)+NX+j] = w[(i+1)*(NX+NU)+NX+j];
-//     }
-//     for (int_t j = 0; j < NU; j++) w[(N-1)*(NX+NU)+NX+j] = u_end[j];
-// }
+static void shift_controls(real_t *w, int_t N, int_t NX, int_t NU) {
+    for (int_t i = 0; i < N-1; i++) {
+        for (int_t j = 0; j < NU; j++) w[i*(NX+NU)+NX+j] = w[(i+1)*(NX+NU)+NX+j];
+    }
+    for (int_t j = 0; j < NU; j++) w[(N-1)*(NX+NU)+NX+j] = w[(N-2)*(NX+NU)+NX+j];
+}
 
 // TODO(Andrea): need to fix this stuff below...
 extern int d_ip2_res_mpc_hard_work_space_size_bytes_libstr(int N, int *nx,
@@ -482,7 +482,7 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
     d_zeros(&nmpc_data->drdu_tran, NU*NU, 1 );
 
     acados_options->non_symmetry_tol = 1e-4;
-    acados_options->print_level = 1;
+    // acados_options->print_level = 1;
 
     if (acados_options->use_gnuplot){
       nmpc_data->gnuplotPipe = popen("gnuplot -persist", "w");
@@ -681,6 +681,11 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
     real_t *w = nmpc_data->w;
     // int_t max_sqp_iters=  nmpc_data->max_sqp_iters;
     // int_t max_iters= nmpc_data->max_iters;
+
+    if (acados_options->shifting) {
+      shift_states(w, NN, NX, NU);
+      shift_controls(w, NN, NX, NU);
+    }
 
     const int nls = acados_options->nls;
 
@@ -1232,9 +1237,8 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
     qp_step_size = sqrt(qp_step_size);
     qp_step_size/=((NX+NU)*NN+NX);
     // for (int_t i = 0; i < NX; i++) x0[i] = w[NX+NU+i];
-    // shift_states(w, x_end, NN);
-    // shift_controls(w, u_end, NN);
   }
+
   timings = acado_toc(&timer);
 
   real_t Th = (real_t)NN*rk4_int->h_in;
