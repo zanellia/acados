@@ -1,0 +1,10 @@
+nls 1
+print_level 2
+newton_step_size 1
+sqp_steps 1
+plot_open_loop 0
+h_in 0.01
+n_steps 1
+NN 10
+use_gnuplot 0
+shifting 0
