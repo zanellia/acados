@@ -782,9 +782,10 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
       }
 
       // compute eta_tilde
+      for (int_t j = 0; j < NR; j++) rref[j] = -rref[j] + r[j];
+
       if ( acados_options->print_level > 2) {
         for (int_t j = 0; j < NR; j++) printf("rref[%i]=%f\n", j, rref[j] );
-        for (int_t j = 0; j < NR; j++) rref[j] = -rref[j] + r[j];
         printf("\n\n");
         for (int_t j = 0; j < NR; j++) printf("r[%i]=%f\n", j, r[j] );
       }
@@ -1127,7 +1128,8 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
       for (int_t j = 0; j < NP; j++) residual_x_in[j+NX] = rk4_int->p_in[j];
 
       residual_x_in[NX+NP] = rk4_int->t0_in;
-      residual_x_in[NX+NP+1] = rk4_int->h_in;
+      // do not scale the Mayer term by
+      // residual_x_in[NX+NP+1] = 1.0;
 
       residual_x_eval_wrapper(nmpc_data, residual_x_in, residual_x_out, residual_x_eval_mem);
 
@@ -1236,6 +1238,11 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
     // noralize vector
     qp_step_size = sqrt(qp_step_size);
     qp_step_size/=((NX+NU)*NN+NX);
+
+    if (qp_step_size > acados_options->max_qp_step) {
+      status = 4;
+      printf("max_qp_step\n");
+    }
     // for (int_t i = 0; i < NX; i++) x0[i] = w[NX+NU+i];
   }
 

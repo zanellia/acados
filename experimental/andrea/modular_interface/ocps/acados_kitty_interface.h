@@ -100,6 +100,7 @@ typedef struct _acados_options {
   int_t sqp_steps;
   int_t plot_open_loop;
   int_t shifting;
+  real_t max_qp_step;
 
   // linear vs nonlinear residuals
   int nls;
