@@ -87,35 +87,8 @@ endif ()
 #add_subdirectory(swig)
 
 # Define examples
-#add_executable(hpmpc_example ${HPMPC_EXAMPLE_SRC})
-#target_link_libraries(hpmpc_example acados hpmpc blasfeo openblas m)
-
-#add_executable(hpmpc_example_partial_tightening ${HPMPC_EXAMPLE_SRC})
-#target_link_libraries(hpmpc_example_partial_tightening acados hpmpc blasfeo openblas m)
-
-#add_executable(condensing_qpoases_example ${CONDENSING_QPOASES_EXAMPLE_SRC})
-#target_link_libraries(condensing_qpoases_example acados qpoases hpmpc blasfeo m)
-
-#add_executable(nmpc_example ${NMPC_EXAMPLE_SRC} ${CHEN_MODEL_SRC})
-#target_link_libraries(nmpc_example acados qpoases blasfeo m)
-
-#add_executable(chain_example ${CHAIN_EXAMPLE_SRC})
-#target_link_libraries(chain_example acados qpoases blasfeo openblas m)
-
-#add_executable(pendulum_example ${PENDULUM_EXAMPLE_SRC})
-#target_link_libraries(pendulum_example acados hpmpc blasfeo openblas m)
-
-#add_executable(pendulum_example_partial_tightening ${PENDULUM_EXAMPLE_PT_SRC})
-#target_link_libraries(pendulum_example_partial_tightening acados hpmpc blasfeo openblas m)
-
-#add_library(acados_controller ${ACADOS_CONTROLLER_SRC})
-#target_link_libraries(acados_controller acados hpmpc blasfeo openblas m)
-
-#add_executable(acados_controller_mem  ${ACADOS_CONTROLLER_MEM_rojectSRC})
-#target_link_libraries(acados_controller_mem acados hpmpc blasfeo openblas m)
-
-add_library(acados_controller_mem STATIC ${ACADOS_CONTROLLER_MEM_SRC})
-target_link_libraries(acados_controller_mem acados hpmpc blasfeo m)
+add_library(kitty_acados SHARED ${ACADOS_CONTROLLER_MEM_SRC})
+target_link_libraries(kitty_acados acados hpmpc blasfeo m)
 
 # Automatic generation of unit testing data
 if(CMAKE_BUILD_TYPE MATCHES Test)
@@ -140,4 +113,49 @@ if(CMAKE_BUILD_TYPE MATCHES Test)
 endif()
 
 # use, i.e. don't skip the full RPATH for the build tree
-install(TARGETS acados acados_controller_mem DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
+#install(TARGETS acados acados_controller_mem DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
+
+#install(DIRECTORY acados/acados/ DESTINATION include/kitty_acados)
+#install(DIRECTORY acados/acados/utils/ DESTINATION include/kitty_acados/utils)
+#install(DIRECTORY acados/acados/sim/ DESTINATION include/kitty_acados/sim)
+#install(DIRECTORY acados/acados/external/hpmpc/include DESTINATION include/kitty_acados/external/hpmpc/include)
+#install(DIRECTORY acados/acados/experimental/andrea/modular_interface/models DESTINATION include/kitty_acados/experimental/andrea/modular_interface/models)
+#install(DIRECTORY acados/experimental/andrea/modular_interface/ocps DESTINATION include/kitty_acados/experimental/andrea/modular_interface/ocps)
+#install(DIRECTORY acados/acados/experimental/andrea/modular_interface/utils DESTINATION include/kitty_acados/experimental/andrea/modular_interface/utils)
+
+target_include_directories(kitty_acados PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+  $<INSTALL_INTERFACE:include/kitty_acados>
+
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/utils>
+  $<INSTALL_INTERFACE:include/kitty_acados/utils>
+
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/acados/sim>
+  $<INSTALL_INTERFACE:include/kitty_acados/sim>
+
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/acados/external/hpmpc/include>
+  $<INSTALL_INTERFACE:include/kitty_acados/external/hpmpc/include>
+
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/experimental/andrea/modular_interface/models>
+  $<INSTALL_INTERFACE:include/kitty_acados/experimental/andrea/modular_interface/models>
+
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/experimental/andrea/modular_interface/ocps>
+  $<INSTALL_INTERFACE:include/kitty_acados/ocps/experimental/andrea/modular_interface/ocps>
+
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/experimental/andrea/modular_interface/utils>
+  $<INSTALL_INTERFACE:include/kitty_acados/experimental/andrea/modular_interface/utils>
+  )
+
+install(TARGETS acados kitty_acados EXPORT KittyAcadosConfig
+  ARCHIVE  DESTINATION lib
+  LIBRARY  DESTINATION lib
+  RUNTIME  DESTINATION bin)  # This is for Windows
+#install(DIRECTORY include/ DESTINATION include)
+
+# This makes the project importable from the install directory
+# Put config file in per-project dir (name MUST match), can also
+# just go into <prefix>/cmake.
+install(EXPORT KittyAcadosConfig DESTINATION share/KittyAcadosConfig/cmake)
+
+## This makes the project importable from the build directory
+#export(TARGETS kitty_acados FILE KittyAcadosConfig.cmake)
