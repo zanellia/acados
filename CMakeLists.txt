@@ -131,8 +131,8 @@ install(DIRECTORY experimental/andrea/modular_interface/models DESTINATION inclu
 install(DIRECTORY experimental/andrea/modular_interface/ocps DESTINATION include/kitty_acados/experimental/andrea/modular_interface)
 install(DIRECTORY experimental/andrea/modular_interface/utils DESTINATION include/kitty_acados/experimental/andrea/modular_interface)
 
-#install(TARGET external/hpmpc/libhpmpc.a DESTINATION lib)
-#install(external/blasfeo/libblasfeo.a DESTINATION lib)
+#install(external/hpmpc/libhpmpc.a DESTINATION share/lib)
+#install(external/blasfeo/libblasfeo.a DESTINATION share/lib)
 
 target_include_directories(kitty_acados PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
