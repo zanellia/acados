@@ -127,10 +127,10 @@ install(DIRECTORY experimental/andrea/modular_interface/ocps DESTINATION include
 install(DIRECTORY experimental/andrea/modular_interface/utils DESTINATION include/kitty_acados/experimental/andrea/modular_interface)
 
 target_include_directories(kitty_acados PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/acados>
   $<INSTALL_INTERFACE:include/kitty_acados/acados>
 
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/utils>
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/acados/utils>
   $<INSTALL_INTERFACE:include/kitty_acados/acados/utils>
 
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/acados/sim>
