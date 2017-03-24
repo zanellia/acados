@@ -16,14 +16,14 @@ ExternalProject_Add(
     CONFIGURE_COMMAND ""
     SOURCE_DIR "${PROJECT_SOURCE_DIR}/external/hpmpc"
     BUILD_IN_SOURCE 1
-    BUILD_COMMAND make clean static_library -j 2 TARGET=${HPMPC_TARGET} BLASFEO_PATH=${HPMPC_BLASFEO_PATH}
+    BUILD_COMMAND make clean shared_library -j 2 TARGET=${HPMPC_TARGET} BLASFEO_PATH=${HPMPC_BLASFEO_PATH}
 #		CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
-#		INSTALL_COMMAND make install_static PREFIX=${CMAKE_INSTALL_PREFIX}
+#		INSTALL_COMMAND make install_shared PREFIX=${CMAKE_INSTALL_PREFIX}
 		INSTALL_COMMAND ""
 
 )
 
 ExternalProject_Get_Property(hpmpc_project source_dir)
-add_library(hpmpc STATIC IMPORTED)
+add_library(hpmpc SHARED IMPORTED)
 add_dependencies(hpmpc hpmpc_project blasfeo_project)
-set_property(TARGET hpmpc PROPERTY IMPORTED_LOCATION "${source_dir}/libhpmpc.a")
+set_property(TARGET hpmpc PROPERTY IMPORTED_LOCATION "${source_dir}/libhpmpc.so")

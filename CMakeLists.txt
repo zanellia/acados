@@ -89,8 +89,8 @@ endif ()
 add_library(kitty_acados SHARED ${ACADOS_CONTROLLER_MEM_SRC} ${ACADOS_SRC})
 
 # force the compiler to add hpmpc to the shared library
-SET (hpmpc -Wl,--whole-archive)
-SET (blasfeo -Wl,--whole-archive)
+#SET (hpmpc -Wl,--whole-archive)
+#SET (blasfeo -Wl,--whole-archive)
 
 #add_dependencises(kitty_acados hpmpc)
 target_link_libraries(kitty_acados hpmpc blasfeo m)

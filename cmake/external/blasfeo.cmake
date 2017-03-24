@@ -17,7 +17,7 @@ ExternalProject_Add(
     CONFIGURE_COMMAND ""
     SOURCE_DIR "${PROJECT_SOURCE_DIR}/external/blasfeo"
     BUILD_IN_SOURCE 1
-    BUILD_COMMAND make clean static_library -j 2 TARGET=${BLASFEO_TARGET} LA=${BLASFEO_LA}
+    BUILD_COMMAND make clean shared_library -j 2 TARGET=${BLASFEO_TARGET} LA=${BLASFEO_LA}
   #  CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
 	#	INSTALL_COMMAND make install_static PREFIX=${CMAKE_INSTALL_PREFIX}
 	  INSTALL_COMMAND ""
@@ -25,6 +25,6 @@ ExternalProject_Add(
 )
 
 ExternalProject_Get_Property(blasfeo_project source_dir)
-add_library(blasfeo STATIC IMPORTED)
+add_library(blasfeo SHARED IMPORTED)
 add_dependencies(blasfeo blasfeo_project)
-set_property(TARGET blasfeo PROPERTY IMPORTED_LOCATION "${source_dir}/libblasfeo.a")
+set_property(TARGET blasfeo PROPERTY IMPORTED_LOCATION "${source_dir}/libblasfeo.so")
