@@ -18,7 +18,7 @@ ExternalProject_Add(
     BUILD_COMMAND make clean shared_library -j 2 TARGET=${HPMPC_TARGET} BLASFEO_PATH=${HPMPC_BLASFEO_PATH}
 		CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
 #		INSTALL_COMMAND make install PREFIX=${CMAKE_INSTALL_PREFIX}
-#		INSTALL_COMMAND ""
+		INSTALL_COMMAND ""
 )
 
 ExternalProject_Get_Property(hpmpc_project source_dir)
