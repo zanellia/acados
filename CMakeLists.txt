@@ -92,7 +92,7 @@ add_library(kitty_acados SHARED ${ACADOS_CONTROLLER_MEM_SRC} ${ACADOS_SRC})
 SET (hpmpc -Wl,--whole-archive)
 SET (blasfeo -Wl,--whole-archive)
 
-add_dependencises(kitty_acados hpmpc blasfeo)
+#add_dependencises(kitty_acados hpmpc)
 target_link_libraries(kitty_acados hpmpc blasfeo m)
 
 set_target_properties(kitty_acados PROPERTIES VERSION 0.22)
@@ -130,6 +130,8 @@ install(DIRECTORY external/hpmpc/include DESTINATION include/kitty_acados/extern
 install(DIRECTORY experimental/andrea/modular_interface/models DESTINATION include/kitty_acados/experimental/andrea/modular_interface)
 install(DIRECTORY experimental/andrea/modular_interface/ocps DESTINATION include/kitty_acados/experimental/andrea/modular_interface)
 install(DIRECTORY experimental/andrea/modular_interface/utils DESTINATION include/kitty_acados/experimental/andrea/modular_interface)
+
+install(DIRECTORY external DESTINATION include/kitty_acados/external/hpmpc/lib)
 
 target_include_directories(kitty_acados PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
