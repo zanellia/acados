@@ -115,12 +115,12 @@ endif()
 # use, i.e. don't skip the full RPATH for the build tree
 #install(TARGETS acados acados_controller_mem DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
 
-#install(DIRECTORY acados/acados/ DESTINATION include/kitty_acados)
+install(DIRECTORY acados/ DESTINATION include/kitty_acados)
 #install(DIRECTORY acados/acados/utils/ DESTINATION include/kitty_acados/utils)
 #install(DIRECTORY acados/acados/sim/ DESTINATION include/kitty_acados/sim)
 #install(DIRECTORY acados/acados/external/hpmpc/include DESTINATION include/kitty_acados/external/hpmpc/include)
 #install(DIRECTORY acados/acados/experimental/andrea/modular_interface/models DESTINATION include/kitty_acados/experimental/andrea/modular_interface/models)
-#install(DIRECTORY acados/experimental/andrea/modular_interface/ocps DESTINATION include/kitty_acados/experimental/andrea/modular_interface/ocps)
+install(DIRECTORY acados/experimental/andrea/modular_interface/ocps DESTINATION include/kitty_acados/experimental/andrea/modular_interface/ocps)
 #install(DIRECTORY acados/acados/experimental/andrea/modular_interface/utils DESTINATION include/kitty_acados/experimental/andrea/modular_interface/utils)
 
 target_include_directories(kitty_acados PUBLIC
@@ -133,20 +133,20 @@ target_include_directories(kitty_acados PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/acados/sim>
   $<INSTALL_INTERFACE:include/kitty_acados/sim>
 
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/acados/external/hpmpc/include>
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/external/hpmpc/include>
   $<INSTALL_INTERFACE:include/kitty_acados/external/hpmpc/include>
 
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/experimental/andrea/modular_interface/models>
   $<INSTALL_INTERFACE:include/kitty_acados/experimental/andrea/modular_interface/models>
 
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/experimental/andrea/modular_interface/ocps>
-  $<INSTALL_INTERFACE:include/kitty_acados/ocps/experimental/andrea/modular_interface/ocps>
+  $<INSTALL_INTERFACE:include/kitty_acados/experimental/andrea/modular_interface/ocps>
 
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/experimental/andrea/modular_interface/utils>
   $<INSTALL_INTERFACE:include/kitty_acados/experimental/andrea/modular_interface/utils>
   )
 
-install(TARGETS acados kitty_acados EXPORT KittyAcadosConfig
+install(TARGETS kitty_acados acados EXPORT KittyAcadosConfig
   ARCHIVE  DESTINATION lib
   LIBRARY  DESTINATION lib
   RUNTIME  DESTINATION bin)  # This is for Windows
@@ -155,7 +155,7 @@ install(TARGETS acados kitty_acados EXPORT KittyAcadosConfig
 # This makes the project importable from the install directory
 # Put config file in per-project dir (name MUST match), can also
 # just go into <prefix>/cmake.
-install(EXPORT KittyAcadosConfig DESTINATION share/KittyAcadosConfig/cmake)
+install(EXPORT KittyAcadosConfig DESTINATION share/KittyAcados/cmake)
 
 ## This makes the project importable from the build directory
 #export(TARGETS kitty_acados FILE KittyAcadosConfig.cmake)
