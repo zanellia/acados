@@ -90,6 +90,9 @@ endif ()
 add_library(kitty_acados ${ACADOS_CONTROLLER_MEM_SRC} ${ACADOS_SRC})
 target_link_libraries(kitty_acados hpmpc blasfeo m)
 
+set_target_properties(kitty_acados PROPERTIES VERSION 0.22)
+set_target_properties(kitty_acados PROPERTIES SOVERSION 0.22)
+
 # Automatic generation of unit testing data
 if(CMAKE_BUILD_TYPE MATCHES Test)
     include(test_sources)
