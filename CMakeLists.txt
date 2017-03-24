@@ -118,17 +118,17 @@ endif()
 # use, i.e. don't skip the full RPATH for the build tree
 #install(TARGETS acados acados_controller_mem DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
 
-install(DIRECTORY acados/ DESTINATION include/kitty_acados)
+#install(DIRECTORY acados/ DESTINATION include/kitty_acados)
 install(DIRECTORY acados/utils/ DESTINATION include/kitty_acados/utils)
 install(DIRECTORY acados/sim/ DESTINATION include/kitty_acados/sim)
-install(DIRECTORY external/hpmpc/include DESTINATION include/kitty_acados/external/hpmpc/include)
-install(DIRECTORY experimental/andrea/modular_interface/models DESTINATION include/kitty_acados/experimental/andrea/modular_interface/models)
-install(DIRECTORY experimental/andrea/modular_interface/ocps DESTINATION include/kitty_acados/experimental/andrea/modular_interface/ocps)
-install(DIRECTORY experimental/andrea/modular_interface/utils DESTINATION include/kitty_acados/experimental/andrea/modular_interface/utils)
+install(DIRECTORY external/hpmpc/include DESTINATION include/kitty_acados/external/hpmpc)
+install(DIRECTORY experimental/andrea/modular_interface/models DESTINATION include/kitty_acados/experimental/andrea/modular_interface)
+install(DIRECTORY experimental/andrea/modular_interface/ocps DESTINATION include/kitty_acados/experimental/andrea/modular_interface)
+install(DIRECTORY experimental/andrea/modular_interface/utils DESTINATION include/kitty_acados/experimental/andrea/modular_interface)
 
 target_include_directories(kitty_acados PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-  $<INSTALL_INTERFACE:include/kitty_acados>
+#  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+#  $<INSTALL_INTERFACE:include/kitty_acados>
 
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/utils>
   $<INSTALL_INTERFACE:include/kitty_acados/utils>
