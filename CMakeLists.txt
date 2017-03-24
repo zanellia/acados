@@ -36,7 +36,7 @@ endif()
 
 
 # Define include folders
-include_directories("${PROJECT_SOURCE_DIR}"/acados)
+include_directories("${PROJECT_SOURCE_DIR}/acados")
 include_directories("${PROJECT_SOURCE_DIR}/external/")
 include_directories("${PROJECT_SOURCE_DIR}/external/qpOASES/include/")
 if(CMAKE_BUILD_TYPE MATCHES Test)
