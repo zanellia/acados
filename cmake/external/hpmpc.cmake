@@ -23,6 +23,8 @@ ExternalProject_Add(
 
 )
 
+set_target_properties(hpmpc_project PROPERTIES VERSION 0.22)
+set_target_properties(hpmpc_project PROPERTIES SOVERSION 0.22)
 ExternalProject_Get_Property(hpmpc_project source_dir)
 add_library(hpmpc SHARED IMPORTED)
 add_dependencies(hpmpc hpmpc_project blasfeo_project)

@@ -24,6 +24,8 @@ ExternalProject_Add(
 
 )
 
+set_target_properties(blasfeo_project PROPERTIES VERSION 0.22)
+set_target_properties(blasfeo_project PROPERTIES SOVERSION 0.22)
 ExternalProject_Get_Property(blasfeo_project source_dir)
 add_library(blasfeo SHARED IMPORTED)
 add_dependencies(blasfeo blasfeo_project)
