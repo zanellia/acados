@@ -128,13 +128,13 @@ install(DIRECTORY experimental/andrea/modular_interface/utils DESTINATION includ
 
 target_include_directories(kitty_acados PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-  $<INSTALL_INTERFACE:include/kitty_acados>
+  $<INSTALL_INTERFACE:include/kitty_acados>/acados
 
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/utils>
-  $<INSTALL_INTERFACE:include/kitty_acados/utils>
+  $<INSTALL_INTERFACE:include/kitty_acados/acados/utils>
 
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/acados/sim>
-  $<INSTALL_INTERFACE:include/kitty_acados/sim>
+  $<INSTALL_INTERFACE:include/kitty_acados/acados/sim>
 
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/external/hpmpc/include>
   $<INSTALL_INTERFACE:include/kitty_acados/external/hpmpc/include>
