@@ -75,8 +75,8 @@ if (EXISTS ${PROJECT_SOURCE_DIR}/external/OOQP)
 endif ()
 
 # Define acados library
-add_library(acados STATIC ${ACADOS_SRC})
-add_dependencies(acados hpmpc blasfeo)
+#add_library(acados ${ACADOS_SRC})
+#dd_dependencies(acados hpmpc blasfeo)
 #add_dependencies(acados qpoases hpmpc blasfeo qpdunes)
 
 if (EXISTS ${PROJECT_SOURCE_DIR}/external/OOQP)
@@ -87,8 +87,8 @@ endif ()
 #add_subdirectory(swig)
 
 # Define examples
-add_library(kitty_acados SHARED ${ACADOS_CONTROLLER_MEM_SRC})
-target_link_libraries(kitty_acados acados hpmpc blasfeo m)
+add_library(kitty_acados ${ACADOS_CONTROLLER_MEM_SRC} ${ACADOS_SRC})
+target_link_libraries(kitty_acados hpmpc blasfeo m)
 
 # Automatic generation of unit testing data
 if(CMAKE_BUILD_TYPE MATCHES Test)
@@ -146,7 +146,7 @@ target_include_directories(kitty_acados PUBLIC
   $<INSTALL_INTERFACE:include/kitty_acados/experimental/andrea/modular_interface/utils>
   )
 
-install(TARGETS kitty_acados acados EXPORT KittyAcadosConfig
+install(TARGETS kitty_acados EXPORT KittyAcadosConfig
   ARCHIVE  DESTINATION lib
   LIBRARY  DESTINATION lib
   RUNTIME  DESTINATION bin)  # This is for Windows
