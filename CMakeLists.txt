@@ -116,12 +116,12 @@ endif()
 #install(TARGETS acados acados_controller_mem DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
 
 install(DIRECTORY acados/ DESTINATION include/kitty_acados)
-#install(DIRECTORY acados/acados/utils/ DESTINATION include/kitty_acados/utils)
-#install(DIRECTORY acados/acados/sim/ DESTINATION include/kitty_acados/sim)
+install(DIRECTORY acados/utils/ DESTINATION include/kitty_acados/utils)
+install(DIRECTORY acados/sim/ DESTINATION include/kitty_acados/sim)
 install(DIRECTORY external/hpmpc/include DESTINATION include/kitty_acados/external/hpmpc/include)
-#install(DIRECTORY acados/acados/experimental/andrea/modular_interface/models DESTINATION include/kitty_acados/experimental/andrea/modular_interface/models)
+install(DIRECTORY experimental/andrea/modular_interface/models DESTINATION include/kitty_acados/experimental/andrea/modular_interface/models)
 install(DIRECTORY experimental/andrea/modular_interface/ocps DESTINATION include/kitty_acados/experimental/andrea/modular_interface/ocps)
-#install(DIRECTORY acados/acados/experimental/andrea/modular_interface/utils DESTINATION include/kitty_acados/experimental/andrea/modular_interface/utils)
+install(DIRECTORY experimental/andrea/modular_interface/utils DESTINATION include/kitty_acados/experimental/andrea/modular_interface/utils)
 
 target_include_directories(kitty_acados PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
