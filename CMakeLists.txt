@@ -118,7 +118,7 @@ endif()
 # use, i.e. don't skip the full RPATH for the build tree
 #install(TARGETS acados acados_controller_mem DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
 
-install(DIRECTORY . DESTINATION include/kitty_acados)
+install(DIRECTORY acados DESTINATION include/kitty_acados/acados)
 install(DIRECTORY acados/utils/ DESTINATION include/kitty_acados/acados/utils)
 install(DIRECTORY acados/sim/ DESTINATION include/kitty_acados/acados/sim)
 install(DIRECTORY external/hpmpc/include DESTINATION include/kitty_acados/external/hpmpc)
