@@ -92,7 +92,7 @@ add_library(kitty_acados SHARED ${ACADOS_CONTROLLER_MEM_SRC} ${ACADOS_SRC})
 #SET (hpmpc -Wl,--whole-archive)
 #SET (blasfeo -Wl,--whole-archive)
 
-add_dependencies(kitty_acados hpmpc blasfeo)
+#add_dependencies(kitty_acados hpmpc blasfeo)
 target_link_libraries(kitty_acados hpmpc blasfeo m)
 
 #set_target_properties(kitty_acados PROPERTIES VERSION 0.22)
