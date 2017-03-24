@@ -9,7 +9,7 @@
 void residual_u_eval_wrapper(nmpc_data* nmpc_data, const real_t* in, real_t* out, void *internal_mem) {
 
     const int nu = nmpc_data->NU;
-    const int nr = nmpc_data->NU;  // !!!! NU residuals 
+    const int nr = nmpc_data->NU;  // !!!! NU residuals
     const int np = nmpc_data->NP;
 
     const real_t* u = in;

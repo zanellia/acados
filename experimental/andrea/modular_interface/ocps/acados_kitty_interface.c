@@ -1132,10 +1132,10 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
       // residual_x_in[NX+NP+1] = 1.0;
 
       // overwrite mayer term scaling !!! this is not going to work if we change NP
-      real_t scaling_backup = rk4_int->p_in[NP-1];
-      rk4_int->p_in[NP-1] = acados_options->terminal_cost_scaling;
+      // real_t scaling_backup = rk4_int->p_in[NP-1];
+      // rk4_int->p_in[NP-1] = acados_options->terminal_cost_scaling;
       residual_x_eval_wrapper(nmpc_data, residual_x_in, residual_x_out, residual_x_eval_mem);
-      rk4_int->p_in[NP-1] = scaling_backup;
+      // rk4_int->p_in[NP-1] = scaling_backup;
 
       r = residual_x_out;
       drdx = &residual_x_out[NR];
