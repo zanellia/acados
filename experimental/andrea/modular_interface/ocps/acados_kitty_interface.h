@@ -2,7 +2,7 @@
 #define KITTY_ACADOS_INTERFACE_H_
 
 // ACADOS headers
-#include "acados/utils/types.h"
+#include "types.h"
 #include "acados/ocp_qp/ocp_qp_common.h"
 #include "acados/ocp_qp/ocp_qp_hpmpc.h"
 #include "acados/utils/tools.h"
