@@ -5,7 +5,6 @@ set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/")
 
 set(CMAKE_VERBOSE_MAKEFILE OFF)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -Wall -Wextra -Werror -fPIC")
-#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -Wall -Wextra -fPIC")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Wextra -Werror -fPIC")
 
 if(NOT CMAKE_BUILD_TYPE)
@@ -87,7 +86,7 @@ endif ()
 
 # Define examples
 add_library(kitty_acados SHARED ${ACADOS_CONTROLLER_MEM_SRC} ${ACADOS_SRC})
-add_dependencies(kitty_acados hpmpc blasfeo_project-build)
+add_dependencies(kitty_acados hpmpc blasfeo)
 
 # force the compiler to add hpmpc to the shared library
 #SET (hpmpc -Wl,--whole-archive)
@@ -131,9 +130,6 @@ install(DIRECTORY external/hpmpc/include DESTINATION include/kitty_acados/extern
 install(DIRECTORY experimental/andrea/modular_interface/models DESTINATION include/kitty_acados/experimental/andrea/modular_interface)
 install(DIRECTORY experimental/andrea/modular_interface/ocps DESTINATION include/kitty_acados/experimental/andrea/modular_interface)
 install(DIRECTORY experimental/andrea/modular_interface/utils DESTINATION include/kitty_acados/experimental/andrea/modular_interface)
-
-#install(external/hpmpc/libhpmpc.a DESTINATION share/lib)
-#install(external/blasfeo/libblasfeo.a DESTINATION share/lib)
 
 target_include_directories(kitty_acados PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
