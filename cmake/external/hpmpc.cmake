@@ -12,5 +12,5 @@ ExternalProject_Add(
 ExternalProject_Get_Property(hpmpc_project source_dir)
 
 add_library(hpmpc SHARED IMPORTED)
-add_dependencies(hpmpc hpmpc_project)
+add_dependencies(hpmpc hpmpc_project blasfeo_project)
 set_property(TARGET hpmpc PROPERTY IMPORTED_LOCATION "${source_dir}/build/libhpmpc.so")
