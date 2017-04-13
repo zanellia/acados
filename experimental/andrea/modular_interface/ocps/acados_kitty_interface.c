@@ -1300,7 +1300,7 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
 
     if (sanity_checks) {
       // status = ocp_qp_hpmpc_libstr(qp_in, qp_out, hpmpc_args, workspace);
-      status = ocp_qp_hpmpc_libstr_pt(qp_in, qp_out, hpmpc_args, NN, workspace);
+      status = ocp_qp_hpmpc_libstr_pt(qp_in, qp_out, hpmpc_args, 1, workspace);
     } else {
       status = 3; // sanity checks failed
     } // int status = 0;
