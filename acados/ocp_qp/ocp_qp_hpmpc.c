@@ -350,6 +350,7 @@ int ocp_qp_hpmpc_libstr(ocp_qp_in *qp_in, ocp_qp_out *qp_out, ocp_qp_hpmpc_args 
 
 int ocp_qp_hpmpc_libstr_pt(ocp_qp_in *qp_in, ocp_qp_out *qp_out,
   ocp_qp_hpmpc_args *hpmpc_args, int M, void *workspace) {
+
     // initialize return code
     int acados_status = ACADOS_SUCCESS;
 
