@@ -45,6 +45,10 @@
 #include "../ocps/residual_x_eval_wrapper.h"
 #include "../ocps/residual_u_eval_wrapper.h"
 
+// ONLY FOR DEBUGGING !+
+#include "ocp_xtracking_banana2_casadi.h"
+#include "ocp_utracking_banana2_casadi.h"
+#include "ocp_integrate_ode_banana2_casadi.h"
 
 #include <fenv.h>
 #include "eispack.h"
@@ -73,7 +77,6 @@
 // #define RKSTEPS 10 // intermediate rk4 steps
 // #define NSIM 100
 
-
 static void print_states_controls(real_t *w, real_t T, int_t N, int_t NX, int_t NU) {
     FILE *fp = fopen("acados_log.txt","w+");
     printf("node\tx\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\tu\t\t\t\t\n");
@@ -99,7 +102,6 @@ static void print_states_controls(real_t *w, real_t T, int_t N, int_t NX, int_t 
     fclose(fp);
 }
 
-
 static void shift_states(real_t *w, int_t N, int_t NX, int_t NU) {
     for (int_t i = 0; i < N; i++) {
         for (int_t j = 0; j < NX; j++) w[i*(NX+NU)+j] = w[(i+1)*(NX+NU)+j];
@@ -118,6 +120,9 @@ static void shift_controls(real_t *w, int_t N, int_t NX, int_t NU) {
 extern int d_ip2_res_mpc_hard_work_space_size_bytes_libstr(int N, int *nx,
   int *nu, int *nb, int *ng);
 
+extern int d_back_ric_rec_work_space_size_bytes_libstr(int N, int *nx, int *nu,
+      int *nb, int *ng);
+
 extern  int d_size_strmat(int m, int n);
 extern  int d_size_strvec(int m);
 
@@ -125,6 +130,7 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
 
     // get dimensions
     const int NN = init_data->NN;   // number of stages
+    const int MM = init_data->NN;   // number of stages
     const int NX = init_data->NX;   // number of states
     const int NU = init_data->NU;   // number of inputs
     const int NP = init_data->NP;   // numbers of parameters
@@ -328,23 +334,48 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
     plg[0] = lg0;
     pug[0] = ug0;
     real_t **ppi;
-    ppi = malloc(sizeof(real_t *)*NN);
+    ppi = malloc(sizeof(real_t *)*(NN+1));
     real_t **plam;
     plam = malloc(sizeof(real_t *)*(NN+1));
+    real_t **pt;
+    pt = malloc(sizeof(real_t *)*(NN+1));
 
-    ii = 0;
-    d_zeros(&ppi[ii], nx[ii+1], 1);
-    d_zeros(&plam[ii], 2*nb[ii]+2*nb[ii], 1);
-    for (ii = 1; ii < NN; ii++) {
+    real_t **lam_in;
+    lam_in = malloc(sizeof(real_t *)*(NN+1));
+    real_t **t_in;
+    t_in = malloc(sizeof(real_t *)*(NN+1));
+    real_t **ux_in;
+    ux_in = malloc(sizeof(real_t *)*(NN+1));
+
+    // ii = 0;
+    // d_zeros(&ppi[ii], nx[ii+1], 1);
+    // d_zeros(&plam[ii], 2*nb[ii]+2*nb[ii], 1);
+    // d_zeros(&pt[ii], 2*nb[ii]+2*ngg[ii], 1);
+    //
+    // d_zeros(&lam_in[ii], 2*nb[ii]+2*ngg[ii], 1);
+    // d_zeros(&t_in[ii], 2*nb[ii]+2*ngg[ii], 1);
+    // d_zeros(&ux_in[ii], nx[ii]+nu[ii], 1);
+    for (ii = 0; ii < NN; ii++) {
         pC[ii] = C;
         pD[ii] = D;
         plg[ii] = lg;
         pug[ii] = ug;
         d_zeros(&ppi[ii], nx[ii+1], 1);
         d_zeros(&plam[ii], 2*nb[ii]+2*nb[ii], 1);
+        d_zeros(&pt[ii], 2*nb[ii]+2*ngg[ii], 1);
+
+        d_zeros(&lam_in[ii], 2*nb[ii]+2*ngg[ii], 1);
+        d_zeros(&t_in[ii], 2*nb[ii]+2*ngg[ii], 1);
+        d_zeros(&ux_in[ii], nx[ii]+nu[ii], 1);
     }
 
+    d_zeros(&ppi[NN], nx[NN], 1);
     d_zeros(&plam[NN], 2*nb[NN]+2*nb[NN], 1);
+    d_zeros(&pt[NN], 2*nb[NN]+2*ngg[NN], 1);
+
+    d_zeros(&lam_in[NN], 2*nb[NN]+2*ngg[NN], 1);
+    d_zeros(&t_in[NN], 2*nb[NN]+2*ngg[NN], 1);
+    d_zeros(&ux_in[NN], nx[NN]+nu[NN], 1);
 
     pC[NN] = CN;
     plg[NN] = lgN;
@@ -360,6 +391,9 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
 //  hpmpc_args.sigma_min = 1e-3;
     hpmpc_args->warm_start = 0;
     hpmpc_args->N2 = NN;
+    hpmpc_args->lam0 = lam_in;
+    hpmpc_args->t0 = t_in;
+    hpmpc_args->ux0 = ux_in;
 
     // work space
 
@@ -376,19 +410,56 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
         work_space_size+= d_size_strvec(2*nb[ii]+2*ngg[ii]);
         work_space_size+= d_size_strvec(nu[ii]+nx[ii]);
         work_space_size+= d_size_strvec(nx[ii+1]);
+        work_space_size+= d_size_strvec(nx[ii+1]);
+        work_space_size+= d_size_strvec(2*nb[ii]+2*ngg[ii]);
         work_space_size+= d_size_strvec(2*nb[ii]+2*ngg[ii]);
         work_space_size+= d_size_strvec(2*nb[ii]+2*ngg[ii]);
     }
 
-
-    work_space_size+= d_size_strmat(nu[NN]+nx[NN]+1, nu[NN]+nx[NN]);
+    work_space_size+= d_size_strvec(nu[NN]+nx[NN]);
     work_space_size+= d_size_strvec(2*nb[NN]+2*ngg[NN]);
     work_space_size+= d_size_strvec(nu[NN]+nx[NN]);
-    work_space_size+= d_size_strvec(nx[NN]);
+    work_space_size+= d_size_strvec(nu[NN]+nx[NN]);
+    work_space_size+= d_size_strvec(2*nb[NN]+2*ngg[NN]);
     work_space_size+= d_size_strvec(2*nb[NN]+2*ngg[NN]);
     work_space_size+= d_size_strvec(2*nb[NN]+2*ngg[NN]);
 
+    // Adding memory for extra variables in the Riccati recursion
+    for ( int ii=0; ii < NN; ii++ ) {
+      work_space_size+=d_size_strvec(nx[ii+1]);
+      work_space_size+=d_size_strmat(nu[ii]+nx[ii]+1, nu[ii]+nx[ii]);
+      work_space_size+=d_size_strmat(nx[ii], nx[ii]);
+
+      work_space_size+=d_size_strvec(2*nb[ii]+2*ngg[ii]);
+      work_space_size+=d_size_strvec(nb[ii]+ngg[ii]);
+      work_space_size+=d_size_strvec(nb[ii]+ngg[ii]);
+
+      work_space_size+=d_size_strvec(2*nb[ii]+2*ngg[ii]);
+      work_space_size+=d_size_strvec(2*nb[ii]+2*ngg[ii]);
+    }
+
+    ii = NN;
+    work_space_size+=d_size_strmat(nu[ii]+nx[ii]+1, nu[ii]+nx[ii]);
+    work_space_size+=d_size_strmat(nx[ii], nx[ii]);
+
+    work_space_size+=d_size_strvec(2*nb[ii]+2*ngg[ii]);
+    work_space_size+=d_size_strvec(nb[ii]+ngg[ii]);
+    work_space_size+=d_size_strvec(nb[ii]+ngg[ii]);
+    work_space_size+=d_size_strvec(2*nb[ii]+2*ngg[ii]);
+    work_space_size+=d_size_strvec(2*nb[ii]+2*ngg[ii]);
+
+    work_space_size+=d_size_strvec(2*nb[ii]+2*ngg[ii]);
+    work_space_size+=d_size_strvec(nb[ii]+ngg[ii]);
+    work_space_size+=d_size_strvec(nb[ii]+ngg[ii]);
+    work_space_size+=d_size_strvec(2*nb[ii]+2*ngg[ii]);
+    work_space_size+=d_size_strmat(nx[MM]+1, nx[MM]);
+    work_space_size+=d_size_strmat(nx[MM]+1, nx[MM]);
+
+    // add memory for riccati work space
+    work_space_size+=d_back_ric_rec_work_space_size_bytes_libstr(NN, nx, nu, nb, ngg);
+
     work_space_size += sizeof(int_t)*MAX_IP_ITER*5;
+    work_space_size +=sizeof(double)*1000;  // TODO(Andrea): fix this...
 
     // work_space_size += 1*sizeof(double)*(NN+1); // TODO(Andrea): ??
 
@@ -427,11 +498,14 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
     qp_out->u = pu;
     qp_out->pi = ppi;
     qp_out->lam = plam;
+    qp_out->t = pt;
 
     // allocate memory for nmpc_data
     // Problem data
-    real_t  *w; // States and controls stacked
+    real_t  *w, *t_n, *lam_n; // States and controls stacked
     d_zeros(&w, NN*(NX+NU)+NX, 1);
+    d_zeros(&t_n, NB0 + (NN-1)*NB + NBN, 1);
+    d_zeros(&lam_n, NB0 + (NN-1)*NB + NBN, 1);
 
     real_t *lb0 = malloc(sizeof(real_t)*NB0);
     real_t *lb = malloc(sizeof(real_t)*NB);
@@ -457,6 +531,9 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
     int_t   max_iters     = 1;
 
     nmpc_data->w = w;
+    nmpc_data->lam_n = lam_n;
+    nmpc_data->t_n = t_n;
+
     nmpc_data->max_sqp_iters = max_sqp_iters;
     nmpc_data->max_iters = max_iters;
 
@@ -577,12 +654,15 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
 
       free(nmpc_data->qp_out->pi[0]);
       free(nmpc_data->qp_out->lam[0]);
+      free(nmpc_data->qp_out->t[0]);
       for (int_t ii = 1; ii < NN; ii++) {
           free(nmpc_data->qp_out->pi[ii]);
           free(nmpc_data->qp_out->lam[ii]);
+          free(nmpc_data->qp_out->t[ii]);
       }
 
       free(nmpc_data->qp_out->lam[NN]);
+      free(nmpc_data->qp_out->t[NN]);
 
       // free double pointers
       free(nmpc_data->qp_in->A);
@@ -609,6 +689,7 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
       free(nmpc_data->qp_out->u);
       free(nmpc_data->qp_out->pi);
       free(nmpc_data->qp_out->lam);
+      free(nmpc_data->qp_out->t);
 
       // free solver arguments
       free(nmpc_data->hpmpc_args);
@@ -679,6 +760,9 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
     real_t *ubN = nmpc_data->ubN;
 
     real_t *w = nmpc_data->w;
+    real_t *lam_n = nmpc_data->lam_n;
+    real_t *t_n = nmpc_data->t_n;
+
     // int_t max_sqp_iters=  nmpc_data->max_sqp_iters;
     // int_t max_iters= nmpc_data->max_iters;
 
@@ -1201,6 +1285,7 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
 
     if (sanity_checks) {
       status = ocp_qp_hpmpc_libstr(qp_in, qp_out, hpmpc_args, workspace);
+      // status = ocp_qp_hpmpc_libstr_pt(qp_in, qp_out, hpmpc_args, NN, workspace);
     } else {
       status = 3; // sanity checks failed
     } // int status = 0;
@@ -1222,15 +1307,24 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
       qp_step_size+=lambda*lambda*qp_out->u[0][j]*qp_out->u[0][j];
     }
 
+    double GAMMA = 0.001;
+    for (int_t j = 0; j < NB0; j++) lam_n[0*(NB0)+j] = qp_out->lam[0][j] + GAMMA;
+    for (int_t j = 0; j < NB0; j++) t_n[0*(NB0)+j] = qp_out->t[0][j] + GAMMA;
+
     for (int_t i = 1; i < NN; i++) {
         for (int_t j = 0; j < NX; j++) {
           w[i*(NX+NU)+j] += lambda*qp_out->x[i][j];
+
           qp_step_size+=lambda*lambda*qp_out->x[i][j]*qp_out->x[i][j];
         }
         for (int_t j = 0; j < NU; j++) {
           w[i*(NX+NU)+NX+j] += lambda*qp_out->u[i][j];
+
           qp_step_size+=lambda*lambda*qp_out->u[i][j]*qp_out->u[i][j];
         }
+
+        for (int_t j = i; j < NB; j++) lam_n[i*(NB0)+j] = qp_out->lam[i][j] + GAMMA;
+        for (int_t j = i; j < NB; j++) t_n[i*(NB0)+j] = qp_out->t[i][j] + GAMMA;
     }
 
     for (int_t j = 0; j < NX; j++) {
@@ -1238,6 +1332,8 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
       qp_step_size+=lambda*lambda*qp_out->x[NN][j]*qp_out->x[NN][j];
     }
 
+    for (int_t j = 0; j < NBN; j++) lam_n[NN*(NBN)+j] = qp_out->lam[NN][j]+ GAMMA;
+    for (int_t j = 0; j < NBN; j++) t_n[NN*(NBN)+j] = qp_out->t[NN][j]+ GAMMA;
 
     // noralize vector
     qp_step_size = sqrt(qp_step_size);
@@ -1261,52 +1357,51 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
 }
 
 // uncomment for testing
-#if 0
+#if 1
 int main() {
 
-  // feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
+  feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
 
-  const int NN  = nn;   // number of stages
-  const int NX  = 11;   // number of states
-  const int NU  = 4;    // number of inputs
-  const int NB0 = 11;    // number of bounds on stage 0
-  const int NB  = 4;    // number of bounds on stage 1 to N-1
-  const int NBN = 4;    // number of bounds on stage N
-  const int NP  = 43;   // numbers of parameters
-  const int NR  = 14;   // number of residuals (least-square)
+  nmpc_data *acados_data;
+  rk4_int *acados_rk4;
+  init_nmpc_data *acados_init;
+  acados_options *acados_opts;
 
-  const real_t REGQ = 0.0;
-  const real_t REGR = 0.0;
+  acados_data = (nmpc_data *)malloc(sizeof *acados_data);
+  acados_rk4 = (rk4_int *)malloc(sizeof *acados_rk4);
+  acados_init = (init_nmpc_data *)malloc(sizeof *acados_init);
+  acados_opts = (acados_options *)malloc(sizeof *acados_opts);
 
-  init_nmpc_data *init_data;
-  init_data = malloc(sizeof *init_data);
-
-  nmpc_data *nmpc_data;
-  nmpc_data = malloc(sizeof *nmpc_data);
-
-  rk4_int *rk4_int;
-  rk4_int = malloc(sizeof *rk4_int);
+  // const int NN = 10;  // number of stages
+  const int NX = 11;  // number of states
+  const int NU = 4;  // number of inputs
+  const int NB0 = 11; // number of input on stage 0
+  const int NB = 4; // number of input on stage 1 to N-1
+  const int NBN = 4; // number of input on stage N
+  const int NP = 76;  // numbers of parameters
+  const int NR = 15;  // number of residuals (least-square)
 
   // get dimensions
-  init_data->NN  = NN;
-  init_data->NX  = NX;
-  init_data->NU  = NU;
-  init_data->NB0 = NB0;
-  init_data->NB  = NB;
-  init_data->NBN = NBN;
-  init_data->NP  = NP;
-  init_data->NR  = NR;
+  // acados_init->NN  = NN;   // number of stages
+  acados_init->NX  = NX;   // number of states
+  acados_init->NU  = NU;   // number of inputs
+  acados_init->NB0 = NB0; // number of bounds on stage 0
+  acados_init->NB  = NB; // number of bounds on stage 1 to N-1
+  acados_init->NBN = NBN; // number of bounds on stage N
+  acados_init->NP  = NP;   // numbers of parameters
+  acados_init->NR  = NR;   // number of residuals (least-square)
 
   // define bound indexes
-  int_t *idxb0 = malloc(sizeof(int_t)*NB0);
-  int_t *idxb = malloc(sizeof(int_t)*NB);
-  int_t *idxbN = malloc(sizeof(int_t)*NBN);
+  int_t *idxb0 = (int_t*)malloc(sizeof(int_t)*NB0);
+  int_t *idxb = (int_t*)malloc(sizeof(int_t)*NB);
+  int_t *idxbN = (int_t*)malloc(sizeof(int_t)*NBN);
 
   // bound-indexes for stage 0
   idxb0[0] = 4;
   idxb0[1] = 5;
   idxb0[2] = 6;
   idxb0[3] = 7;
+
   idxb0[4] = 8;
   idxb0[5] = 9;
   idxb0[6] = 10;
@@ -1316,7 +1411,7 @@ int main() {
   idxb0[9] = 13;
   idxb0[10] = 14;
 
-  // // bound-indexes for stage 1 to N-1
+  // bound-indexes for stage 1 to N-1
   idxb[0] = 11;
   idxb[1] = 12;
   idxb[2] = 13;
@@ -1328,112 +1423,119 @@ int main() {
   idxbN[2] = 13;
   idxbN[3] = 14;
 
-  init_data->idxb0 = idxb0;
-  init_data->idxb = idxb;
-  init_data->idxbN = idxbN;
+  acados_init->idxb0 = idxb0;
+  acados_init->idxb = idxb;
+  acados_init->idxbN = idxbN;
 
-  nmpc_data->res_x = &ocp_xtracking_banana1;
-  nmpc_data->res_x_work = &ocp_xtracking_banana1_work;
+  acados_data->res_x = (void (*)(const real_t**, real_t**, int*, real_t*, int))&ocp_xtracking_banana2;
+  acados_data->res_x_work = (void (*)(int*, int*, int*, int*))&ocp_xtracking_banana2_work;
 
-  nmpc_data->res_u = &ocp_utracking_banana1;
-  nmpc_data->res_u_work = &ocp_utracking_banana1_work;
+  acados_data->res_u = (void (*)(const real_t**, real_t**, int*, real_t*, int))&ocp_utracking_banana2;
+  acados_data->res_u_work = (void (*)(int*, int*, int*, int*))&ocp_utracking_banana2_work;
 
-  nmpc_data->nls = 1;
+  acados_rk4->eval_dynamics = (void (*)(const real_t**, real_t**, int*, real_t*, int))&ocp_integrate_ode_banana2;
+  acados_rk4->eval_dynamics_work = (void (*)(int*, int*, int*, int*))&ocp_integrate_ode_banana2_work;
 
-  rk4_int->eval_dynamics = &ocp_integrate_ode_banana1;
-  rk4_int->eval_dynamics_work = &ocp_integrate_ode_banana1_work;
+  acados_opts->nls = 1;
+  acados_opts->print_level = 2;
+  acados_opts->newton_step_size = 1;
+  acados_opts->sqp_steps = 1;
+  acados_opts->plot_open_loop = 0;
+  acados_rk4->h_in = 0.1;
+  acados_rk4->n_steps = 2;
+  acados_init->NN = 10;
+  acados_opts->use_gnuplot = 0;
+  acados_opts->shifting= 0;
+  acados_opts->max_qp_step= 10;
+  acados_opts->terminal_cost_scaling= 1;
 
-  init_acados(nmpc_data, rk4_int, init_data);
+  init_acados(acados_data, acados_rk4, acados_init, acados_opts);
 
-  real_t init_angle = 1;
+  // 1 - bounds
+  double *lb0  = (real_t*)acados_data->lb0;
+  double *ub0  = (real_t*)acados_data->ub0;
 
-  rk4_int->n_steps = RKSTEPS;
-  rk4_int->h_in = STEP_SIZE;
+  double *lb  = (real_t*)acados_data->lb;
+  double *ub  = (real_t*)acados_data->ub;
 
-  // initial condition
-  nmpc_data->lb0[0] = cos(init_angle/2);
-  nmpc_data->lb0[1] = sin(init_angle/2);
-  nmpc_data->lb0[2] = 0.0;
-  nmpc_data->lb0[3] = 0.0;
-  nmpc_data->lb0[4] = 0.0;
-  nmpc_data->lb0[5] = 0.0;
-  nmpc_data->lb0[6] = 0.0;
+  double *lbN  = (real_t*)acados_data->lbN;
+  double *ubN  = (real_t*)acados_data->ubN;
 
-  nmpc_data->lb0[7] = -1.0;
-  nmpc_data->lb0[8] = -1.0;
-  nmpc_data->lb0[9] = -1.0;
-  nmpc_data->lb0[10] = -1.0;
+  lb0[0] = 1;
+  lb0[1] = 0;
+  lb0[2] = 0;
+  lb0[3] = 0;
 
-  nmpc_data->ub0[0] = cos(init_angle/2);
-  nmpc_data->ub0[1] = sin(init_angle/2);
-  nmpc_data->ub0[2] = 0.0;
-  nmpc_data->ub0[3] = 0.0;
-  nmpc_data->ub0[4] = 0.0;
-  nmpc_data->ub0[5] = 0.0;
-  nmpc_data->ub0[6] = 0.0;
+  lb0[4] = 0;
+  lb0[5] = 0;
+  lb0[6] = 0;
 
-  nmpc_data->ub0[7] = 1.0;
-  nmpc_data->ub0[8] = 1.0;
-  nmpc_data->ub0[9] = 1.0;
-  nmpc_data->ub0[10] = 1.0;
+  lb0[7] = -1;
+  lb0[8] = -1;
+  lb0[9] = -1;
+  lb0[10] = -1;
 
-  // bounds on stage 1 to N-1
-  nmpc_data->lb[0] = -1.0;
-  nmpc_data->lb[1] = -1.0;
-  nmpc_data->lb[2] = -1.0;
-  nmpc_data->lb[3] = -1.0;
+  ub0[0] = 1;
+  ub0[1] = 0;
+  ub0[2] = 0;
+  ub0[3] = 0;
 
-  nmpc_data->ub[0] = 1.0;
-  nmpc_data->ub[1] = 1.0;
-  nmpc_data->ub[2] = 1.0;
-  nmpc_data->ub[3] = 1.0;
+  ub0[4] = 0;
+  ub0[5] = 0;
+  ub0[6] = 0;
 
-  // bounds on stage N
-  nmpc_data->lbN[0] = -1.0;
-  nmpc_data->lbN[1] = -1.0;
-  nmpc_data->lbN[2] = -1.0;
-  nmpc_data->lbN[3] = -1.0;
+  ub0[7] = 1;
+  ub0[8] = 1;
+  ub0[9] = 1;
+  ub0[10] = 1;
 
-  nmpc_data->ubN[0] = 1.0;
-  nmpc_data->ubN[1] = 1.0;
-  nmpc_data->ubN[2] = 1.0;
-  nmpc_data->ubN[3] = 1.0;
-
-  real_t p[NP_dummy] = {9.8, 0, 0, 0, 9.8, 0, 0, 0, 18.8, -0.75, 0, 0, 0, 217,
-    1, 1, 1, 1, 9, 1, -1, 1, -1, 1, 0, 40, 40, 40, 0, 0, 0, -1, 1, 1, 1, 15, 15,
-    1, 1000, 1000, 1000, 1000, 1000};
-
-  for (int_t i = 0; i < NP; i++) rk4_int->p_in[i] = p[i];
-
-
-  for (int i = 0; i <= NN; i++)
-    for (int_t j = 0; j < NB0; j++)
-      nmpc_data->w[i*(NX+NU)+j] = nmpc_data->ub0[j];
-
-  for (int i = 0; i < NU; i++) nmpc_data->w[NX-NU+i] = 0.0;
-  for (int i = 0; i < NB0; i++) nmpc_data->w[i] = nmpc_data->lb0[i];
-
-  // for (int i = 0; i <= NN; i++) nmpc_data->w[i*(NX+NU)+1] =  sqrt(1-0.99*0.99);
-
-  nmpc_data->regQ = REGQ;
-  nmpc_data->regR = REGR;
-
-  for (int_t i = 0; i < NSIM; i++){
-    // normalize quaternion to avoid blow-up
-    for (int_t j = 0; j <= NN; j++){
-      real_t norm = 0.0;
-      // if (nmpc_data->w[j*(NX+NU)]>0.99) nmpc_data->w[j*(NX+NU)] = 0.97;
-      for (int_t k = 0; k < 4; k++) norm+=nmpc_data->w[j*(NX+NU) +k]*nmpc_data->w[j*(NX+NU) +k];
-      for (int_t k = 0; k < 4; k++) nmpc_data->w[j*(NX+NU) +k] = nmpc_data->w[j*(NX+NU) +k]/sqrt(norm);
-    }
-
-    run_acados(nmpc_data, rk4_int);
-
-    for(int_t j = 0; j < NB0; j++) {
-      nmpc_data->lb0[j] = nmpc_data->w[NX+NU +j];
-      nmpc_data->ub0[j] = nmpc_data->w[NX+NU +j];
-    }
+  for (int_t j = 0; j < NB; j++) {
+    lb[j] = -1;
+    ub[j] = 1;
   }
 
+  for (int_t j = 0; j < NBN; j++) {
+    lbN[j] = -1;
+    ubN[j] = 1;
+  }
+
+  // 2 - parameters
+  // check param dimension
+  int np  = NP;
+
+  int params_vec[76] = {1.9, 0, 0, 0, 2.1, 0, 0, 0, 3.9, 10.5, 1.9, 0, 0, 0, 2.1,
+    0, 0, 0, 3.9, 0, 0, 0, 0, 0, 0, 0, 0, 24.1533, 0, 24.1533, 0, 24.1533, 0,
+    24.1533, -1, 1, -0.350201, 5.37478, -1, 1, -0.350201, 5.37478, -1, 1, -0.350201,
+    5.37478, -1, 1, -0.350201, 5.37478, -1, 1, -1, 1, 1, 40, 40, 40, 0, 0, 0, -0.7,
+    0, 1, 1, 0.1, 5, 5, 1000, 0.1, 1000, 10, 100, 1000, 1, 1};
+
+  for (int_t i = 0; i < (int_t)np; i++) acados_rk4->p_in[i] = params_vec[i];
+
+  double lam_init = 0.1;
+  double t_init = 0.1;
+  // initialize nlp primal variables
+  for (int_t j = 0; j < NB0 + (acados_data->NN-1)*NB + NBN; j++) acados_data->lam_n[j]  = lam_init;
+  for (int_t j = 0; j < NB0 + (acados_data->NN-1)*NB + NBN; j++) acados_data->t_n[j]  = t_init;
+
+  // initialize primal variables
+  for (int i = 0; i <= acados_data->NN; i++) {
+  for (int_t j = 0; j < (int)(NX-NU); j++){
+        acados_data->w[i*(NX+NU)+j] = acados_data->lb0[j];
+    }
+    for (int i = 0; i < (int)NU; i++) acados_data->w[NX-NU+i] = 0.0;
+  }
+
+  for (int i = 0; i < (int)NU; i++) acados_data->w[NX-NU+i] = 0.0;
+  for (int i = 0; i < (int)(NX-NU); i++) acados_data->w[i] = acados_data->lb0[i];
+
+  acados_data->regQ = 0;
+  acados_data->regR = 0;
+
+  acados_data->hpmpc_args->mu0 = 1;
+  double inf_norm_res[5] = {0.0, 0.0, 0.0, 0.0, 0.0};
+  acados_data->hpmpc_args->inf_norm_res = &inf_norm_res[0];
+
+  int acados_status = run_acados(acados_data, acados_rk4, acados_opts);
+  printf("acados_status = %i",acados_status);
 }
 #   endif

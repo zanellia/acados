@@ -40,6 +40,13 @@ file(GLOB ACADOS_CONTROLLER_MEM_SRC
 
 )
 
+# ONLY FOR DEBUGGING +!
+file(GLOB KITTY_ACADOS_AUTOGEN
+    ${PROJECT_SOURCE_DIR}/../../control/autogen/ocp_xtracking_banana2_casadi.c
+    ${PROJECT_SOURCE_DIR}/../../control/autogen/ocp_utracking_banana2_casadi.c
+    ${PROJECT_SOURCE_DIR}/../../control/autogen/ocp_integrate_ode_banana2_casadi.c
+)
+
 file(GLOB PENDULUM_EXAMPLE_PT_SRC ${PROJECT_SOURCE_DIR}/examples/casadi_pendulum/pendulum_model.c
 
     ${PROJECT_SOURCE_DIR}/examples/casadi_pendulum/vde_forw_pendulum.c

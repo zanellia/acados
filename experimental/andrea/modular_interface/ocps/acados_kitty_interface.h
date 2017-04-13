@@ -2,8 +2,8 @@
 #define KITTY_ACADOS_INTERFACE_H_
 
 // ACADOS headers
-#include "types.h"
 #include "acados/ocp_qp/ocp_qp_common.h"
+#include "acados/utils/types.h"
 #include "acados/ocp_qp/ocp_qp_hpmpc.h"
 #include "acados/utils/tools.h"
 
@@ -33,6 +33,9 @@ typedef struct _nmpc_data {
 
   // ocp nlp data
   real_t *w;
+  real_t *lam_n;
+  real_t *t_n;
+  
   int_t max_sqp_iters;
   int_t max_iters;
 

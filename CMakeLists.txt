@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 2.8.11)
 project(acados)
 
-
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/")
 
 set(CMAKE_VERBOSE_MAKEFILE OFF)
@@ -56,6 +55,9 @@ include_directories("${PROJECT_SOURCE_DIR}/experimental/andrea/modular_interface
 include_directories("${PROJECT_SOURCE_DIR}/experimental/andrea/modular_interface/autogen/")
 include_directories("${PROJECT_SOURCE_DIR}/experimental/andrea/modular_interface/utils/")
 
+# ONLY FOR DEBUGGING +!
+include_directories("${PROJECT_SOURCE_DIR}/../../control/autogen/")
+
 # Define source files
 include(acados_sources)
 add_definitions(-DUSE_ACADOS_TYPES)
@@ -88,16 +90,11 @@ endif ()
 # Define examples
 add_library(kitty_acados SHARED ${ACADOS_CONTROLLER_MEM_SRC} ${ACADOS_SRC})
 add_dependencies(kitty_acados hpmpc blasfeo)
+target_link_libraries(kitty_acados blasfeo hpmpc m)
 
-# force the compiler to add hpmpc to the shared library
-#SET (hpmpc -Wl,--whole-archive)
-#SET (blasfeo -Wl,--whole-archive)
-
-#add_dependencies(kitty_acados hpmpc blasfeo)
-#target_link_libraries(kitty_acados hpmpc blasfeo m)
-
-#set_target_properties(kitty_acados PROPERTIES VERSION 0.22)
-#set_target_properties(kitty_acados PROPERTIES SOVERSION 0.22)
+#add_executable(kitty_acados_exec ${ACADOS_CONTROLLER_MEM_SRC} ${ACADOS_SRC} ${KITTY_ACADOS_AUTOGEN})
+#add_dependencies(kitty_acados_exec hpmpc blasfeo)
+#target_link_libraries(kitty_acados_exec debug hpmpc blasfeo m)
 
 # Automatic generation of unit testing data
 if(CMAKE_BUILD_TYPE MATCHES Test)
