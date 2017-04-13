@@ -395,6 +395,7 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
     hpmpc_args->lam0 = lam_in;
     hpmpc_args->t0 = t_in;
     hpmpc_args->ux0 = ux_in;
+    hpmpc_args->sigma_mu = init_data->sigma_mu;
 
     // work space
 
@@ -1292,8 +1293,8 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
     for (int_t j = 0; j < 2*NB0; j++) t_in[0][j] = t_n[j];
 
     for (int_t i = 1; i < NN; i++) {
-        for (int_t j = i; j < 2*NB; j++) lam_in[i][j] = lam_n[2*NB0 + i*2*NB +j];
-        for (int_t j = i; j < 2*NB; j++) t_in[i][j] = t_n[2*NB0 + i*2*NB +j];
+        for (int_t j = 0; j < 2*NB; j++) lam_in[i][j] = lam_n[2*NB0 + (i-1)*2*NB +j];
+        for (int_t j = 0; j < 2*NB; j++) t_in[i][j] = t_n[2*NB0 + (i-1)*2*NB +j];
     }
 
     for (int_t j = 0; j < 2*NBN; j++) lam_in[NN][j] = lam_n[2*NB0 + 2*(NN-1)*NB +j];

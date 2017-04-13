@@ -642,7 +642,7 @@ int ocp_qp_hpmpc_libstr_pt(ocp_qp_in *qp_in, ocp_qp_out *qp_out,
     // d_ip2_res_mpc_hard_work_space_size_bytes_libstr(N, nx, nu, nb, ng));
 
     // update cost function matrices and vectors (box constraints)
-    double sigma_mu = 1.0;
+    double sigma_mu = hpmpc_args->sigma_mu;
     d_update_hessian_mpc_hard_libstr(N-M, &nx[M], &nu[M], &nb[M], &ng[M],
       &hsd[M], sigma_mu, &hst[M], &hstinv[M], &hslam[M], &hslamt[M], &hsdlam[M],
       &hsQx[M], &hsqx[M]);
@@ -734,13 +734,19 @@ int ocp_qp_hpmpc_libstr_pt(ocp_qp_in *qp_in, ocp_qp_out *qp_out,
     //   hx[ii] = &temp_u[0][nu[ii]];
     // }
 
-    for ( ii = 0; ii <= N; ii++ ) {
+    for ( ii = 0; ii < N; ii++ ) {
       hu[ii] = hsux[ii].pa;
       hlam[ii] = hslam[ii].pa;
       ht[ii] = hst[ii].pa;
       temp_u = &hsux[ii].pa;
       hx[ii] = &temp_u[0][nu[ii]];
     }
+
+    ii = N;
+    hlam[ii] = hslam[ii].pa;
+    ht[ii] = hst[ii].pa;
+    temp_u = &hsux[ii].pa;
+    hx[ii] = &temp_u[0][nu[ii]];
 
     // ii = N;
     // if (M < N){

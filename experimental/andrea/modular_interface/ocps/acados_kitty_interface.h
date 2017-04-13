@@ -28,6 +28,8 @@ typedef struct _init_data {  // data needed to allocate memory (cannot be change
   int_t *idxb;  //bounds index on stage 1 to N-1
   int_t *idxbN; //bounds index on stage N
 
+  double sigma_mu;
+
 } init_nmpc_data;
 
 typedef struct _nmpc_data {

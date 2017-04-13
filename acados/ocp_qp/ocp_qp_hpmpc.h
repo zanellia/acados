@@ -34,13 +34,14 @@ typedef struct ocp_qp_hpmpc_args_ {
     int max_iter;
     //  double min_step;
     double mu0;
-    //  double sigma_min;
+    // double sigma_min;
     int warm_start;
     int N2;  // horizion length of the partially condensed problem
     double **ux0;
     double **pi0;
     double **lam0;
     double **t0;
+    double sigma_mu;
     int out_iter;  // number of performed iterations
     double *inf_norm_res;  // array of size 5, returning inf norm res
 } ocp_qp_hpmpc_args;
