@@ -1360,7 +1360,7 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
 #if 1
 int main() {
 
-  feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
+  // feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
 
   nmpc_data *acados_data;
   rk4_int *acados_rk4;
