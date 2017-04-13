@@ -1314,14 +1314,17 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
     if (status == 3) printf("sanity checks failed\n");
 
     // int this formulation we keep x0 as well
+    printf("qp_step_size = %f\n",qp_step_size);
     real_t lambda = acados_options->newton_step_size;
     for (int_t j = 0; j < NX; j++) {
       w[0*(NX+NU)+j] += qp_out->x[0][j];
       qp_step_size+=lambda*lambda*qp_out->x[0][j]*qp_out->x[0][j];
+      printf("qp_step_size = %f\n",qp_step_size);
     }
     for (int_t j = 0; j < NU; j++) {
       w[0*(NX+NU)+NX+j] += lambda*qp_out->u[0][j];
       qp_step_size+=lambda*lambda*qp_out->u[0][j]*qp_out->u[0][j];
+      printf("qp_step_size = %f\n",qp_step_size);
     }
 
     double GAMMA = 0.001;
@@ -1333,11 +1336,13 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
           w[i*(NX+NU)+j] += lambda*qp_out->x[i][j];
 
           qp_step_size+=lambda*lambda*qp_out->x[i][j]*qp_out->x[i][j];
+          printf("qp_step_size = %f\n",qp_step_size);
         }
         for (int_t j = 0; j < NU; j++) {
           w[i*(NX+NU)+NX+j] += lambda*qp_out->u[i][j];
 
           qp_step_size+=lambda*lambda*qp_out->u[i][j]*qp_out->u[i][j];
+          printf("qp_step_size = %f\n",qp_step_size);
         }
 
         for (int_t j = 0; j < 2*NB; j++) lam_n[2*NB0 + i*2*NB +j] = qp_out->lam[i][j] + GAMMA;
@@ -1347,6 +1352,7 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
     for (int_t j = 0; j < NX; j++) {
       w[NN*(NX+NU)+j] += lambda*qp_out->x[NN][j];
       qp_step_size+=lambda*lambda*qp_out->x[NN][j]*qp_out->x[NN][j];
+      printf("qp_step_size = %f\n",qp_step_size);
     }
 
     for (int_t j = 0; j < 2*NBN; j++) lam_n[2*NB0 + 2*(NN-1)*NB +j] = qp_out->lam[NN][j]+ GAMMA;
