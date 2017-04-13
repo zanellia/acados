@@ -1340,8 +1340,8 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
           qp_step_size+=lambda*lambda*qp_out->u[i][j]*qp_out->u[i][j];
         }
 
-        for (int_t j = i; j < 2*NB; j++) lam_n[2*NB0 + i*2*NB +j] = qp_out->lam[i][j] + GAMMA;
-        for (int_t j = i; j < 2*NB; j++) t_n[2*NB0 + i*2*NB +j] = qp_out->t[i][j] + GAMMA;
+        for (int_t j = 0; j < 2*NB; j++) lam_n[2*NB0 + i*2*NB +j] = qp_out->lam[i][j] + GAMMA;
+        for (int_t j = 0; j < 2*NB; j++) t_n[2*NB0 + i*2*NB +j] = qp_out->t[i][j] + GAMMA;
     }
 
     for (int_t j = 0; j < NX; j++) {
