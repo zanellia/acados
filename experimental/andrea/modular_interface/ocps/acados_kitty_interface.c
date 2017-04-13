@@ -504,8 +504,8 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
     // Problem data
     real_t  *w, *t_n, *lam_n; // States and controls stacked
     d_zeros(&w, NN*(NX+NU)+NX, 1);
-    d_zeros(&t_n, NB0 + (NN-1)*NB + NBN, 1);
-    d_zeros(&lam_n, NB0 + (NN-1)*NB + NBN, 1);
+    d_zeros(&t_n, 2*(NB0 + (NN-1)*NB + NBN), 1);
+    d_zeros(&lam_n, 2*(NB0 + (NN-1)*NB + NBN), 1);
 
     real_t *lb0 = malloc(sizeof(real_t)*NB0);
     real_t *lb = malloc(sizeof(real_t)*NB);
@@ -762,6 +762,9 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
     real_t *w = nmpc_data->w;
     real_t *lam_n = nmpc_data->lam_n;
     real_t *t_n = nmpc_data->t_n;
+
+    real_t **t_in = nmpc_data->hpmpc_args->t0;
+    real_t **lam_in = nmpc_data->hpmpc_args->lam0;
 
     // int_t max_sqp_iters=  nmpc_data->max_sqp_iters;
     // int_t max_iters= nmpc_data->max_iters;
@@ -1283,9 +1286,21 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
       }
     }
 
+    // init lam and t
+    for (int_t j = 0; j < 2*NB0; j++) lam_in[0][j] = lam_n[j];
+    for (int_t j = 0; j < 2*NB0; j++) t_in[0][j] = t_n[j];
+
+    for (int_t i = 1; i < NN; i++) {
+        for (int_t j = i; j < 2*NB; j++) lam_in[i][j] = lam_n[2*NB0 + i*2*NB +j];
+        for (int_t j = i; j < 2*NB; j++) t_in[i][j] = t_n[2*NB0 + i*2*NB +j];
+    }
+
+    for (int_t j = 0; j < 2*NBN; j++) lam_in[NN][j] = lam_n[2*NB0 + 2*(NN-1)*NB +j];
+    for (int_t j = 0; j < 2*NBN; j++) t_in[NN][j] = t_n[2*NB0 + 2*(NN-1)*NB+j];
+
     if (sanity_checks) {
-      status = ocp_qp_hpmpc_libstr(qp_in, qp_out, hpmpc_args, workspace);
-      // status = ocp_qp_hpmpc_libstr_pt(qp_in, qp_out, hpmpc_args, NN, workspace);
+      // status = ocp_qp_hpmpc_libstr(qp_in, qp_out, hpmpc_args, workspace);
+      status = ocp_qp_hpmpc_libstr_pt(qp_in, qp_out, hpmpc_args, NN, workspace);
     } else {
       status = 3; // sanity checks failed
     } // int status = 0;
@@ -1308,8 +1323,8 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
     }
 
     double GAMMA = 0.001;
-    for (int_t j = 0; j < NB0; j++) lam_n[0*(NB0)+j] = qp_out->lam[0][j] + GAMMA;
-    for (int_t j = 0; j < NB0; j++) t_n[0*(NB0)+j] = qp_out->t[0][j] + GAMMA;
+    for (int_t j = 0; j < 2*NB0; j++) lam_n[j] = qp_out->lam[0][j] + GAMMA;
+    for (int_t j = 0; j < 2*NB0; j++) t_n[j] = qp_out->t[0][j] + GAMMA;
 
     for (int_t i = 1; i < NN; i++) {
         for (int_t j = 0; j < NX; j++) {
@@ -1323,8 +1338,8 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
           qp_step_size+=lambda*lambda*qp_out->u[i][j]*qp_out->u[i][j];
         }
 
-        for (int_t j = i; j < NB; j++) lam_n[i*(NB0)+j] = qp_out->lam[i][j] + GAMMA;
-        for (int_t j = i; j < NB; j++) t_n[i*(NB0)+j] = qp_out->t[i][j] + GAMMA;
+        for (int_t j = i; j < 2*NB; j++) lam_n[2*NB0 + i*2*NB +j] = qp_out->lam[i][j] + GAMMA;
+        for (int_t j = i; j < 2*NB; j++) t_n[2*NB0 + i*2*NB +j] = qp_out->t[i][j] + GAMMA;
     }
 
     for (int_t j = 0; j < NX; j++) {
@@ -1332,8 +1347,8 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
       qp_step_size+=lambda*lambda*qp_out->x[NN][j]*qp_out->x[NN][j];
     }
 
-    for (int_t j = 0; j < NBN; j++) lam_n[NN*(NBN)+j] = qp_out->lam[NN][j]+ GAMMA;
-    for (int_t j = 0; j < NBN; j++) t_n[NN*(NBN)+j] = qp_out->t[NN][j]+ GAMMA;
+    for (int_t j = 0; j < 2*NBN; j++) lam_n[2*NB0 + 2*(NN-1)*NB +j] = qp_out->lam[NN][j]+ GAMMA;
+    for (int_t j = 0; j < 2*NBN; j++) t_n[2*NB0 + 2*(NN-1)*NB+j] = qp_out->t[NN][j]+ GAMMA;
 
     // noralize vector
     qp_step_size = sqrt(qp_step_size);
@@ -1360,7 +1375,7 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
 #if 1
 int main() {
 
-  // feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
+  feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
 
   nmpc_data *acados_data;
   rk4_int *acados_rk4;
@@ -1514,8 +1529,8 @@ int main() {
   double lam_init = 0.1;
   double t_init = 0.1;
   // initialize nlp primal variables
-  for (int_t j = 0; j < NB0 + (acados_data->NN-1)*NB + NBN; j++) acados_data->lam_n[j]  = lam_init;
-  for (int_t j = 0; j < NB0 + (acados_data->NN-1)*NB + NBN; j++) acados_data->t_n[j]  = t_init;
+  for (int_t j = 0; j < 2*(NB0 + (acados_data->NN-1)*NB + NBN); j++) acados_data->lam_n[j]  = lam_init;
+  for (int_t j = 0; j < 2*(NB0 + (acados_data->NN-1)*NB + NBN); j++) acados_data->t_n[j]  = t_init;
 
   // initialize primal variables
   for (int i = 0; i <= acados_data->NN; i++) {
