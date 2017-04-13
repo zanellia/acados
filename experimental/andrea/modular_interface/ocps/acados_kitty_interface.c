@@ -1314,6 +1314,7 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
     if (status == 3) printf("sanity checks failed\n");
 
     // int this formulation we keep x0 as well
+    qp_step_size = 0;
     printf("qp_step_size = %f\n",qp_step_size);
     real_t lambda = acados_options->newton_step_size;
     for (int_t j = 0; j < NX; j++) {
