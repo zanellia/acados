@@ -33,7 +33,6 @@ if(CMAKE_BUILD_TYPE MATCHES Test)
     enable_testing(true)
 endif()
 
-
 # Define include folders
 include_directories("${PROJECT_SOURCE_DIR}")
 include_directories("${PROJECT_SOURCE_DIR}/external/")
@@ -56,7 +55,7 @@ include_directories("${PROJECT_SOURCE_DIR}/experimental/andrea/modular_interface
 include_directories("${PROJECT_SOURCE_DIR}/experimental/andrea/modular_interface/utils/")
 
 # ONLY FOR DEBUGGING +!
-include_directories("${PROJECT_SOURCE_DIR}/../../control/autogen/")
+# include_directories("${PROJECT_SOURCE_DIR}/../../control/autogen/")
 
 # Define source files
 include(acados_sources)

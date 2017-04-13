@@ -46,9 +46,9 @@
 #include "../ocps/residual_u_eval_wrapper.h"
 
 // ONLY FOR DEBUGGING !+
-#include "ocp_xtracking_banana2_casadi.h"
-#include "ocp_utracking_banana2_casadi.h"
-#include "ocp_integrate_ode_banana2_casadi.h"
+// #include "ocp_xtracking_banana2_casadi.h"
+// #include "ocp_utracking_banana2_casadi.h"
+// #include "ocp_integrate_ode_banana2_casadi.h"
 
 #include <fenv.h>
 #include "eispack.h"
@@ -1372,7 +1372,7 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
 }
 
 // uncomment for testing
-#if 1
+#if 0
 int main() {
 
   feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
