@@ -130,7 +130,7 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
 
     // get dimensions
     const int NN = init_data->NN;   // number of stages
-    const int MM = init_data->NN;   // number of stages
+    const int MM = init_data->MM;   // number of stages (dual horizon)
     const int NX = init_data->NX;   // number of states
     const int NU = init_data->NU;   // number of inputs
     const int NP = init_data->NP;   // numbers of parameters
@@ -142,6 +142,7 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
 
     // and copy them into nmpc_data (apart from lb0, lb and lbN, we'll need some mallocs...)
     nmpc_data->NN = init_data->NN;   // number of stages
+    nmpc_data->MM = init_data->MM;   // number of stages (dual horizon)
     nmpc_data->NX = init_data->NX;   // number of states
     nmpc_data->NU = init_data->NU;   // number of inputs
     nmpc_data->NP = init_data->NP;   // numbers of parameters
@@ -1300,7 +1301,7 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
 
     if (sanity_checks) {
       // status = ocp_qp_hpmpc_libstr(qp_in, qp_out, hpmpc_args, workspace);
-      status = ocp_qp_hpmpc_libstr_pt(qp_in, qp_out, hpmpc_args, 1, workspace);
+      status = ocp_qp_hpmpc_libstr_pt(qp_in, qp_out, hpmpc_args, nmpc_data->MM, workspace);
     } else {
       status = 3; // sanity checks failed
     } // int status = 0;

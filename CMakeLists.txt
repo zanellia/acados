@@ -89,7 +89,7 @@ endif ()
 # Define examples
 add_library(kitty_acados SHARED ${ACADOS_CONTROLLER_MEM_SRC} ${ACADOS_SRC})
 add_dependencies(kitty_acados hpmpc blasfeo)
-target_link_libraries(kitty_acados blasfeo debug hpmpc m)
+target_link_libraries(kitty_acados blasfeo hpmpc m)
 
 #add_executable(kitty_acados_exec ${ACADOS_CONTROLLER_MEM_SRC} ${ACADOS_SRC} ${KITTY_ACADOS_AUTOGEN})
 #add_dependencies(kitty_acados_exec hpmpc blasfeo)

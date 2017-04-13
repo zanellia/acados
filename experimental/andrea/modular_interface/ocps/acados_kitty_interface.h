@@ -15,6 +15,7 @@
 typedef struct _init_data {  // data needed to allocate memory (cannot be changed online)
 
   int_t NN;  // number  of stages
+  int_t MM;  // number  of stages
   int_t NX;  // number  of states
   int_t NU;  // number  of inputs
   int_t NB0; // number  of b  ounds on stage 0
@@ -35,11 +36,12 @@ typedef struct _nmpc_data {
   real_t *w;
   real_t *lam_n;
   real_t *t_n;
-  
+
   int_t max_sqp_iters;
   int_t max_iters;
 
   int_t NN;  // number  of stages
+  int_t MM;  // number  of stages (dual MM)
   int_t NX;  // number  of states
   int_t NU;  // number  of inputs
   int_t NB0; // number  of bounds on stage 0
