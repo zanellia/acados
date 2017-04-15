@@ -819,11 +819,11 @@ void init_acados(nmpc_data* nmpc_data, rk4_int* rk4_int, init_nmpc_data* init_da
     acado_timer timer;
 
     real_t timings = 0;
-    printf("running acados\n");
+    // printf("running acados\n");
     // printf("\n------ ITERATION %d ------\n", iter);
     // for ( int_t ii = 0; ii < NX; ii++ ) w[ii] = lb0[ii];
     acado_tic(&timer);
-    printf("performing %i sqp iterations\n", acados_options->sqp_steps);
+    // printf("performing %i sqp iterations\n", acados_options->sqp_steps);
     for (int_t sqp_iter = 0; sqp_iter < acados_options->sqp_steps; sqp_iter++) {
 
     // Pass state and control to integrator
