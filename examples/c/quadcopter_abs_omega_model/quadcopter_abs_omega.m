@@ -2,7 +2,7 @@ clc;
 clear all;
 close all;
 
-GENERATE_LQR_GAIN = 1;
+GENERATE_LQR_GAIN = 0;
 
 addpath('../../external/casadi-octave-v3.2.2')
 import casadi.*

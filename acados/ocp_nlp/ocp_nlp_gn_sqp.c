@@ -510,7 +510,7 @@ static void store_trajectories(const ocp_nlp_in *nlp, ocp_nlp_memory *memory, oc
 
 
 // Simple fixed-step Gauss-Newton based SQP routine
-int_t ocp_nlp_gn_sqp(const ocp_nlp_in *nlp_in, ocp_nlp_out *nlp_out, void *nlp_args_,
+real_t ocp_nlp_gn_sqp(const ocp_nlp_in *nlp_in, ocp_nlp_out *nlp_out, void *nlp_args_,
     void *nlp_mem_, void *nlp_work_) {
 
     ocp_nlp_gn_sqp_memory *gn_sqp_mem = (ocp_nlp_gn_sqp_memory *) nlp_mem_;
@@ -533,12 +533,14 @@ int_t ocp_nlp_gn_sqp(const ocp_nlp_in *nlp_in, ocp_nlp_out *nlp_out, void *nlp_a
     int_t max_sqp_iterations = nlp_args->common->maxIter;
 
     acados_timer timer;
-    real_t total_time = 0;
-    acados_tic(&timer);
+    // real_t total_time = 0;
+    real_t cpu_time = 0;
+    real_t min_cpu_time = 1e12;
     for (int_t sqp_iter = 0; sqp_iter < max_sqp_iterations; sqp_iter++) {
-
-        multiple_shooting(nlp_in, nlp_args, work, gn_sqp_mem, work->common->w);
-
+        min_cpu_time = 1e12;
+        for (int_t kk = 0; kk < 10; kk++){
+            acados_tic(&timer);
+            multiple_shooting(nlp_in, nlp_args, work, gn_sqp_mem, work->common->w);
         int_t qp_status = gn_sqp_mem->qp_solver->fun(
             gn_sqp_mem->qp_solver->qp_in,
             gn_sqp_mem->qp_solver->qp_out,
@@ -551,6 +553,9 @@ int_t ocp_nlp_gn_sqp(const ocp_nlp_in *nlp_in, ocp_nlp_out *nlp_out, void *nlp_a
             return -1;
         }
 
+        cpu_time = acados_toc(&timer);
+        if (cpu_time < min_cpu_time) min_cpu_time = cpu_time;
+        }
         real_t alpha = gn_sqp_mem->common->step_size;
 
         update_variables(nlp_in, gn_sqp_mem, work->common->w, alpha);
@@ -564,9 +569,8 @@ int_t ocp_nlp_gn_sqp(const ocp_nlp_in *nlp_in, ocp_nlp_out *nlp_out, void *nlp_a
         }
     }
 
-    total_time += acados_toc(&timer);
     store_trajectories(nlp_in, gn_sqp_mem->common, nlp_out, work->common->w);
-    return 0;
+    return min_cpu_time;
 }
 
 void ocp_nlp_gn_sqp_create_memory(const ocp_nlp_in *in, void *args_, void *memory_) {

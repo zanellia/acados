@@ -13,9 +13,13 @@ omega = SX.sym('omega', 3, 1);
 W = SX.sym('W', 4, 1);
 rW = SX.sym('rW', 4, 1);
 
-Q_eul = diag([1e2;1e2;1e2]);
-Q = diag([1e-2*ones(4,1);1e-2*ones(3,1);1e-2*ones(4,1)]);
-R = 1.0e-1*eye(4);
+% Q_eul = diag([1e2;1e2;1e2]);
+% Q = diag([1e-2*ones(4,1);1e-2*ones(3,1);1e-2*ones(4,1)]);
+% R = 1.0e-1*eye(4);
+
+Q_eul = diag([5e2;5e2;5e2]);
+Q = diag([1e-3*ones(4,1);1e-3*ones(3,1);1e-3*ones(4,1)]);
+R = 1.0e-5*eye(4);
 
 x = [q; omega; W];
 u = rW;

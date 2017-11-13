@@ -62,7 +62,7 @@ int ls_res_Fun(const real_t** arg, real_t** res, int* iw, real_t* w, int mem) {
   a7=1.;
   a6=(a7-a6);
   real_t a8=atan2(a2,a6);
-  real_t a9=10.;
+  real_t a9=2.2360679774997898e+01;
   a8=(a9*a8);
   if (res[0]!=0) res[0][0]=a8;
   a8=(a0*a3);
@@ -84,7 +84,7 @@ int ls_res_Fun(const real_t** arg, real_t** res, int* iw, real_t* w, int mem) {
   a12=atan2(a10,a11);
   a12=(a9*a12);
   if (res[0]!=0) res[0][2]=a12;
-  a12=1.0000000000000001e-01;
+  a12=3.1622776601683791e-02;
   real_t a13=(a12*a0);
   if (res[0]!=0) res[0][3]=a13;
   a13=(a12*a1);
@@ -114,7 +114,7 @@ int ls_res_Fun(const real_t** arg, real_t** res, int* iw, real_t* w, int mem) {
   a13=arg[0] ? arg[0][10] : 0;
   a13=(a12*a13);
   if (res[0]!=0) res[0][13]=a13;
-  a13=3.1622776601683794e-01;
+  a13=3.1622776601683794e-03;
   real_t a14=arg[1] ? arg[1][0] : 0;
   a14=(a13*a14);
   if (res[0]!=0) res[0][14]=a14;

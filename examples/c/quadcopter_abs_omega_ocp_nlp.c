@@ -20,6 +20,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <fenv.h>
 
 #include "blasfeo/include/blasfeo_target.h"
 #include "blasfeo/include/blasfeo_common.h"
@@ -45,8 +46,8 @@
 #define Ns 1
 #define NX 7
 #define NU 4
-#define NSIM 500
-#define NREP 1
+#define NSIM 200
+#define NREP 10
 #define UMAX 10.0
 #define NR 14
 #define NR_END 10
@@ -56,18 +57,19 @@
 #define N_SQP_HACK 1
 
 // #define LOG_CL_SOL
-#define LOG_NAME "cl_log_quadcopter.txt"
+#define LOG_NAME "cl_log_quadcopter_abs_omega.txt"
 
-#define ALPHA 1.1
-#define GAMMA 0.1
+#define ALPHA 1.0
+#define GAMMA 0.3
+#define LAMBDA 0.3
 
 #define INITIAL_ANGLE_RAD 0.0
-#define ANGLE_STEP 50.0/180*3.14
+#define ANGLE_STEP -50.0/180*3.14
 #define STEP_PERIOD 2.0
 #define SIM_SCENARIO 1  // 0: stabilization, 1: tracking
 
 #define MU_TIGHT 10
-#define MM 2
+#define MM 20
 #define LAM_INIT 10
 #define T_INIT 1
 
@@ -95,6 +97,12 @@ extern int vdeFun(const real_t **arg, real_t **res, int *iw, real_t *w, int mem)
 // }
 
 int main() {
+    #ifdef FP_EXCEPTIONS
+      feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
+      // feenableexcept(FE_INVALID);
+    #endif  // FP_EXCEPTIONS
+    int a = 1/0.0;
+    printf("a = %i", a);
     const int d = 0;
     const int INEXACT = 0;
 
@@ -498,61 +506,71 @@ int main() {
     for (int_t j = 0; j < NX; j++)
         nlp_mem.common->x[NN][j] = x0[j];  // resX(j, NN)
 
-    int_t status;
-    acados_timer timer;
-    real_t timings;
+    // int_t status;
+    // acados_timer timer;
+    // real_t timings;
     real_t nlp_min_timings;
 
 #ifdef PLOT_CL_RESULTS
     real_t w_cl[(NX+NU)*NSIM] = {0.0};
+    real_t ref_cl[2*NSIM] = {0.0};
     for (int_t i = 0; i < NX; i++) w_cl[i] = x0[i];
     real_t T_SIM = TT/NN*NSIM;
 #endif
     for (int_t sim_iter = 0; sim_iter < NSIM; sim_iter++) {
-        if (SIM_SCENARIO == 1) {
-            int_t step_samples = (int_t)(STEP_PERIOD*NN/TT);
-            int_t ref_phase = (int_t)((sim_iter/step_samples)%3);
-            switch (ref_phase) {
-                case 0:
-                    y_ref[0] = ANGLE_STEP;
-                    y_ref_end[0] = ANGLE_STEP;
-                    for (int_t i = 0; i < NN; i++) {
-                        for (int_t j = 0; j < NR; j++) ls_cost.y_ref[i][j] = y_ref[j];
-                    }
-                    for (int_t j = 0; j < NR_END; j++) ls_cost.y_ref[NN][j] = y_ref_end[j];
-                    break;
-                case 1:
-                    y_ref[0] = -ANGLE_STEP;
-                    y_ref_end[0] = -ANGLE_STEP;
-
-                    for (int_t i = 0; i < NN; i++) {
-                        for (int_t j = 0; j < NR; j++) ls_cost.y_ref[i][j] = y_ref[j];
-                    }
-                    for (int_t j = 0; j < NR_END; j++) ls_cost.y_ref[NN][j] = y_ref_end[j];
-                    break;
-                case 2:
-                    y_ref[0] = ANGLE_STEP;
-                    y_ref_end[0] = -ANGLE_STEP;
-
-                    for (int_t i = 0; i < NN; i++) {
-                        for (int_t j = 0; j < NR; j++) ls_cost.y_ref[i][j] = y_ref[j];
-                    }
-                    for (int_t j = 0; j < NR_END; j++) ls_cost.y_ref[NN][j] = y_ref_end[j];
-                    break;
+        if (sim_iter > 0) {
+            if (SIM_SCENARIO == 1) {
+                int_t step_samples = (int_t)(STEP_PERIOD*NN/TT);
+                int_t ref_phase = (int_t)((sim_iter/step_samples)%3);
+                switch (ref_phase) {
+                    case 0:
+                        y_ref[0] = y_ref[0] - LAMBDA*(y_ref[0] + ANGLE_STEP);
+                        y_ref_end[0] = y_ref_end[0] - LAMBDA*(y_ref_end[0] + ANGLE_STEP);
+                        y_ref[1] = y_ref[1] - LAMBDA*(y_ref[1] - ANGLE_STEP);
+                        y_ref_end[1] = y_ref_end[1] - LAMBDA*(y_ref_end[1] - ANGLE_STEP);
+                        for (int_t i = 0; i < NN; i++) {
+                            for (int_t j = 0; j < NR; j++) ls_cost.y_ref[i][j] = y_ref[j];
+                        }
+                        for (int_t j = 0; j < NR_END; j++) ls_cost.y_ref[NN][j] = y_ref_end[j];
+                        break;
+                    case 1:
+                        y_ref[0] = y_ref[0] - LAMBDA*(y_ref[0] - ANGLE_STEP);
+                        y_ref_end[0] = y_ref_end[0] - LAMBDA*(y_ref_end[0] - ANGLE_STEP);
+                        y_ref[1] = y_ref[1] - LAMBDA*(y_ref[1] - ANGLE_STEP);
+                        y_ref_end[1] = y_ref_end[1] - LAMBDA*(y_ref_end[1] - ANGLE_STEP);
+                        for (int_t i = 0; i < NN; i++) {
+                            for (int_t j = 0; j < NR; j++) ls_cost.y_ref[i][j] = y_ref[j];
+                        }
+                        for (int_t j = 0; j < NR_END; j++) ls_cost.y_ref[NN][j] = y_ref_end[j];
+                        break;
+                    case 2:
+                        y_ref[0] = y_ref[0] - LAMBDA*(y_ref[0] - ANGLE_STEP);
+                        y_ref_end[0] = y_ref_end[0] - LAMBDA*(y_ref_end[0] - ANGLE_STEP);
+                        y_ref[1] = y_ref[1] - LAMBDA*(y_ref[1] + ANGLE_STEP);
+                        y_ref_end[1] = y_ref_end[1] - LAMBDA*(y_ref_end[1] + ANGLE_STEP);
+                        for (int_t i = 0; i < NN; i++) {
+                            for (int_t j = 0; j < NR; j++) ls_cost.y_ref[i][j] = y_ref[j];
+                        }
+                        for (int_t j = 0; j < NR_END; j++) ls_cost.y_ref[NN][j] = y_ref_end[j];
+                        break;
+                }
+#ifdef PLOT_CL_RESULTS
+            ref_cl[sim_iter*2 + 0] = y_ref[0];
+            ref_cl[sim_iter*2 + 1] = y_ref[1];
+#endif
             }
         }
         for (int_t sqp_iter_hack = 0; sqp_iter_hack < N_SQP_HACK; sqp_iter_hack++) {
 
-            nlp_min_timings = 1e12;
-            for (int_t iter = 0; iter < NREP; iter++) {
-                acados_tic(&timer);
-                status = ocp_nlp_gn_sqp(&nlp_in, &nlp_out, &nlp_args, &nlp_mem, nlp_work);
-                timings = acados_toc(&timer);
+            // nlp_min_timings = 1e12;
+            // for (int_t iter = 0; iter < NREP; iter++) {
+            //     acados_tic(&timer);
+                nlp_min_timings = ocp_nlp_gn_sqp(&nlp_in, &nlp_out, &nlp_args, &nlp_mem, nlp_work);
+                // timings = acados_toc(&timer);
                 // printf("%f\n",timings);
-                if (timings < nlp_min_timings) nlp_min_timings = timings;
-            }
-
-            sim_nlp_timings[sim_iter] = nlp_min_timings*1e3;
+                // if (timings < nlp_min_timings) nlp_min_timings = timings;
+            // }
+            if (sim_iter >= 0) sim_nlp_timings[sim_iter] = nlp_min_timings*1e3;
 
             // TODO(Andrea): UGLY HACK udpate of t and lam should take place inside
             // ocp_nlp_gn_sqp
@@ -581,29 +599,33 @@ int main() {
 
         // TODO(rien): transition functions for changing dimensions not yet implemented!
 #ifdef PLOT_CL_RESULTS
-        for (int_t j = 0; j < nx[0]; j++)
-            w_cl[sim_iter*(nx[0]+nu[0]) + j] = x0[j];
-        for (int_t j = 0; j < nu[0]; j++)
-            w_cl[sim_iter*(nx[0]+nu[0]) + nx[0] + j] = nlp_out.u[0][j];
-
+        if (sim_iter >= 0){
+            for (int_t j = 0; j < nx[0]; j++)
+                w_cl[sim_iter*(nx[0]+nu[0]) + j] = x0[j];
+            for (int_t j = 0; j < nu[0]; j++)
+                w_cl[sim_iter*(nx[0]+nu[0]) + nx[0] + j] = nlp_out.u[0][j];
+        }
 #endif
         for (int_t j = 0; j < nx[0]; j++)
             x0[j] = integrators[0].out->xn[j];
+        // normalize
+        real_t norm = sqrt(x0[0]*x0[0] + x0[1] *x0[1] + x0[2] *x0[2] + x0[3] *x0[3]);
+        for (int_t j = 0; j < 4; j++) x0[j] = x0[j]/norm;
 
 #ifdef FLIP_BOUNDS
         for (jj = 0; jj < nx[0]; jj++) {
-            lb0[NU+jj] = integrators[0].out->xn[jj];  // xmin
-            ub0[NU+jj] = integrators[0].out->xn[jj];  // xmax
+            lb0[NU+jj] = x0[jj];  // xmin
+            ub0[NU+jj] = x0[jj];  // xmax
         }
 #else
         for (jj = 0; jj < nx[0]; jj++) {
-            lb0[jj] = integrators[0].out->xn[jj];  // xmin
-            ub0[jj] = integrators[0].out->xn[jj];  // xmax
+            lb0[jj] = x0[jj];  // xmin
+            ub0[jj] = x0[jj];  // xmax
         }
 #endif
 
     }
-    printf("status = %i\n", status);
+    // printf("status = %i\n", status);
 
 #if defined(PLOT_OL_RESULTS) || defined(PLOT_CL_RESULTS)
 #if defined (PLOT_OL_RESULTS)
@@ -691,6 +713,8 @@ int main() {
                 fprintf(fp, "%.3f,", w_cl[i*(NX+NU) + j]);
             for (int_t j = 0; j < NU; j++)
                 fprintf(fp, "%.3f, ", w_cl[i*(NX+NU) + NX + j]);
+            for (int_t j = 0; j < 2; j++)
+                fprintf(fp, "%.3f, ", ref_cl[i*2 + j]);
             fprintf(fp, "\n");
         }
         fclose(fp);

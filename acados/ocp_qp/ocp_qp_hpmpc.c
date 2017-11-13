@@ -377,7 +377,7 @@ int ocp_qp_hpmpc(const ocp_qp_in *qp_in, ocp_qp_out *qp_out, void *args_, void *
           &ng[M], &alpha, &hst[M], &hsdt[M], &hslam[M], &hsdlam[M], &hslamt[M],
           &hsdux[M], &hsDCt[M], &hsd[M]);
 
-        printf("alpha = %f\n", alpha);
+        // printf("alpha = %f\n", alpha);
 
         // update stages M to N
         double mu_scal = 0.0;

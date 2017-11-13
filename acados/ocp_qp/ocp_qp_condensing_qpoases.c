@@ -575,7 +575,7 @@ int ocp_qp_condensing_qpoases(const ocp_qp_in *qp_in, ocp_qp_out *qp_out, void *
     int return_flag = 0;
     if (ngd > 0) {  // QProblem
         QProblemCON(QP, nvd, ngd, HST_POSDEF);
-        QProblem_setPrintLevel(QP, PL_MEDIUM);
+        QProblem_setPrintLevel(QP, PL_HIGH);
         QProblem_printProperties(QP);
         return_flag =
             QProblem_initW(QP, H, g, C, d_lb, d_ub, d_lg, d_ug, &nwsr, &cputime,
@@ -586,7 +586,7 @@ int ocp_qp_condensing_qpoases(const ocp_qp_in *qp_in, ocp_qp_out *qp_out, void *
         QProblem_getDualSolution(QP, dual_sol);
     } else {  // QProblemB
         QProblemBCON(QPB, nvd, HST_POSDEF);
-        QProblemB_setPrintLevel(QPB, PL_MEDIUM);
+        QProblemB_setPrintLevel(QPB, PL_HIGH);
         QProblemB_printProperties(QPB);
         return_flag = QProblemB_initW(QPB, H, g, d_lb, d_ub, &nwsr, &cputime,
             NULL, dual_sol, NULL, NULL);  // NULL or 0

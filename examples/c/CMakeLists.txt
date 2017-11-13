@@ -36,6 +36,12 @@ file(GLOB QUADCOPTER_MODEL_SRC
     quadcopter_model/ls_res_quadcopter.c
     quadcopter_model/ls_res_end_quadcopter.c)
 
+file(GLOB QUADCOPTER_ABS_OMEGA_MODEL_SRC
+    quadcopter_abs_omega_model/vde_forw_quadcopter.c
+    quadcopter_abs_omega_model/ls_res_eval.c
+    quadcopter_abs_omega_model/ls_res_quadcopter.c
+    quadcopter_abs_omega_model/ls_res_end_quadcopter.c)
+
 # Define examples
 if(NOT CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
     add_executable(mass_spring_hpmpc_example mass_spring_hpmpc.c)
@@ -112,6 +118,15 @@ if(NOT CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
       acados_gnuplot/acados_gnuplot.c)
     target_link_libraries(quadcopter_ocp_nlp acados)
     add_test(quadcopter_ocp_nlp quadcopter_ocp_nlp)
+endif()
+
+if(NOT CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+    add_executable(quadcopter_abs_omega_ocp_nlp
+      quadcopter_abs_omega_ocp_nlp.c
+      ${QUADCOPTER_ABS_OMEGA_MODEL_SRC}
+      acados_gnuplot/acados_gnuplot.c)
+    target_link_libraries(quadcopter_abs_omega_ocp_nlp acados)
+    add_test(quadcopter_abs_omega_ocp_nlp quadcopter_abs_omega_ocp_nlp)
 endif()
 
 if(NOT CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
