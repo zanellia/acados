@@ -19,6 +19,7 @@
 
 // external
 #include <stdio.h>
+#include <assert.h>
 #include <stdlib.h>
 // acados
 #include "acados/ocp_qp/ocp_qp_common.h"
@@ -32,7 +33,7 @@
 #include "acados/utils/print.h"
 
 #define ELIMINATE_X0
-#define NREP 1000
+#define NREP 100
 
 #include "./mass_spring.c"
 
@@ -109,11 +110,11 @@ int main() {
 
 	for (int rep = 0; rep < NREP; rep++) {
 
-        ocp_qp_partial_condensing(qp_in, pcond_qp_in, pcond_args, pcond_mem);
+        ocp_qp_partial_condensing(qp_in, pcond_qp_in, pcond_args, pcond_mem, NULL);
 
-        acados_return = ocp_qp_hpipm(pcond_qp_in, pcond_qp_out, arg, mem);
+        acados_return = ocp_qp_hpipm(pcond_qp_in, pcond_qp_out, arg, mem, NULL);
 
-        ocp_qp_partial_expansion(pcond_qp_out, qp_out, pcond_args, pcond_mem);
+        ocp_qp_partial_expansion(pcond_qp_out, qp_out, pcond_args, pcond_mem, NULL);
 	}
 
     double time = acados_toc(&timer)/NREP;
@@ -128,6 +129,24 @@ int main() {
     void *memsol = malloc(colmaj_ocp_qp_out_calculate_size(dims));
     assign_colmaj_ocp_qp_out(dims, &sol, memsol);
     convert_ocp_qp_out_to_colmaj(qp_out, sol);
+
+    /************************************************
+    * compute residuals
+    ************************************************/
+
+    ocp_qp_res *qp_res = create_ocp_qp_res(dims);
+    ocp_qp_res_ws *res_ws = create_ocp_qp_res_ws(dims);
+    compute_ocp_qp_res(qp_in, qp_out, qp_res, res_ws);
+
+    /************************************************
+    * compute infinity norm of residuals
+    ************************************************/
+
+    double res[4];
+    compute_ocp_qp_res_nrm_inf(qp_res, res);
+    double max_res = 0.0;
+    for (int ii = 0; ii < 4; ii++) max_res = (res[ii] > max_res) ? res[ii] : max_res;
+    assert(max_res <= 1e6*ACADOS_EPS && "The largest KKT residual greater than 1e6*ACADOS_EPS");
 
     /************************************************
     * print solution and stats
@@ -145,11 +164,9 @@ int main() {
     printf("\nlam = \n");
     for (int ii = 0; ii <= N; ii++) d_print_mat(1, 2*nb[ii]+2*ng[ii], sol->lam[ii], 1);
 
-    printf("\ninf norm res: %e, %e, %e, %e, %e\n", mem->hpipm_workspace->qp_res[0],
-           mem->hpipm_workspace->qp_res[1], mem->hpipm_workspace->qp_res[2],
-           mem->hpipm_workspace->qp_res[3], mem->hpipm_workspace->res_workspace->res_mu);
+    printf("\ninf norm res: %e, %e, %e, %e\n", res[0], res[1], res[2], res[3]);
 
-    printf("\nSolution time for %d IPM iterations, averaged over %d runs: %5.2e seconds\n\n\n",
+    printf("\nNumber of %d IPM iterations, averaged over %d runs: %5.2e seconds\n\n\n",
         mem->hpipm_workspace->iter, NREP, time);
 
     /************************************************
@@ -157,10 +174,15 @@ int main() {
     ************************************************/
 
     free(qp_in);
+    free(pcond_qp_in);
     free(qp_out);
+    free(pcond_qp_out);
     free(sol);
+    free(qp_res);
+    free(res_ws);
     free(arg);
+    free(pcond_args);
     free(mem);
-
+    free(pcond_mem);
     return 0;
 }

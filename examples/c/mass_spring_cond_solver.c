@@ -19,6 +19,7 @@
 
 // external
 #include <stdio.h>
+#include <assert.h>
 #include <stdlib.h>
 // acados
 #include "acados/dense_qp/dense_qp_common.h"
@@ -30,7 +31,7 @@
 #include "acados/utils/types.h"
 
 #define ELIMINATE_X0
-#define NREP 1000
+#define NREP 100
 
 #include "./mass_spring.c"
 
@@ -70,7 +71,7 @@ int main() {
     // choose QP solver
     qp_solver_t qp_solver_name = CONDENSING_QPOASES;
 
-    // create partial condensing solver args
+    // create condensing solver args
     ocp_qp_condensing_solver_args *arg =
         ocp_qp_condensing_solver_create_arguments(qp_in->dim, qp_solver_name);
 
@@ -79,9 +80,12 @@ int main() {
     // qpsolver_args->hpipm_args->iter_max = 21;
     // printf("maxIter = %d\n", qpsolver_args->hpipm_args->iter_max);
 
-    // create partial condensing solver memory
+    // create condensing solver memory
     ocp_qp_condensing_solver_memory *mem =
         ocp_qp_condensing_solver_create_memory(qp_in->dim, arg);
+
+    // create condensing solver workspace
+    void *work = malloc(ocp_qp_condensing_solver_calculate_workspace_size(qp_in->dim, arg));
 
 	int acados_return;  // 0 normal; 1 max iter
 
@@ -89,7 +93,7 @@ int main() {
     acados_tic(&timer);
 
 	for (int rep = 0; rep < NREP; rep++) {
-        acados_return = ocp_qp_condensing_solver(qp_in, qp_out, arg, mem);
+        acados_return = ocp_qp_condensing_solver(qp_in, qp_out, arg, mem, work);
 	}
 
     double time = acados_toc(&timer)/NREP;
@@ -104,6 +108,24 @@ int main() {
     void *memsol = malloc(colmaj_ocp_qp_out_calculate_size(dims));
     assign_colmaj_ocp_qp_out(dims, &sol, memsol);
     convert_ocp_qp_out_to_colmaj(qp_out, sol);
+
+    /************************************************
+    * compute residuals
+    ************************************************/
+
+    ocp_qp_res *qp_res = create_ocp_qp_res(dims);
+    ocp_qp_res_ws *res_ws = create_ocp_qp_res_ws(dims);
+    compute_ocp_qp_res(qp_in, qp_out, qp_res, res_ws);
+
+    /************************************************
+    * compute infinity norm of residuals
+    ************************************************/
+
+    double res[4];
+    compute_ocp_qp_res_nrm_inf(qp_res, res);
+    double max_res = 0.0;
+    for (int ii = 0; ii < 4; ii++) max_res = (res[ii] > max_res) ? res[ii] : max_res;
+    assert(max_res <= ACADOS_EPS && "The largest KKT residual greater than ACADOS_EPS");
 
     /************************************************
     * print solution and stats
@@ -121,6 +143,8 @@ int main() {
     printf("\nlam = \n");
     for (int ii = 0; ii <= N; ii++) d_print_mat(1, 2*nb[ii]+2*ng[ii], sol->lam[ii], 1);
 
+    printf("\ninf norm res: %e, %e, %e, %e\n", res[0], res[1], res[2], res[3]);
+
     printf("\nSolution time with SOLVER = %d, averaged over %d runs: %5.2e seconds\n\n\n",
         qp_solver_name, NREP, time);
 
@@ -131,8 +155,11 @@ int main() {
     free(qp_in);
     free(qp_out);
     free(sol);
+    free(qp_res);
+    free(res_ws);
     free(arg);
     free(mem);
+    free(work);
 
     return 0;
 }

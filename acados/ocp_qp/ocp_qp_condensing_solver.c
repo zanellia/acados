@@ -26,14 +26,14 @@
 #include "acados/ocp_qp/ocp_qp_condensing.h"
 #include "acados/ocp_qp/ocp_qp_common.h"
 #include "acados/dense_qp/dense_qp_common.h"
-#include "acados/utils/types.h"
 #include "acados/utils/mem.h"
+#include "acados/utils/timing.h"
+#include "acados/utils/types.h"
 
 
-int ocp_qp_condensing_solver_calculate_args_size(ocp_qp_dims *dims, qp_solver_t solver_name)
+int ocp_qp_condensing_solver_calculate_args_size(ocp_qp_dims *dims, void *solver_)
 {
-    dense_qp_solver solver;
-    set_qp_solver_fun_ptrs(solver_name, &solver);
+    dense_qp_solver *solver = (dense_qp_solver *)solver_;
 
     int size = 0;
     size += sizeof(ocp_qp_condensing_solver_args);
@@ -43,15 +43,17 @@ int ocp_qp_condensing_solver_calculate_args_size(ocp_qp_dims *dims, qp_solver_t 
     compute_dense_qp_dims(dims, &ddims);
 
     size += ocp_qp_condensing_calculate_args_size(dims);
-    size += solver.calculate_args_size(&ddims);
+    size += solver->calculate_args_size(&ddims);
 
     return size;
 }
 
 
 
-void *ocp_qp_condensing_solver_assign_args(ocp_qp_dims *dims, qp_solver_t solver_name, void *raw_memory)
+void *ocp_qp_condensing_solver_assign_args(ocp_qp_dims *dims, void *solver_, void *raw_memory)
 {
+    dense_qp_solver *solver = (dense_qp_solver *)solver_;
+
     char *c_ptr = (char *) raw_memory;
 
     ocp_qp_condensing_solver_args *args = (ocp_qp_condensing_solver_args *) c_ptr;
@@ -60,7 +62,7 @@ void *ocp_qp_condensing_solver_assign_args(ocp_qp_dims *dims, qp_solver_t solver
     args->solver = (dense_qp_solver*) c_ptr;
     c_ptr += sizeof(dense_qp_solver);
 
-    set_qp_solver_fun_ptrs(solver_name, args->solver);
+    copy_module_pointers_to_args(args->solver, solver);
 
     dense_qp_dims ddims;
     compute_dense_qp_dims(dims, &ddims);
@@ -75,7 +77,7 @@ void *ocp_qp_condensing_solver_assign_args(ocp_qp_dims *dims, qp_solver_t solver
     args->solver_args = args->solver->assign_args(&ddims, c_ptr);
     c_ptr += args->solver->calculate_args_size(&ddims);
 
-    assert((char*)raw_memory + ocp_qp_condensing_solver_calculate_args_size(dims, solver_name) == c_ptr);
+    assert((char*)raw_memory + ocp_qp_condensing_solver_calculate_args_size(dims, solver) == c_ptr);
 
     return (void*)args;
 }
@@ -151,20 +153,70 @@ void *ocp_qp_condensing_solver_assign_memory(ocp_qp_dims *dims, void *args_, voi
 
 
 
-int ocp_qp_condensing_solver(ocp_qp_in *qp_in, ocp_qp_out *qp_out, void *args_, void *mem_) {
+int ocp_qp_condensing_solver_calculate_workspace_size(ocp_qp_dims *dims, void *args_)
+{
+    ocp_qp_condensing_solver_args *args = (ocp_qp_condensing_solver_args *)args_;
 
+    dense_qp_dims ddims;
+    compute_dense_qp_dims(dims, &ddims);
+
+    int size = sizeof(ocp_qp_condensing_solver_workspace);
+    size += ocp_qp_condensing_calculate_workspace_size(dims, args->cond_args);
+    size += args->solver->calculate_workspace_size(&ddims, args->solver_args);
+
+    return size;
+}
+
+
+
+static void cast_workspace(ocp_qp_dims *dims, ocp_qp_condensing_solver_args *args, ocp_qp_condensing_solver_memory *mem, ocp_qp_condensing_solver_workspace *work)
+{
+    dense_qp_dims *ddims = mem->qpd_in->dim;
+
+
+    char *c_ptr = (char *) work;
+
+    c_ptr += sizeof(ocp_qp_condensing_solver_workspace);
+
+    work->cond_work = c_ptr;
+    c_ptr += ocp_qp_condensing_calculate_workspace_size(dims, args->cond_args);
+
+    work->solver_workspace = c_ptr;
+    c_ptr += args->solver->calculate_workspace_size(ddims, args->solver_args);
+}
+
+
+
+int ocp_qp_condensing_solver(ocp_qp_in *qp_in, ocp_qp_out *qp_out, void *args_, void *mem_, void *work_)
+{
+    ocp_qp_info *info = (ocp_qp_info *)qp_out->misc;
+    acados_timer tot_timer, qp_timer, interface_timer, cond_timer;
+    acados_tic(&tot_timer);
+
+    // cast data structures
     ocp_qp_condensing_solver_args *args = (ocp_qp_condensing_solver_args *) args_;
     ocp_qp_condensing_solver_memory *memory = (ocp_qp_condensing_solver_memory *) mem_;
+    ocp_qp_condensing_solver_workspace *work = (ocp_qp_condensing_solver_workspace *) work_;
+
+    // cast workspace
+    cast_workspace(qp_in->dim, args, memory, work);
 
     // condense
-    ocp_qp_condensing(qp_in, memory->qpd_in, args->cond_args, memory->cond_memory);
+    acados_tic(&cond_timer);
+    ocp_qp_condensing(qp_in, memory->qpd_in, args->cond_args, memory->cond_memory, work->cond_work);
+    info->condensing_time = acados_toc(&cond_timer);
 
     // solve qp
-    int solver_status = args->solver->fun(memory->qpd_in, memory->qpd_out, args->solver_args, memory->solver_memory);
+    int solver_status = args->solver->fun(memory->qpd_in, memory->qpd_out, args->solver_args, memory->solver_memory, work->solver_workspace);
 
     // expand
-    ocp_qp_expansion(memory->qpd_out, qp_out, args->cond_args, memory->cond_memory);
+    acados_tic(&cond_timer);
+    ocp_qp_expansion(memory->qpd_out, qp_out, args->cond_args, memory->cond_memory, work->cond_work);
+    info->condensing_time += acados_toc(&cond_timer);
 
+    info->total_time = acados_toc(&tot_timer);
+    info->solve_QP_time = ((dense_qp_info *)(memory->qpd_out->misc))->solve_QP_time;
+    info->interface_time = ((dense_qp_info *)(memory->qpd_out->misc))->interface_time;
     // return
     return solver_status;
 }

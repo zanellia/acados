@@ -18,9 +18,8 @@
  */
 
 // external
-#if defined(RUNTIME_CHECKS)
 #include <assert.h>
-#endif
+#include <string.h>
 #include <math.h>
 #include <string.h>
 // blasfeo
@@ -28,12 +27,11 @@
 #include "blasfeo_common.h"
 #include "blasfeo_d_aux.h"
 #include "blasfeo_d_aux_ext_dep.h"
-// qpoases
-#include "qpsolver_dense.h"
 // acados
 #include "acados/dense_qp/dense_qp_qore.h"
 #include "acados/dense_qp/dense_qp_common.h"
 #include "acados/utils/mem.h"
+#include "acados/utils/timing.h"
 
 
 int dense_qp_qore_calculate_args_size(dense_qp_dims *dims)
@@ -68,6 +66,9 @@ void dense_qp_qore_initialize_default_args(void *args_)
 
     args->prtfreq = -1;
     args->warm_start = 0;
+    args->warm_strategy = 0;
+    args->nsmax = 400;
+    args->hot_start = 0;
 }
 
 
@@ -80,6 +81,7 @@ int dense_qp_qore_calculate_memory_size(dense_qp_dims *dims, void *args_)
     int ned = dims->ne;
     int ngd = dims->ng;
     int nbd = dims->nb;
+    int nsmax = (2*nvd >= args->nsmax) ? args->nsmax : 2*nvd;
 
     // size in bytes
     int size = sizeof(dense_qp_qore_memory);
@@ -95,11 +97,9 @@ int dense_qp_qore_calculate_memory_size(dense_qp_dims *dims, void *args_)
     size += 2 * (nvd + ngd) * sizeof(double);      // lb, ub
     size += (nvd + ngd) * sizeof(double);          // prim_sol
     size += (nvd + ngd) * sizeof(double);          // dual_sol
-    size += sizeof(QoreProblemDense);
-    size += QPDenseSize(nvd,ngd,2*(nvd+ngd));
+    size += QPDenseSize(nvd,ngd,nsmax);
 
     make_int_multiple_of(8, &size);
-    size += 1 * 8;
 
     return size;
 }
@@ -115,6 +115,7 @@ void *dense_qp_qore_assign_memory(dense_qp_dims *dims, void *args_, void *raw_me
     int ned = dims->ne;
     int ngd = dims->ng;
     int nbd = dims->nb;
+    int nsmax = (2*nvd >= args->nsmax) ? args->nsmax : 2*nvd;
 
     // char pointer
     char *c_ptr = (char *)raw_memory;
@@ -122,70 +123,33 @@ void *dense_qp_qore_assign_memory(dense_qp_dims *dims, void *args_, void *raw_me
     mem = (dense_qp_qore_memory *) c_ptr;
     c_ptr += sizeof(dense_qp_qore_memory);
 
+    assert((size_t)c_ptr % 8 == 0 && "double not 8-byte aligned!");
+
+    assign_double(nvd*nvd, &mem->H, &c_ptr);
+    assign_double(nvd*ned, &mem->A, &c_ptr);
+    assign_double(nvd*ngd, &mem->C, &c_ptr);
+    assign_double(nvd*ngd, &mem->Ct, &c_ptr);
+    assign_double(nvd, &mem->g, &c_ptr);
+    assign_double(ned, &mem->b, &c_ptr);
+    assign_double(nbd, &mem->d_lb0, &c_ptr);
+    assign_double(nbd, &mem->d_ub0, &c_ptr);
+    assign_double(nvd, &mem->d_lb, &c_ptr);
+    assign_double(nvd, &mem->d_ub, &c_ptr);
+    assign_double(ngd, &mem->d_lg, &c_ptr);
+    assign_double(ngd, &mem->d_ug, &c_ptr);
+    assign_double(nvd+ngd, &mem->lb, &c_ptr);
+    assign_double(nvd+ngd, &mem->ub, &c_ptr);
+    assign_double(nvd+ngd, &mem->prim_sol, &c_ptr);
+    assign_double(nvd+ngd, &mem->dual_sol, &c_ptr);
+
+    assert((size_t)c_ptr % 8 == 0 && "double not 8-byte aligned!");
+
     mem->QP = (QoreProblemDense *) c_ptr;
-    c_ptr += sizeof(QoreProblemDense);
-
-    align_char_to(8, &c_ptr);
-
-    //
-    mem->H = (double *)c_ptr;
-    c_ptr += nvd * nvd * sizeof(double);
-    //
-    mem->A = (double *)c_ptr;
-    c_ptr += nvd * ned * sizeof(double);
-    //
-    mem->C = (double *)c_ptr;
-    c_ptr += nvd * ngd * sizeof(double);
-    //
-    mem->Ct = (double *)c_ptr;
-    c_ptr += nvd * ngd * sizeof(double);
-    //
-    mem->g = (double *)c_ptr;
-    c_ptr += nvd * sizeof(double);
-    // TODO(dimitris): use this instead
-    // assign_double(nvd, &mem->g, &c_ptr);
-    //
-    mem->b = (double *)c_ptr;
-    c_ptr += ned * sizeof(double);
-    //
-    mem->d_lb0 = (double *)c_ptr;
-    c_ptr += nbd * sizeof(double);
-    //
-    mem->d_ub0 = (double *)c_ptr;
-    c_ptr += nbd * sizeof(double);
-    //
-    mem->d_lb = (double *)c_ptr;
-    c_ptr += nvd * sizeof(double);
-    //
-    mem->d_ub = (double *)c_ptr;
-    c_ptr += nvd * sizeof(double);
-    //
-    mem->d_lg = (double *)c_ptr;
-    c_ptr += ngd * sizeof(double);
-    //
-    mem->d_ug = (double *)c_ptr;
-    c_ptr += ngd * sizeof(double);
-    //
-    mem->lb = (double *)c_ptr;
-    c_ptr += (nvd + ngd) * sizeof(double);
-    //
-    mem->ub = (double *)c_ptr;
-    c_ptr += (nvd + ngd) * sizeof(double);
-    //
-    mem->prim_sol = (double *)c_ptr;
-    c_ptr += (nvd + ngd) * sizeof(double);
-    //
-    mem->dual_sol = (double *)c_ptr;
-    c_ptr += (nvd + ngd) * sizeof(double);
-
-
-    int nsmax = (2*nvd >= 400) ? 400 : 2*nvd;
-    QPDenseCreate(mem->QP, nvd, ngd, nsmax, c_ptr);
-    c_ptr += mem->QP->memory_size;
+    QPDenseCreate(&mem->QP, nvd, ngd, nsmax, c_ptr);
+    c_ptr += QPDenseSize(nvd,ngd,nsmax);
 
     // int stuff
-    mem->idxb = (int *)c_ptr;
-    c_ptr += nbd * sizeof(int);
+    assign_int(nbd, &mem->idxb, &c_ptr);
 
     assert((char *)raw_memory + dense_qp_qore_calculate_memory_size(dims, args_) >= c_ptr);
 
@@ -194,8 +158,21 @@ void *dense_qp_qore_assign_memory(dense_qp_dims *dims, void *args_, void *raw_me
 
 
 
-int dense_qp_qore(dense_qp_in *qp_in, dense_qp_out *qp_out, void *args_, void *memory_)
+int dense_qp_qore_calculate_workspace_size(dense_qp_dims *dims, void *args_)
 {
+    return 0;
+}
+
+
+
+int dense_qp_qore(dense_qp_in *qp_in, dense_qp_out *qp_out, void *args_, void *memory_, void *work_)
+{
+    dense_qp_info *info = (dense_qp_info *) qp_out->misc;
+    acados_timer tot_timer, qp_timer, interface_timer;
+
+    acados_tic(&tot_timer);
+    acados_tic(&interface_timer);
+
     // cast structures
     dense_qp_qore_args *args = (dense_qp_qore_args *)args_;
     dense_qp_qore_memory *memory = (dense_qp_qore_memory *)memory_;
@@ -222,6 +199,7 @@ int dense_qp_qore(dense_qp_in *qp_in, dense_qp_out *qp_out, void *args_, void *m
     double *prim_sol = memory->prim_sol;
     double *dual_sol = memory->dual_sol;
     QoreProblemDense *QP = memory->QP;
+    int num_iter;
 
     // extract dense qp size
     int nvd = qp_in->dim->nv;
@@ -229,8 +207,10 @@ int dense_qp_qore(dense_qp_in *qp_in, dense_qp_out *qp_out, void *args_, void *m
     int ngd = qp_in->dim->ng;
     int nbd = qp_in->dim->nb;
 
+    assert(ned == 0 && "ned != 0 not supported yet");
+
     // fill in the upper triangular of H in dense_qp
-    dtrtr_l_libstr(nvd, qp_in->Hg, 0, 0, qp_in->Hg, 0, 0);
+    dtrtr_l_libstr(nvd, qp_in->Hv, 0, 0, qp_in->Hv, 0, 0);
 
     // dense qp row-major
     d_cvt_dense_qp_to_colmaj(qp_in, H, g, A, b, idxb, d_lb0, d_ub0, C, d_lg, d_ug,
@@ -263,42 +243,58 @@ int dense_qp_qore(dense_qp_in *qp_in, dense_qp_out *qp_out, void *args_, void *m
     // solve dense qp
     int prtfreq = args->prtfreq;
     int warm_start = args->warm_start;
+    int warm_strategy = args->warm_strategy;
+    int hot_start = args->hot_start;
     int return_flag = 0;
 
-    QPDenseSetData( QP, nvd, ngd, Ct, H );
-    QPDenseSetInt(QP, "prtfreq", prtfreq);
-    if (!warm_start) {
-        QPDenseSetInt(QP, "wsvalid", 0);
-        QPDenseSetInt(QP, "xyvalid", 0);
-        return_flag = QPDenseOptimize( QP, lb, ub, g, 0, 0 );
-    } else {
-        return_flag = QPDenseOptimize( QP, lb, ub, g, 0, 0 );
+    info->interface_time = acados_toc(&interface_timer);
+    acados_tic(&qp_timer);
+
+    if (warm_start)
+    {
+        QPDenseSetInt(QP, "warmstrategy", warm_strategy);
+        QPDenseUpdateMatrices(QP, nvd, ngd, Ct, H);
     }
+    else if (!hot_start)
+    {
+        QPDenseSetData(QP, nvd, ngd, Ct, H);
+    }
+
+    QPDenseSetInt(QP, "prtfreq", prtfreq);
+    return_flag = QPDenseOptimize( QP, lb, ub, g, 0, 0 );
 
     QPDenseGetDblVector( QP, "primalsol", prim_sol );
     QPDenseGetDblVector( QP, "dualsol", dual_sol );
+    QPDenseGetInt(QP, "itercount", &num_iter);
+    memory->num_iter = num_iter;
 
 #if 0
     d_print_mat(1, nvd, prim_sol, 1);
     exit(1);
 #endif
 
+    info->solve_QP_time = acados_toc(&qp_timer);
+    acados_tic(&interface_timer);
+
     // copy prim_sol and dual_sol to qpd_sol
     d_cvt_vec2strvec(nvd, prim_sol, qp_out->v, 0);
     for (int ii = 0; ii < 2*nbd+2*ngd; ii++)
         qp_out->lam->pa[ii] = 0.0;
     for (int ii = 0; ii < nbd; ii++) {
-        if (dual_sol[ii] >= 0.0)
-            qp_out->lam->pa[ii] = dual_sol[ii];
+        if (dual_sol[idxb[ii]] >= 0.0)
+            qp_out->lam->pa[ii] = dual_sol[idxb[ii]];
         else
-            qp_out->lam->pa[nbd+ngd+ii] = - dual_sol[ii];
+            qp_out->lam->pa[nbd+ngd+ii] = - dual_sol[idxb[ii]];
     }
     for (int ii = 0; ii < ngd; ii++) {
-        if (dual_sol[nbd+ii] >= 0.0)
-            qp_out->lam->pa[nbd+ii] =   dual_sol[nbd+ii];
+        if (dual_sol[nvd+ii] >= 0.0)
+            qp_out->lam->pa[nbd+ii] =   dual_sol[nvd+ii];
         else
-            qp_out->lam->pa[2*nbd+ngd+ii] = - dual_sol[nbd+ii];
+            qp_out->lam->pa[2*nbd+ngd+ii] = - dual_sol[nvd+ii];
     }
+
+    info->interface_time += acados_toc(&interface_timer);
+    info->total_time = acados_toc(&tot_timer);
 
     // return
     // TODO(bnovoselnik): cast qore return to acados return

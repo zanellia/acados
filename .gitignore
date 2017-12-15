@@ -62,6 +62,7 @@ Thumbs.db
 *external/download_script
 *external/encrypted_script
 *external/encrypted_script_matlab
+*external/qore
 
 *download_software
 *download_matlab
@@ -84,3 +85,4 @@ cmakelint
 *.srctrldb
 *.srctrlprj
 .vs
+examples/python/__pycache__/

@@ -39,6 +39,11 @@ HPIPM_PATH = $(EXT_PATH)/hpipm
 # HPIPM target
 HPIPM_TARGET = GENERIC
 
+# HPMPC path
+HPMPC_PATH = $(EXT_PATH)/hpmpc
+# HPMPC target
+HPMPC_TARGET = X64_AVX2
+
 # qpOASES path
 QPOASES_PATH = $(EXT_PATH)/qpoases
 
@@ -50,16 +55,16 @@ MEASURE_TIMINGS = 1
 
 
 # compiler flags
-CFLAGS  =
+CFLAGS=
 
 # optimization flags
 CFLAGS += #-O2 -fPIC
 
 # debugging flags
-CFLAGS  += #-g #-Wall -pedantic -Wfloat-equal #-pg
+CFLAGS  += #-g -Wall -pedantic -Wfloat-equal #-pg
 
 # TEMP
-CFLAGS += -g -O0 -DYT -DRUNTIME_CHECKS -DEXT_DEPS -DALIGNMENT=64 -D__DEBUG__
+CFLAGS += -g -O0 -DRUNTIME_CHECKS -DEXT_DEPS -DALIGNMENT=64 -D__DEBUG__
 
 # timing
 ifeq ($(MEASURE_TIMINGS), 1)
@@ -67,5 +72,5 @@ CFLAGS += -DMEASURE_TIMINGS
 endif
 
 # search directories
-CFLAGS += -I$(TOP) -I$(EXT_PATH) -I$(BLASFEO_PATH)/include -I$(HPIPM_PATH)/include -I$(QPOASES_PATH)/include -I$(TOP)/include/qore
-LDFLAGS += -L$(TOP)/lib -L$(BLASFEO_PATH)/lib -L$(HPIPM_PATH)/lib -L$(QPOASES_PATH)/bin
+CFLAGS += -I$(TOP) -I$(EXT_PATH) -I$(BLASFEO_PATH)/include -I$(HPIPM_PATH)/include -I$(HPMPC_PATH)/include -I$(QPOASES_PATH)/include -I$(TOP)/include/qore
+LDFLAGS += -L$(TOP)/lib -L$(BLASFEO_PATH)/lib -L$(HPIPM_PATH)/lib -L$(HPMPC_PATH) -L$(QPOASES_PATH)/bin

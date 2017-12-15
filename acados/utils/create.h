@@ -36,15 +36,24 @@ extern "C" {
 #include "acados/ocp_qp/ocp_qp_sparse_solver.h"
 #include "acados/ocp_qp/ocp_qp_condensing_solver.h"
 #include "acados/ocp_qp/ocp_qp_hpipm.h"
+#include "acados/ocp_qp/ocp_qp_hpmpc.h"
 #include "acados/ocp_nlp/ocp_nlp_gn_sqp.h"
 
 ocp_qp_in *create_ocp_qp_in(ocp_qp_dims *dims);
 
 ocp_qp_out *create_ocp_qp_out(ocp_qp_dims *dims);
 
+ocp_qp_res *create_ocp_qp_res(ocp_qp_dims *dims);
+
+ocp_qp_res_ws *create_ocp_qp_res_ws(ocp_qp_dims *dims);
+
 ocp_qp_hpipm_args *ocp_qp_hpipm_create_arguments(ocp_qp_dims *dims);
 
 ocp_qp_hpipm_memory *ocp_qp_hpipm_create_memory(ocp_qp_dims *dims, void *args_);
+
+ocp_qp_hpmpc_args *ocp_qp_hpmpc_create_arguments(ocp_qp_dims *dims);
+
+ocp_qp_hpmpc_memory *ocp_qp_hpmpc_create_memory(ocp_qp_dims *dims, ocp_qp_in *qp_in, void *args_);
 
 ocp_qp_condensing_args *ocp_qp_condensing_create_arguments(ocp_qp_dims *dims);
 
@@ -66,6 +75,10 @@ dense_qp_in *create_dense_qp_in(dense_qp_dims *dims);
 
 dense_qp_out *create_dense_qp_out(dense_qp_dims *dims);
 
+dense_qp_res *create_dense_qp_res(dense_qp_dims *dims);
+
+dense_qp_res_ws *create_dense_qp_res_ws(dense_qp_dims *dims);
+
 dense_qp_hpipm_args *dense_qp_hpipm_create_arguments(dense_qp_dims *dims);
 
 dense_qp_hpipm_memory *dense_qp_hpipm_create_memory(dense_qp_dims *dims, void *args_);
@@ -74,13 +87,13 @@ dense_qp_qpoases_args *dense_qp_qpoases_create_arguments(dense_qp_dims *dims);
 
 dense_qp_qpoases_memory *dense_qp_qpoases_create_memory(dense_qp_dims *dims, void *args_);
 
+sim_rk_opts *create_sim_erk_opts(sim_dims *dims);
+
 ocp_nlp_in *create_ocp_nlp_in(ocp_nlp_dims *dims, int num_stages);
 
-#ifdef YT
+ocp_nlp_out *create_ocp_nlp_out(ocp_nlp_dims *dims);
+
 ocp_nlp_gn_sqp_args *ocp_nlp_gn_sqp_create_args(ocp_nlp_dims *dims, qp_solver_t qp_solver_name, sim_solver_t *sim_solver_names);
-#else
-ocp_nlp_gn_sqp_args *ocp_nlp_gn_sqp_create_args(ocp_nlp_dims *dims, qp_solver_t qp_solver_name);
-#endif
 
 ocp_nlp_gn_sqp_memory *ocp_nlp_gn_sqp_create_memory(ocp_nlp_dims *dims, ocp_nlp_gn_sqp_args *args);
 

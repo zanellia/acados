@@ -17,17 +17,16 @@
  *
  */
 
+ #define _GNU_SOURCE
+ #include <fenv.h>
 // external
 #include <stdio.h>
-#include <assert.h>
 #include <stdlib.h>
 // acados
-#include "acados/dense_qp/dense_qp_common.h"
 #include "acados/ocp_qp/ocp_qp_common.h"
 #include "acados/ocp_qp/ocp_qp_common_frontend.h"
-#include "acados/ocp_qp/ocp_qp_condensing_solver.h"
+#include "acados/ocp_qp/ocp_qp_hpipm.h"
 #include "acados/utils/create.h"
-#include "acados/utils/print.h"
 #include "acados/utils/timing.h"
 #include "acados/utils/types.h"
 
@@ -36,11 +35,13 @@
 
 #include "./mass_spring.c"
 
+
 int main() {
+    // feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
     printf("\n");
     printf("\n");
     printf("\n");
-    printf(" acados + condensing_qpoases\n");
+    printf(" acados + hpmpc\n");
     printf("\n");
     printf("\n");
     printf("\n");
@@ -51,15 +52,11 @@ int main() {
 
     ocp_qp_in *qp_in = create_ocp_qp_in_mass_spring();
 
-    // print_ocp_qp_dims(qp_in->dim);
-    // exit(1);
-
-    int N = qp_in->dim->N;
+    int N   = qp_in->dim->N;
     int *nx = qp_in->dim->nx;
     int *nu = qp_in->dim->nu;
     int *nb = qp_in->dim->nb;
     int *ng = qp_in->dim->ng;
-    int *ns = qp_in->dim->ns;
 
     /************************************************
     * ocp qp solution
@@ -68,38 +65,47 @@ int main() {
     ocp_qp_out *qp_out = create_ocp_qp_out(qp_in->dim);
 
     /************************************************
-    * qpoases
+    * ipm
     ************************************************/
 
-    ocp_qp_condensing_solver_args *arg = ocp_qp_condensing_solver_create_arguments(qp_in->dim, CONDENSING_QPOASES);
+    ocp_qp_hpmpc_args *arg = ocp_qp_hpmpc_create_arguments(qp_in->dim);
 
-    ocp_qp_condensing_solver_memory *mem = ocp_qp_condensing_solver_create_memory(qp_in->dim, arg);
+    // arg->hpmpc_args->iter_max = 10;
 
-    void *work = malloc(ocp_qp_condensing_solver_calculate_workspace_size(qp_in->dim, arg));
+    ocp_qp_hpmpc_memory *mem = ocp_qp_hpmpc_create_memory(qp_in->dim, qp_in, arg);
 
-	int acados_return; // 0 normal; 1 max iter
+    // intialize variables
+    for (int ii = 0; ii <= N;  ii++) {
+        for (int jj = 0; jj < 2*nb[ii] + 2*ng[ii]; jj++) {
+            arg->t0[ii][jj] = 10;
+            arg->lam0[ii][jj] = 10;
+        }
+
+    }
+	int acados_return;  // 0 normal; 1 max iter
 
     acados_timer timer;
     acados_tic(&timer);
 
-    ocp_qp_info *info = (ocp_qp_info *)qp_out->misc;
-    ocp_qp_info min_info;
-    min_info.total_time = min_info.condensing_time = min_info.solve_QP_time = min_info.interface_time = 1e10;
-
 	for (int rep = 0; rep < NREP; rep++) {
-        acados_return = ocp_qp_condensing_solver(qp_in, qp_out, arg, mem, work);
-
-        if (info->total_time < min_info.total_time) min_info.total_time = info->total_time;
-        if (info->condensing_time < min_info.condensing_time) min_info.condensing_time = info->condensing_time;
-        if (info->solve_QP_time < min_info.solve_QP_time) min_info.solve_QP_time = info->solve_QP_time;
-        if (info->interface_time < min_info.interface_time) min_info.interface_time = info->interface_time;
-    }
+        acados_return = ocp_qp_hpmpc(qp_in, qp_out, arg, mem, NULL);
+	}
 
     double time = acados_toc(&timer)/NREP;
+
+    printf("acados_return = %i", acados_return);
 
     /************************************************
     * extract solution
     ************************************************/
+
+    // ocp_qp_dims dims;
+    // dims.N = N;
+    // dims.nx = nx;
+    // dims.nu = nu;
+    // dims.nb = nb;
+    // dims.ns = ns;
+    // dims.ng = ng;
 
     ocp_qp_dims *dims = qp_in->dim;
 
@@ -107,24 +113,6 @@ int main() {
     void *memsol = malloc(colmaj_ocp_qp_out_calculate_size(dims));
     assign_colmaj_ocp_qp_out(dims, &sol, memsol);
     convert_ocp_qp_out_to_colmaj(qp_out, sol);
-
-    /************************************************
-    * compute residuals
-    ************************************************/
-
-    ocp_qp_res *qp_res = create_ocp_qp_res(dims);
-    ocp_qp_res_ws *res_ws = create_ocp_qp_res_ws(dims);
-    compute_ocp_qp_res(qp_in, qp_out, qp_res, res_ws);
-
-    /************************************************
-    * compute infinity norm of residuals
-    ************************************************/
-
-    double res[4];
-    compute_ocp_qp_res_nrm_inf(qp_res, res);
-    double max_res = 0.0;
-    for (int ii = 0; ii < 4; ii++) max_res = (res[ii] > max_res) ? res[ii] : max_res;
-    assert(max_res <= ACADOS_EPS && "The largest KKT residual greater than ACADOS_EPS");
 
     /************************************************
     * print solution and stats
@@ -142,13 +130,12 @@ int main() {
     printf("\nlam = \n");
     for (int ii = 0; ii <= N; ii++) d_print_mat(1, 2*nb[ii]+2*ng[ii], sol->lam[ii], 1);
 
-    printf("\ninf norm res: %e, %e, %e, %e\n", res[0], res[1], res[2], res[3]);
+    // printf("\ninf norm res: %e, %e, %e, %e, %e\n", mem->hpmpc_workspace->qp_res[0],
+        //    mem->hpmpc_workspace->qp_res[1], mem->hpmpc_workspace->qp_res[2],
+        //    mem->hpmpc_workspace->qp_res[3], mem->hpmpc_workspace->res_workspace->res_mu);
 
-    dense_qp_qpoases_memory *tmp_mem = (dense_qp_qpoases_memory *) mem->solver_memory;
-
-    printf("\nNumber of working-set recalculations = %d\n\n\n", tmp_mem->nwsr);
-
-    print_ocp_qp_info(&min_info);
+    printf("\nN ITER = %i\n\n\n",
+        arg->out_iter);
 
     /************************************************
     * free memory
@@ -157,11 +144,8 @@ int main() {
     free(qp_in);
     free(qp_out);
     free(sol);
-    free(qp_res);
-    free(res_ws);
     free(arg);
     free(mem);
-    free(work);
 
-	return 0;
+    return 0;
 }
