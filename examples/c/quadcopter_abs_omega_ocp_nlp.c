@@ -47,8 +47,8 @@
 #define NX 7
 #define NU 4
 #define NSIM 200
-#define NREP 10
-#define UMAX 10.0
+#define NREP 1
+#define UMAX 8.0
 #define NR 14
 #define NR_END 10
 
@@ -57,10 +57,11 @@
 #define N_SQP_HACK 1
 
 // #define LOG_CL_SOL
-#define LOG_NAME "cl_log_quadcopter_abs_omega.txt"
+#define LOG_NAME "../../../../sim/cl_log_quadcopter_abs_omega_pt_rti.txt"
+// #define LOG_NAME "cl_log_quadcopter_abs_omega_rti.txt"
 
-#define ALPHA 1.0
-#define GAMMA 0.3
+#define ALPHA  1.0
+#define GAMMA  0.9
 #define LAMBDA 0.3
 
 #define INITIAL_ANGLE_RAD 0.0
@@ -68,9 +69,9 @@
 #define STEP_PERIOD 2.0
 #define SIM_SCENARIO 1  // 0: stabilization, 1: tracking
 
-#define MU_TIGHT 10
-#define MM 20
-#define LAM_INIT 10
+#define MU_TIGHT 20
+#define MM 2
+#define LAM_INIT 20
 #define T_INIT 1
 
 #define OMEGA_REF 39.939
@@ -148,7 +149,7 @@ int main() {
         sin(initial_angle_rad/2),
         0.0000000000000000e+00,
         0.0000000000000000e+00,
-        1.0000000000000000e+00,
+        0.0000000000000000e+00,
         0.0000000000000000e+00,
         0.0000000000000000e+00
     };
@@ -453,6 +454,8 @@ int main() {
     ocp_nlp_gn_sqp_create_memory(&nlp_in, &nlp_args, &nlp_mem);
     ocp_qp_hpmpc_args *qp_args = (ocp_qp_hpmpc_args *)nlp_mem.qp_solver->args;
 
+	// qp_args->max_iter = 100;
+
     // TODO(ANDREA) UGLY HACK: how to move this into ocp_nlp_gn_sqp_create_memory?
     double *lam_in[NN+1];
     double *t_in[NN+1];
@@ -564,10 +567,10 @@ int main() {
 
             // nlp_min_timings = 1e12;
             // for (int_t iter = 0; iter < NREP; iter++) {
-            //     acados_tic(&timer);
                 nlp_min_timings = ocp_nlp_gn_sqp(&nlp_in, &nlp_out, &nlp_args, &nlp_mem, nlp_work);
-                // timings = acados_toc(&timer);
-                // printf("%f\n",timings);
+
+				// printf("Number of iterations in hpmpc:%i\n", qp_args->out_iter);
+				// printf("%f\n",timings);
                 // if (timings < nlp_min_timings) nlp_min_timings = timings;
             // }
             if (sim_iter >= 0) sim_nlp_timings[sim_iter] = nlp_min_timings*1e3;

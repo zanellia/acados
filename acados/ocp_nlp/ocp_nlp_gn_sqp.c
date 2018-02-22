@@ -517,7 +517,8 @@ real_t ocp_nlp_gn_sqp(const ocp_nlp_in *nlp_in, ocp_nlp_out *nlp_out, void *nlp_
     ocp_nlp_gn_sqp_work *work = (ocp_nlp_gn_sqp_work*) nlp_work_;
     ocp_nlp_gn_sqp_args *args = (ocp_nlp_gn_sqp_args*) nlp_args_;
     ocp_nlp_gn_sqp_cast_workspace(work, gn_sqp_mem);
-
+	
+	
     initialize_objective(nlp_in, args, gn_sqp_mem, work);
     initialize_trajectories(nlp_in, gn_sqp_mem, work);
 
@@ -538,7 +539,7 @@ real_t ocp_nlp_gn_sqp(const ocp_nlp_in *nlp_in, ocp_nlp_out *nlp_out, void *nlp_
     real_t min_cpu_time = 1e12;
     for (int_t sqp_iter = 0; sqp_iter < max_sqp_iterations; sqp_iter++) {
         min_cpu_time = 1e12;
-        for (int_t kk = 0; kk < 10; kk++){
+        for (int_t kk = 0; kk < 100; kk++){
             acados_tic(&timer);
             multiple_shooting(nlp_in, nlp_args, work, gn_sqp_mem, work->common->w);
         int_t qp_status = gn_sqp_mem->qp_solver->fun(
@@ -570,7 +571,7 @@ real_t ocp_nlp_gn_sqp(const ocp_nlp_in *nlp_in, ocp_nlp_out *nlp_out, void *nlp_
     }
 
     store_trajectories(nlp_in, gn_sqp_mem->common, nlp_out, work->common->w);
-    return min_cpu_time;
+	return min_cpu_time;
 }
 
 void ocp_nlp_gn_sqp_create_memory(const ocp_nlp_in *in, void *args_, void *memory_) {
