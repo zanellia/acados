@@ -89,7 +89,7 @@
 #define FREEZE_SENS 0
 
 // dynamics: 0 erk, 1 lifted_irk, 2 irk, 3 discrete_model, 4 new_lifted_irk
-#define DYNAMICS 2
+#define DYNAMICS 4
 
 // cost: 0 ls, 1 nls, 2 external
 #define COST 0
@@ -1689,7 +1689,7 @@ int main() {
     double uref[3] = {0.0, 0.0, 0.0};
     double diag_cost_x[NX];
     for (int i = 0; i < NX; i++)
-        diag_cost_x[i] = 1e2;
+        diag_cost_x[i] = 1e3;
     double diag_cost_u[3] = {1.0, 1.0, 1.0};
 
 
