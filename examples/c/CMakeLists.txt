@@ -1,4 +1,4 @@
-#
+
 #    This file is part of acados.
 #
 #    acados is free software; you can redistribute it and/or
@@ -192,17 +192,17 @@ else()
             )
 
         add_executable(
-                nonlinear_chain_ocp_nlp_no_interface_lifted_example
-                nonlinear_chain_ocp_nlp_no_interface_lifted.c
+                nonlinear_chain_ocp_nlp_no_interface_nmpc_example
+                nonlinear_chain_ocp_nlp_no_interface_nmpc.c
                 ${CHAIN_MODEL_SRC}
             )
             target_link_libraries(
-                nonlinear_chain_ocp_nlp_no_interface_lifted_example
+                nonlinear_chain_ocp_nlp_no_interface_nmpc_example
                 acados
             )
             add_test(
-                nonlinear_chain_ocp_nlp_no_interface_lifted_example
-                nonlinear_chain_ocp_nlp_no_interface_example
+                nonlinear_chain_ocp_nlp_no_interface_nmpc_example
+                nonlinear_chain_ocp_nlp_no_interface_nmpc_example
             )
     endif()
 endif()
