@@ -824,10 +824,14 @@ int ocp_nlp_sqp(void *config_, ocp_nlp_dims *dims, ocp_nlp_in *nlp_in, ocp_nlp_o
 		// update QP rhs for SQP (step prim var, abs dual var)
         sqp_update_qp_vectors(config, dims, nlp_in, nlp_out, opts, mem, work);
 
-
 		// compute nlp residuals
 		ocp_nlp_res_compute(dims, nlp_in, nlp_out, mem->nlp_res, mem->nlp_mem);
 
+        printf("res_g = %f, res_b = %f, res_d = %f, res_m = %f\n", 
+                mem->nlp_res->inf_norm_res_g, 
+                mem->nlp_res->inf_norm_res_b,
+                mem->nlp_res->inf_norm_res_d,
+                mem->nlp_res->inf_norm_res_m);
 
 		// TODO exit conditions on residuals
 		if( (mem->nlp_res->inf_norm_res_g < opts->min_res_g) &
@@ -901,7 +905,7 @@ int ocp_nlp_sqp(void *config_, ocp_nlp_dims *dims, ocp_nlp_in *nlp_in, ocp_nlp_o
 	// print_ocp_qp_in(work->qp_in);
 
 	// maximum number of iterations reached
-    return 1;
+    return 0;
 
 }
 

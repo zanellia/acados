@@ -78,11 +78,10 @@
 // temp
 #include "acados/ocp_qp/ocp_qp_hpipm.h"
 
-#define NN 15
+#define NN 100
 #define TF 3.75
 
 #define MAX_SQP_ITERS 1
-#define NREP 1
 
 #define NUM_FREE_MASSES 3
 
@@ -93,10 +92,10 @@
 #define DYNAMICS 2
 
 // cost: 0 ls, 1 nls, 2 external
-#define COST 2
+#define COST 0
 
 // constraints (at stage 0): 0 box, 1 general, 2 general+nonlinear
-#define CONSTRAINTS 2
+#define CONSTRAINTS 0
 
 // QPSOLVER: 0 HPIPM, 1 QPOASES
 #define QPSOLVER 1
@@ -1690,7 +1689,7 @@ int main() {
     double uref[3] = {0.0, 0.0, 0.0};
     double diag_cost_x[NX];
     for (int i = 0; i < NX; i++)
-        diag_cost_x[i] = 1e-2;
+        diag_cost_x[i] = 1e2;
     double diag_cost_u[3] = {1.0, 1.0, 1.0};
 
 
@@ -2088,11 +2087,11 @@ int main() {
     // warm start output initial guess of solution
 //		if (rep==0)
 //		{
-        for (int i=0; i<=NN; i++)
-        {
-            blasfeo_pack_dvec(nu[i], uref, nlp_out->ux+i, 0);
-            blasfeo_pack_dvec(nx[i], xref, nlp_out->ux+i, nu[i]);
-        }
+    for (int i=0; i<=NN; i++)
+    {
+        blasfeo_pack_dvec(nu[i], uref, nlp_out->ux+i, 0);
+        blasfeo_pack_dvec(nx[i], xref, nlp_out->ux+i, nu[i]);
+    }
 //		}
 
     // call nlp solver
@@ -2109,23 +2108,23 @@ int main() {
     acados_timer timer;
     acados_tic(&timer);
 
-    for (int rep = 0; rep < NREP; rep++)
+    for (int i=0; i<=NN; i++)
     {
-		// warm start output initial guess of solution
-//		if (rep==0)
-//		{
-			for (int i=0; i<=NN; i++)
-			{
-				blasfeo_pack_dvec(nu[i], uref, nlp_out->ux+i, 0);
-				blasfeo_pack_dvec(nx[i], xref, nlp_out->ux+i, nu[i]);
-			}
-//		}
+        blasfeo_pack_dvec(nu[i], uref, nlp_out->ux+i, 0);
+        blasfeo_pack_dvec(nx[i], xref, nlp_out->ux+i, nu[i]);
+    }
+
+    for (int rep = 0; rep < NSIM; rep++)
+    {
 
 		// call nlp solver
         status = ocp_nlp_sqp(config, dims, nlp_in, nlp_out, nlp_opts, nlp_mem, nlp_work);
+
+        blasfeo_dveccp(nx[0], &nlp_out->ux[1], nu[0], &constraints[0]->d, nbu[0]);
+        blasfeo_dveccp(nx[0], &nlp_out->ux[1], nu[0], &constraints[0]->d, nbu[0]+nb[0]+ng[0]);
     }
 
-    double time = acados_toc(&timer)/NREP;
+    double time = acados_toc(&timer)/NSIM;
 
 	// printf("\nresiduals\n");
 	// ocp_nlp_res_print(dims, nlp_mem->nlp_res);
