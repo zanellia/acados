@@ -36,7 +36,8 @@ typedef struct dense_qp_qpoases_opts_ {
     double max_cputime;  // maximum cpu time in seconds
     int max_nwsr;        // maximum number of working set recalculations
     int warm_start;      // warm start with dual_sol in memory
-	int use_precomputed_cholesky;
+	int use_precomputed_cholesky; // pass the Hessian factorization stored in R to qpOASES
+	int update_factorization; // update R (only used if use_precomputed_factorization = 1)
 	int hotstart; 		 // this option requires constant data matrices! (eg linear MPC, inexact schemes with frozen sensitivities)
     int set_acado_opts;  // use same options as in acado code generation
 	int compute_t;       // compute t in qp_out (to have correct residuals in NLP)
@@ -46,6 +47,8 @@ typedef struct dense_qp_qpoases_opts_ {
 
 typedef struct dense_qp_qpoases_memory_
 {
+    struct blasfeo_dmat *sR;
+
     double *H;
     double *R;
     double *g;

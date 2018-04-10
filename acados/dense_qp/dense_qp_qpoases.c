@@ -99,6 +99,7 @@ void dense_qp_qpoases_opts_initialize_default(void *config_, dense_qp_dims *dims
     opts->warm_start = 0;
     opts->max_nwsr = 1000;
 	opts->use_precomputed_cholesky = 0;
+	opts->update_factorization = 1;
 	opts->hotstart = 0;
     opts->set_acado_opts = 1;
 	opts->compute_t = 1;
@@ -132,6 +133,9 @@ int dense_qp_qpoases_memory_calculate_size(void *config_, dense_qp_dims *dims, v
     // size in bytes
     int size = sizeof(dense_qp_qpoases_memory);
 
+    size += sizeof(struct blasfeo_dmat);           // sR
+    
+    size += blasfeo_memsize_dmat(nvd, nvd);        // sR
     size += 1 * nvd * nvd * sizeof(double);        // H
 	size += 1 * nvd * nvd * sizeof(double);        // R
     size += 1 * nvd * ned * sizeof(double);        // A
@@ -149,7 +153,8 @@ int dense_qp_qpoases_memory_calculate_size(void *config_, dense_qp_dims *dims, v
     else  // QProblemB
         size += QProblemB_calculateMemorySize(nvd);
 
-    make_int_multiple_of(8, &size);
+    make_int_multiple_of(64, &size);
+    size += 1 * 64;
 
     return size;
 }
@@ -171,7 +176,14 @@ void *dense_qp_qpoases_memory_assign(void *config_, dense_qp_dims *dims, void *o
     mem = (dense_qp_qpoases_memory *) c_ptr;
     c_ptr += sizeof(dense_qp_qpoases_memory);
 
-    assert((size_t)c_ptr % 8 == 0 && "double not 8-byte aligned!");
+    mem->sR = (struct blasfeo_dmat *)c_ptr;
+    c_ptr += sizeof(struct blasfeo_dmat);
+    
+    align_char_to(64, &c_ptr);
+    
+    assert((size_t)c_ptr % 64 == 0 && "double not 64-byte aligned!");
+
+    assign_and_advance_blasfeo_dmat_mem(nvd, nvd, mem->sR, &c_ptr);
 
     assign_and_advance_double(nvd*nvd, &mem->H, &c_ptr);
     assign_and_advance_double(nvd*nvd, &mem->R, &c_ptr);
@@ -278,15 +290,16 @@ int dense_qp_qpoases(void *config_, dense_qp_in *qp_in, dense_qp_out *qp_out, vo
         d_ub[idxb[ii]] = d_ub0[ii];
     }
 
-    // cholesky factorization of H
-    // blasfeo_dpotrf_l(nvd, qpd->Hv, 0, 0, sR, 0, 0);
+    if (opts->use_precomputed_cholesky == 1 && opts->update_factorization == 1) { 
+        // cholesky factorization of H
+        blasfeo_dpotrf_l(nvd, qp_in->Hv, 0, 0, qp_in->Hv, 0, 0);
 
-    // fill in upper triangular of R
-    // blasfeo_dtrtr_l(nvd, sR, 0, 0, sR, 0, 0);
+        // fill in upper triangular of R
+        blasfeo_dtrtr_l(nvd, memory->sR, 0, 0, memory->sR, 0, 0);
 
-    // extract R
-    // blasfeo_unpack_dmat(nvd, nvd, sR, 0, 0, R, nvd);
-
+        // extract R
+        blasfeo_unpack_dmat(nvd, nvd, memory->sR, 0, 0, memory->R, nvd);
+    }
 
     info->interface_time = acados_toc(&interface_timer);
     acados_tic(&qp_timer);
@@ -299,34 +312,35 @@ int dense_qp_qpoases(void *config_, dense_qp_in *qp_in, dense_qp_out *qp_out, vo
 	if (opts->hotstart == 1) { // only to be used with fixed data matrices!
 		if (ngd > 0) {  // QProblem
 			if (memory->first_it == 1) {
-				QProblemCON(QP, nvd, ngd, HST_POSDEF);
+				QProblemCON(QP, nvd, ngd, HST_SEMIDEF);
 				QProblem_setPrintLevel(QP, PL_MEDIUM);
 				// QProblem_setPrintLevel(QP, PL_DEBUG_ITER);
 				QProblem_printProperties(QP);
-				// static Options options;
+				static Options options;
 
-				// Options_setToDefault( &options );
+				Options_setToDefault( &options );
 				// options.initialStatusBounds = ST_INACTIVE;
-				// QProblem_setOptions( QP, options );
+				QProblem_setOptions( QP, options );
 				qpoases_status = QProblem_init(QP, H, g, C, d_lb, d_ub, d_lg, d_ug, &nwsr, &cputime );
 				memory->first_it = 0;
 
 				QProblem_getPrimalSolution(QP, prim_sol);
 				QProblem_getDualSolution(QP, dual_sol);
 			} else {
+				QProblem_printProperties(QP);
 				qpoases_status = QProblem_hotstart(QP, g, d_lb, d_ub, d_lg, d_ug, &nwsr, &cputime);
 			}
 		} else {
 			if (memory->first_it == 1) {
-				QProblemBCON(QPB, nvd, HST_POSDEF);
-				QProblemB_setPrintLevel(QPB, PL_MEDIUM);
+				QProblemBCON(QPB, nvd, HST_SEMIDEF);
+				QProblemB_setPrintLevel(QPB, PL_HIGH);
 				// QProblemB_setPrintLevel(QPB, PL_DEBUG_ITER);
 				QProblemB_printProperties(QPB);
-				// static Options options;
+				static Options options;
 
-				// Options_setToDefault( &options );
+				Options_setToDefault( &options );
 				// options.initialStatusBounds = ST_INACTIVE;
-				// QProblemB_setOptions( QPB, options );
+				QProblemB_setOptions( QPB, options );
 				QProblemB_init(QPB, H, g, d_lb, d_ub, &nwsr, &cputime);
 				memory->first_it = 0;
 
@@ -341,15 +355,15 @@ int dense_qp_qpoases(void *config_, dense_qp_in *qp_in, dense_qp_out *qp_out, vo
 		if (ngd > 0)
         {
 			QProblemCON(QP, nvd, ngd, HST_POSDEF);
-            QProblem_setPrintLevel(QP, PL_MEDIUM);
+            QProblem_setPrintLevel(QP, PL_HIGH);
             // QProblem_setPrintLevel(QP, PL_DEBUG_ITER);
             QProblem_printProperties(QP);
-			if (opts->use_precomputed_cholesky == 1)
+            if (opts->use_precomputed_cholesky == 1)
             {
-				// static Options options;
-				// Options_setToDefault( &options );
+				static Options options;
+				Options_setToDefault( &options );
 				// options.initialStatusBounds = ST_INACTIVE;
-				// QProblem_setOptions( QP, options );
+				QProblem_setOptions( QP, options );
 
 				qpoases_status = QProblem_initW(QP, H, g, C, d_lb, d_ub, d_lg, d_ug, &nwsr, &cputime,
 					/* primal_sol */ NULL, /* dual sol */ NULL,
@@ -446,6 +460,7 @@ int dense_qp_qpoases(void *config_, dense_qp_in *qp_in, dense_qp_out *qp_out, vo
 		blasfeo_dveccpsc(nbd+ngd, -1.0, qp_out->t, nbd+ngd, qp_out->t, 0);
 		blasfeo_daxpy(2*nbd+2*ngd, -1.0, qp_in->d, 0, qp_out->t, 0, qp_out->t, 0);
 	}
+		
 
     int acados_status = qpoases_status;
     if (qpoases_status == SUCCESSFUL_RETURN) acados_status = ACADOS_SUCCESS;
