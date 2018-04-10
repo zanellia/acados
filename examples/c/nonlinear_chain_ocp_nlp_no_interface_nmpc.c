@@ -78,14 +78,14 @@
 // temp
 #include "acados/ocp_qp/ocp_qp_hpipm.h"
 
-#define NN 100
+#define NN 50
 #define TF 3.75
 
 #define MAX_SQP_ITERS 1
 
 #define NUM_FREE_MASSES 5
 
-#define NSIM 200
+#define NSIM 500
 #define INIT_ITER 100
 #define FREEZE_SENS 0
 
@@ -105,6 +105,8 @@
 #define XCOND 2
 
 #define OFFLINE_COND 1
+
+#define IRK_STAGES_NUM 5
 
 enum sensitivities_scheme {
     EXACT_NEWTON,
@@ -1679,8 +1681,8 @@ int main() {
     // NOTE(dimitris): use nlp_in->dims instead of &dims from now on since nb is filled with nbx+nbu!
 
     // Problem data
-    double wall_pos = -1;
-    double UMAX = 10;
+    double wall_pos = -10;
+    double UMAX = 100;
 
 	double x_pos_inf = +1e4;
 	double x_neg_inf = -1e4;
@@ -1690,7 +1692,7 @@ int main() {
     double uref[3] = {0.0, 0.0, 0.0};
     double diag_cost_x[NX];
     for (int i = 0; i < NX; i++)
-        diag_cost_x[i] = 1e0;
+        diag_cost_x[i] = 1e2;
     double diag_cost_u[3] = {1.0, 1.0, 1.0};
 
 
@@ -2013,7 +2015,7 @@ int main() {
 		ocp_nlp_dynamics_cont_opts *dynamics_opts = nlp_opts->dynamics[i];
         sim_rk_opts *sim_opts = dynamics_opts->sim_solver;
 		// dynamics: IRK GL2
-		sim_opts->ns = 3;
+		sim_opts->ns = IRK_STAGES_NUM;
 		sim_opts->jac_reuse = true;
 #elif DYNAMICS==3
 		// dynamics: discrete model
@@ -2022,7 +2024,7 @@ int main() {
 		ocp_nlp_dynamics_cont_opts *dynamics_opts = nlp_opts->dynamics[i];
         sim_rk_opts *sim_opts = dynamics_opts->sim_solver;
 		// dynamics: new lifterd IRK GL2
-		sim_opts->ns = 3;
+		sim_opts->ns = IRK_STAGES_NUM;
 #endif
     }
 
@@ -2130,6 +2132,13 @@ int main() {
 
     fcond_solver_opts->condense_rhs_only = 1;
     fcond_solver_opts->expand_primal_sol_only = 1;
+
+    sim_new_lifted_irk_memory *lifted_irk_mem;
+    int ii;
+    for (ii = 0; ii<NN; ii++) {
+        lifted_irk_mem = (sim_new_lifted_irk_memory *)(((ocp_nlp_dynamics_cont_memory *)nlp_mem->dynamics[ii])->sim_solver);
+        lifted_irk_mem->update_sens = 0;
+    }
 
 #endif
     

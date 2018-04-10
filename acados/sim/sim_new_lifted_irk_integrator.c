@@ -507,11 +507,13 @@ int sim_new_lifted_irk(void *config_, sim_in *in, sim_out *out, void *opts_, voi
     }
     
     // initialize
-    blasfeo_dgese(nx*ns, nx*ns, 0.0, JGK, 0, 0);
-    blasfeo_dgese(nx*ns, nx+nu, 0.0, JGf, 0, 0);
+    // blasfeo_dgese(nx*ns, nx*ns, 0.0, JGK, 0, 0);
+    // blasfeo_dgese(nx*ns, nx+nu, 0.0, JGf, 0, 0);
     
     // TODO(dimitris): shouldn't this be NF instead of nx+nu??
-    blasfeo_pack_dmat(nx, nx+nu, S_forw_in, nx, S_forw, 0, 0);
+    if(update_sens){
+        blasfeo_pack_dmat(nx, nx+nu, S_forw_in, nx, S_forw, 0, 0);
+    }
     // blasfeo_print_dmat(nx, nx+nu, S_forw, 0, 0);
 
     blasfeo_dvecse(nx*ns, 0.0, rG, 0);
@@ -683,7 +685,7 @@ int sim_new_lifted_irk(void *config_, sim_in *in, sim_out *out, void *opts_, voi
                 blasfeo_pack_dmat(nx, nu, jac_out+2*nx*nx, nx, JGf, ii*nx, nx);     
             }
         } // end ii
-   
+  
         //DGETRF computes an LU factorization of a general M-by-N matrix A
         //using partial pivoting with row interchanges.
 
@@ -707,18 +709,20 @@ int sim_new_lifted_irk(void *config_, sim_in *in, sim_out *out, void *opts_, voi
 
         // evaluate forward sensitivities
 
-        // obtain JKf
-        blasfeo_dgemm_nn(nx*ns, nx+nu, nx, 1.0, JGf, 0, 0, S_forw, 0, 0, 0.0, JKf, 0, 0, JKf, 0, 0);
-        
-        blasfeo_dgead(nx*ns, nu, 1.0, JGf, 0, nx, JKf, 0, nx);
+        if (update_sens) { 
+            // obtain JKf
+            blasfeo_dgemm_nn(nx*ns, nx+nu, nx, 1.0, JGf, 0, 0, S_forw, 0, 0, 0.0, JKf, 0, 0, JKf, 0, 0);
+            
+            blasfeo_dgead(nx*ns, nu, 1.0, JGf, 0, nx, JKf, 0, nx);
 
-        blasfeo_drowpe(nx*ns, ipiv, JKf);
-        blasfeo_dtrsm_llnu(nx*ns, nx+nu, 1.0, JGK, 0, 0, JKf, 0, 0, JKf, 0, 0);
-        blasfeo_dtrsm_lunn(nx*ns, nx+nu, 1.0, JGK, 0, 0, JKf, 0, 0, JKf, 0, 0);
+            blasfeo_drowpe(nx*ns, ipiv, JKf);
+            blasfeo_dtrsm_llnu(nx*ns, nx+nu, 1.0, JGK, 0, 0, JKf, 0, 0, JKf, 0, 0);
+            blasfeo_dtrsm_lunn(nx*ns, nx+nu, 1.0, JGK, 0, 0, JKf, 0, 0, JKf, 0, 0);
 
-        // update forward sensitivity
-        for(jj=0; jj<ns; jj++)
-            blasfeo_dgead(nx, nx+nu, -step*b_vec[jj], JKf, jj*nx, 0, S_forw, 0, 0);
+            // update forward sensitivity
+            for(jj=0; jj<ns; jj++)
+                blasfeo_dgead(nx, nx+nu, -step*b_vec[jj], JKf, jj*nx, 0, S_forw, 0, 0);
+        }
 
         // obtain x(n+1)
         for(ii=0;ii<ns;ii++)
