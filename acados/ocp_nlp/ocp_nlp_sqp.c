@@ -682,14 +682,14 @@ static void sqp_update_qp_vectors(void *config_, ocp_nlp_dims *dims, ocp_nlp_in 
 	for (i=0; i<=N; i++)
 	{
 		blasfeo_dveccp(nu[i]+nx[i], nlp_mem->cost_grad+i, 0, work->qp_in->rq+i, 0);
-        blasfeo_drowin(nu[i]+nx[i], 1.0, work->qp_in->rq+i, 0, work->qp_in->RSQrq+i, nu[i]+nx[i], 0); // XXX needed ??? YES ?
+        // blasfeo_drowin(nu[i]+nx[i], 1.0, work->qp_in->rq+i, 0, work->qp_in->RSQrq+i, nu[i]+nx[i], 0); // XXX needed ??? YES ?
 	}
 
 	// b
 	for (i=0; i<N; i++)
 	{
 		blasfeo_dveccp(nx[i+1], nlp_mem->dyn_fun+i, 0, work->qp_in->b+i, 0);
-        blasfeo_drowin(nx[i+1], 1.0, work->qp_in->b+i, 0, work->qp_in->BAbt+i, nu[i]+nx[i], 0); // XXX needed ??? YES ? 
+        // blasfeo_drowin(nx[i+1], 1.0, work->qp_in->b+i, 0, work->qp_in->BAbt+i, nu[i]+nx[i], 0); // XXX needed ??? YES ? 
 	}
 
 	// d
@@ -730,6 +730,8 @@ static void sqp_update_variables(ocp_nlp_dims *dims, ocp_nlp_out *nlp_out, ocp_n
 	for (i=0; i<=N; i++)
 	{
 		blasfeo_daxpy(nu[i]+nx[i], 1.0, work->qp_out->ux+i, 0, nlp_out->ux+i, 0, nlp_out->ux+i, 0);
+		// blasfeo_dveccp(nx[i]+nx[i], work->qp_out->ux+i, 0, nlp_out->ux+i, 0);
+
 	}
 
 	// absolute in dual variables
@@ -855,6 +857,7 @@ int ocp_nlp_sqp(void *config_, ocp_nlp_dims *dims, ocp_nlp_in *nlp_in, ocp_nlp_o
 
 		// printf("\n------- qp_in (sqp iter %d) --------\n", sqp_iter);
 		// print_ocp_qp_in(work->qp_in);
+        // exit(1);
 
         int qp_status = qp_solver->evaluate(qp_solver, work->qp_in, work->qp_out,
             opts->qp_solver_opts, mem->qp_solver_mem, work->qp_work);
