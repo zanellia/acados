@@ -53,6 +53,7 @@ EXAMPLES += nonlinear_chain_ocp_nlp
 EXAMPLES += sim_crane_no_interface
 EXAMPLES += mass_spring_example_no_interface
 EXAMPLES += nonlinear_chain_ocp_nlp_no_interface
+EXAMPLES += nonlinear_chain_ocp_nlp_no_interface_nmpc
 EXAMPLES += wind_turbine_nmpc
 
 examples: $(EXAMPLES)
@@ -353,6 +354,14 @@ run_nonlinear_chain_ocp_nlp_no_interface:
 	./nonlinear_chain_ocp_nlp_no_interface.out
 
 
+nonlinear_chain_ocp_nlp_no_interface_nmpc: $(CHAIN_OBJS) nonlinear_chain_ocp_nlp_no_interface_nmpc.o
+	$(CCC) -o nonlinear_chain_ocp_nlp_no_interface_nmpc.out $(CHAIN_OBJS) nonlinear_chain_ocp_nlp_no_interface_nmpc.o $(LDFLAGS) $(LIBS)
+	@echo
+	@echo " Example nonlinear_chain_ocp_nlp_no_interface_nmpc build complete."
+	@echo
+
+run_nonlinear_chain_ocp_nlp_no_interface:
+	./nonlinear_chain_ocp_nlp_no_interface_nmpc.out
 
 nonlinear_chain_ocp_nlp: $(CHAIN_OBJS) nonlinear_chain_ocp_nlp.o
 	$(CCC) -o nonlinear_chain_ocp_nlp.out $(CHAIN_OBJS) nonlinear_chain_ocp_nlp.o $(LDFLAGS) $(LIBS)
