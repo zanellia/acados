@@ -78,6 +78,8 @@
 // temp
 #include "acados/ocp_qp/ocp_qp_hpipm.h"
 
+#define OFFLINE_COND 1
+
 #define NN 50
 #define TF 3.75
 
@@ -103,8 +105,6 @@
 
 // xcond: 0 no condensing, 1 part condensing, 2 full condensing
 #define XCOND 2
-
-#define OFFLINE_COND 1
 
 #define IRK_STAGES_NUM 5
 
