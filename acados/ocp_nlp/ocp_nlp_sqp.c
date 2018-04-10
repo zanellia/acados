@@ -829,31 +829,25 @@ int ocp_nlp_sqp(void *config_, ocp_nlp_dims *dims, ocp_nlp_in *nlp_in, ocp_nlp_o
 		// compute nlp residuals
 		ocp_nlp_res_compute(dims, nlp_in, nlp_out, mem->nlp_res, mem->nlp_mem);
 
-        printf("res_g = %f, res_b = %f, res_d = %f, res_m = %f\n", 
-                mem->nlp_res->inf_norm_res_g, 
-                mem->nlp_res->inf_norm_res_b,
-                mem->nlp_res->inf_norm_res_d,
-                mem->nlp_res->inf_norm_res_m);
-
 		// TODO exit conditions on residuals
-		if( (mem->nlp_res->inf_norm_res_g < opts->min_res_g) &
-			(mem->nlp_res->inf_norm_res_b < opts->min_res_b) &
-			(mem->nlp_res->inf_norm_res_d < opts->min_res_d) &
-			(mem->nlp_res->inf_norm_res_m < opts->min_res_m) )
-		{
+		// if( (mem->nlp_res->inf_norm_res_g < opts->min_res_g) &
+		// 	(mem->nlp_res->inf_norm_res_b < opts->min_res_b) &
+		// 	(mem->nlp_res->inf_norm_res_d < opts->min_res_d) &
+		// 	(mem->nlp_res->inf_norm_res_m < opts->min_res_m) )
+		// {
 
-			// printf("%d sqp iterations\n", sqp_iter);
-			// print_ocp_qp_in(work->qp_in);
+		// 	// printf("%d sqp iterations\n", sqp_iter);
+		// 	// print_ocp_qp_in(work->qp_in);
 
-			// save sqp iterations number
-			mem->sqp_iter = sqp_iter;
+		// 	// save sqp iterations number
+		// 	mem->sqp_iter = sqp_iter;
 
-			// stop timer
-			total_time += acados_toc(&timer);
+		// 	// stop timer
+		// 	total_time += acados_toc(&timer);
 
-			return 0;
+		// 	return 0;
 
-		}
+		// }
 
 		// printf("\n------- qp_in (sqp iter %d) --------\n", sqp_iter);
 		// print_ocp_qp_in(work->qp_in);

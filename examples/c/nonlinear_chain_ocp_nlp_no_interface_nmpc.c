@@ -78,12 +78,12 @@
 // temp
 #include "acados/ocp_qp/ocp_qp_hpipm.h"
 
-#define NN 15
+#define NN 100
 #define TF 3.75
 
 #define MAX_SQP_ITERS 1
 
-#define NUM_FREE_MASSES 3
+#define NUM_FREE_MASSES 5
 
 #define NSIM 200
 #define INIT_ITER 100
@@ -1270,7 +1270,7 @@ int main() {
     {
         nx[i] = NX;
         nu[i] = NU;
-        nbx[i] = NMF;
+        nbx[i] = 0*NMF;
         nbu[i] = NU;
 		nb[i] = nbu[i]+nbx[i];
 		ng[i] = 0;
@@ -1280,7 +1280,7 @@ int main() {
 
     nx[NN] = NX;
     nu[NN] = 0;
-    nbx[NN] = NX;
+    nbx[NN] = 0*NX;
     nbu[NN] = 0;
     nb[NN] = nbu[NN]+nbx[NN];
 	ng[NN] = 0;
@@ -1679,7 +1679,7 @@ int main() {
     // NOTE(dimitris): use nlp_in->dims instead of &dims from now on since nb is filled with nbx+nbu!
 
     // Problem data
-    double wall_pos = -0.01;
+    double wall_pos = -1;
     double UMAX = 10;
 
 	double x_pos_inf = +1e4;
@@ -1690,7 +1690,7 @@ int main() {
     double uref[3] = {0.0, 0.0, 0.0};
     double diag_cost_x[NX];
     for (int i = 0; i < NX; i++)
-        diag_cost_x[i] = 1e2;
+        diag_cost_x[i] = 1e0;
     double diag_cost_u[3] = {1.0, 1.0, 1.0};
 
 
@@ -2115,15 +2115,15 @@ int main() {
         (dense_qp_qpoases_opts *)((ocp_qp_full_condensing_solver_opts *)
         (nlp_opts->qp_solver_opts))->qp_solver_opts;
 
-    qpoases_opts->use_precomputed_cholesky = 1;
-    qpoases_opts->update_factorization = 1;
-    // qpoases_opts->hotstart = 1;
+    // qpoases_opts->use_precomputed_cholesky = 1;
+    // qpoases_opts->update_factorization = 1;
+    qpoases_opts->hotstart = 1;
 #endif
     
     status = ocp_nlp_sqp(config, dims, nlp_in, nlp_out, nlp_opts, nlp_mem, nlp_work);
     
 #if OFFLINE_COND==1
-    qpoases_opts->update_factorization = 0;
+    // qpoases_opts->update_factorization = 0;
 
     ocp_qp_full_condensing_opts *fcond_solver_opts = 
         ((ocp_qp_full_condensing_solver_opts *)(nlp_opts->qp_solver_opts))->cond_opts;
@@ -2150,13 +2150,15 @@ int main() {
 		// call nlp solver
         status = ocp_nlp_sqp(config, dims, nlp_in, nlp_out, nlp_opts, nlp_mem, nlp_work);
         
-        printf("res_g = %f, res_b = %f, res_d = %f, res_m = %f\n", 
-                nlp_mem->nlp_res->inf_norm_res_g, 
-                nlp_mem->nlp_res->inf_norm_res_b,
-                nlp_mem->nlp_res->inf_norm_res_d,
-                nlp_mem->nlp_res->inf_norm_res_m);
+        // printf("res_g = %f, res_b = %f, res_d = %f, res_m = %f\n", 
+        //         nlp_mem->nlp_res->inf_norm_res_g, 
+        //         nlp_mem->nlp_res->inf_norm_res_b,
+        //         nlp_mem->nlp_res->inf_norm_res_d,
+        //         nlp_mem->nlp_res->inf_norm_res_m);
 
-		// print_ocp_qp_in(((ocp_nlp_sqp_work*)nlp_work)->qp_in);
+        // printf("number of qpOASES iterations = %i\n\n", ((dense_qp_qpoases_memory *)(nlp_mem->qp_solver_mem))->nwsr);
+		
+        // print_ocp_qp_in(((ocp_nlp_sqp_work*)nlp_work)->qp_in);
 		// print_ocp_qp_out(((ocp_nlp_sqp_work*)nlp_work)->qp_out);
 
         // double enter = 0;

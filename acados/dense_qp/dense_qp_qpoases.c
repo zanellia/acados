@@ -292,13 +292,11 @@ int dense_qp_qpoases(void *config_, dense_qp_in *qp_in, dense_qp_out *qp_out, vo
 
     if (opts->use_precomputed_cholesky == 1 && opts->update_factorization == 1) { 
         // cholesky factorization of H
-        blasfeo_dpotrf_l(nvd, qp_in->Hv, 0, 0, qp_in->Hv, 0, 0);
+        blasfeo_dpotrf_l(nvd, qp_in->Hv, 0, 0, memory->sR, 0, 0);
 
         // fill in upper triangular of R
         blasfeo_dtrtr_l(nvd, memory->sR, 0, 0, memory->sR, 0, 0);
 
-        // extract R
-        blasfeo_unpack_dmat(nvd, nvd, memory->sR, 0, 0, memory->R, nvd);
     }
 
     info->interface_time = acados_toc(&interface_timer);
@@ -358,8 +356,12 @@ int dense_qp_qpoases(void *config_, dense_qp_in *qp_in, dense_qp_out *qp_out, vo
             QProblem_setPrintLevel(QP, PL_HIGH);
             // QProblem_setPrintLevel(QP, PL_DEBUG_ITER);
             QProblem_printProperties(QP);
+
             if (opts->use_precomputed_cholesky == 1)
             {
+                // extract R
+                blasfeo_unpack_dmat(nvd, nvd, memory->sR, 0, 0, memory->R, nvd);
+
 				static Options options;
 				Options_setToDefault( &options );
 				// options.initialStatusBounds = ST_INACTIVE;
@@ -397,10 +399,13 @@ int dense_qp_qpoases(void *config_, dense_qp_in *qp_in, dense_qp_out *qp_out, vo
             QProblemB_printProperties(QPB);
 			if (opts->use_precomputed_cholesky == 1)
             {
-				// static Options options;
-				// Options_setToDefault( &options );
-				// options.initialStatusBounds = ST_INACTIVE;
-				// QProblemB_setOptions( QPB, options );
+                // extract R
+                blasfeo_unpack_dmat(nvd, nvd, memory->sR, 0, 0, memory->R, nvd);
+
+				static Options options;
+				Options_setToDefault( &options );
+				options.initialStatusBounds = ST_INACTIVE;
+				QProblemB_setOptions( QPB, options );
 				qpoases_status = QProblemB_initW(QPB, H, g, d_lb, d_ub, &nwsr, &cputime,
 					/* primal_sol */ NULL, /* dual sol */ NULL, /* guessed bounds */ NULL,
                     /* R */ memory->R);
@@ -429,6 +434,7 @@ int dense_qp_qpoases(void *config_, dense_qp_in *qp_in, dense_qp_out *qp_out, vo
     // save solution statistics to memory
     memory->cputime = cputime;
     memory->nwsr = nwsr;
+    // printf("nwsr = %i\n\n", memory->nwsr);
     info->solve_QP_time = acados_toc(&qp_timer);
 
     acados_tic(&interface_timer);
