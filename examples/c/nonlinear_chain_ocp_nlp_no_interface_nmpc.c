@@ -78,14 +78,15 @@
 // temp
 #include "acados/ocp_qp/ocp_qp_hpipm.h"
 
-#define NN 100
+#define NN 15
 #define TF 3.75
 
 #define MAX_SQP_ITERS 1
 
 #define NUM_FREE_MASSES 3
 
-#define NSIM 1000
+#define NSIM 200
+#define INIT_ITER 100
 #define FREEZE_SENS 0
 
 // dynamics: 0 erk, 1 lifted_irk, 2 irk, 3 discrete_model, 4 new_lifted_irk
@@ -1689,7 +1690,7 @@ int main() {
     double uref[3] = {0.0, 0.0, 0.0};
     double diag_cost_x[NX];
     for (int i = 0; i < NX; i++)
-        diag_cost_x[i] = 1e3;
+        diag_cost_x[i] = 1e2;
     double diag_cost_u[3] = {1.0, 1.0, 1.0};
 
 
@@ -2085,41 +2086,85 @@ int main() {
     int status;
 
     // warm start output initial guess of solution
-//		if (rep==0)
-//		{
     for (int i=0; i<=NN; i++)
     {
         blasfeo_pack_dvec(nu[i], uref, nlp_out->ux+i, 0);
         blasfeo_pack_dvec(nx[i], xref, nlp_out->ux+i, nu[i]);
     }
-//		}
+    
+    // solve to steady state
+   
+   blasfeo_pack_dvec(nx[0], xref, &constraints[0]->d, nbu[0]);
+   blasfeo_pack_dvec(nx[0], xref, &constraints[0]->d, nbu[0]+nb[0]+ng[0]);
+    
+    for (int rep = 0; rep < INIT_ITER; rep++)
+    {
+        // call nlp solver
+        status = ocp_nlp_sqp(config, dims, nlp_in, nlp_out, nlp_opts, nlp_mem, nlp_work);
+    }
 
-    // call nlp solver
-    status = ocp_nlp_sqp(config, dims, nlp_in, nlp_out, nlp_opts, nlp_mem, nlp_work);
+	printf("\nsolution\n");
+	ocp_nlp_out_print(dims, nlp_out);
+
+    // printf("Press enter to continue\n");
+    // char enter = 0;
+    // while (enter != '\r' && enter != '\n') { enter = getchar(); }
+
 #if OFFLINE_COND==1
-    ocp_qp_full_condensing_opts *fcond_solver_opts = ((ocp_qp_full_condensing_solver_opts *)(nlp_opts->qp_solver_opts))->cond_opts;
+    dense_qp_qpoases_opts *qpoases_opts = 
+        (dense_qp_qpoases_opts *)((ocp_qp_full_condensing_solver_opts *)
+        (nlp_opts->qp_solver_opts))->qp_solver_opts;
+
+    qpoases_opts->use_precomputed_cholesky = 1;
+    qpoases_opts->update_factorization = 1;
+    // qpoases_opts->hotstart = 1;
+#endif
+    
+    status = ocp_nlp_sqp(config, dims, nlp_in, nlp_out, nlp_opts, nlp_mem, nlp_work);
+    
+#if OFFLINE_COND==1
+    qpoases_opts->update_factorization = 0;
+
+    ocp_qp_full_condensing_opts *fcond_solver_opts = 
+        ((ocp_qp_full_condensing_solver_opts *)(nlp_opts->qp_solver_opts))->cond_opts;
+
     fcond_solver_opts->condense_rhs_only = 1;
     fcond_solver_opts->expand_primal_sol_only = 1;
 
-    dense_qp_qpoases_opts *qpoases_opts = (dense_qp_qpoases_opts *)((ocp_qp_full_condensing_solver_opts *)(nlp_opts->qp_solver_opts))->qp_solver_opts;
-    qpoases_opts->hotstart = 1;
 #endif
+    
+    // This call is needed to initialize the factorizations
+    // set initial state
+    read_initial_state(NX, NMF, lb0+NU);
+    read_initial_state(NX, NMF, ub0+NU);
 
+	blasfeo_pack_dvec(nb[0], lb0, &constraints[0]->d, 0);
+	blasfeo_pack_dvec(nb[0], ub0, &constraints[0]->d, nb[0]+ng[0]);
+    
     acados_timer timer;
     acados_tic(&timer);
-
-    for (int i=0; i<=NN; i++)
-    {
-        blasfeo_pack_dvec(nu[i], uref, nlp_out->ux+i, 0);
-        blasfeo_pack_dvec(nx[i], xref, nlp_out->ux+i, nu[i]);
-    }
 
     for (int rep = 0; rep < NSIM; rep++)
     {
 
 		// call nlp solver
         status = ocp_nlp_sqp(config, dims, nlp_in, nlp_out, nlp_opts, nlp_mem, nlp_work);
+        
+        printf("res_g = %f, res_b = %f, res_d = %f, res_m = %f\n", 
+                nlp_mem->nlp_res->inf_norm_res_g, 
+                nlp_mem->nlp_res->inf_norm_res_b,
+                nlp_mem->nlp_res->inf_norm_res_d,
+                nlp_mem->nlp_res->inf_norm_res_m);
 
+		// print_ocp_qp_in(((ocp_nlp_sqp_work*)nlp_work)->qp_in);
+		// print_ocp_qp_out(((ocp_nlp_sqp_work*)nlp_work)->qp_out);
+
+        // double enter = 0;
+        // while (enter != '\r' && enter != '\n') { enter = getchar(); }
+        // printf("Press enter to continue\n");
+
+        // if (rep == 1) exit(1);
+        
         blasfeo_dveccp(nx[0], &nlp_out->ux[1], nu[0], &constraints[0]->d, nbu[0]);
         blasfeo_dveccp(nx[0], &nlp_out->ux[1], nu[0], &constraints[0]->d, nbu[0]+nb[0]+ng[0]);
     }
