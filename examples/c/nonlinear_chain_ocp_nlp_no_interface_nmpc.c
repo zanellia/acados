@@ -59,6 +59,8 @@
 #include "examples/c/chain_model/chain_model.h"
 #include "examples/c/implicit_chain_model/chain_model_impl.h"
 
+#include "acados_c/sim_interface.h"
+
 // x0
 #include "examples/c/chain_model/x0_nm2.c"
 #include "examples/c/chain_model/x0_nm3.c"
@@ -80,16 +82,20 @@
 
 #define OFFLINE_COND 1
 
-#define NN 50
+#define NN 100
 #define TF 3.75
+
+#define UMAX 1 
+#define WALL_POS -0.01
 
 #define MAX_SQP_ITERS 1
 
-#define NUM_FREE_MASSES 5
+#define NUM_FREE_MASSES 3
 
-#define NSIM 500
+#define NSIM 200
+#define N_PRESIM 0
 #define INIT_ITER 100
-#define FREEZE_SENS 0
+#define NREP 1
 
 // dynamics: 0 erk, 1 lifted_irk, 2 irk, 3 discrete_model, 4 new_lifted_irk
 #define DYNAMICS 4
@@ -106,7 +112,7 @@
 // xcond: 0 no condensing, 1 part condensing, 2 full condensing
 #define XCOND 2
 
-#define IRK_STAGES_NUM 5
+#define IRK_STAGES_NUM 3
 
 enum sensitivities_scheme {
     EXACT_NEWTON,
@@ -583,6 +589,100 @@ static void select_dynamics_casadi(int N, int num_free_masses,
 }
 
 
+static void select_dynamics_casadi_cl(int num_free_masses, 
+	external_function_casadi *forw_vde, 
+	external_function_casadi *jac_ode) 
+{
+	// loop index
+	int ii;
+
+	switch (num_free_masses)
+	{
+		case 1:
+            forw_vde->casadi_fun = &vde_chain_nm2;
+            forw_vde->casadi_work = &vde_chain_nm2_work;
+            forw_vde->casadi_sparsity_in = &vde_chain_nm2_sparsity_in;
+            forw_vde->casadi_sparsity_out = &vde_chain_nm2_sparsity_out;
+            forw_vde->casadi_n_in = &vde_chain_nm2_n_in;
+            forw_vde->casadi_n_out = &vde_chain_nm2_n_out;
+
+            jac_ode->casadi_fun = &jac_chain_nm2;
+            jac_ode->casadi_work = &jac_chain_nm2_work;
+            jac_ode->casadi_sparsity_in = &jac_chain_nm2_sparsity_in;
+            jac_ode->casadi_sparsity_out = &jac_chain_nm2_sparsity_out;
+            jac_ode->casadi_n_in = &jac_chain_nm2_n_in;
+            jac_ode->casadi_n_out = &jac_chain_nm2_n_out;
+
+			break;
+		case 2:
+            forw_vde->casadi_fun = &vde_chain_nm3;
+            forw_vde->casadi_work = &vde_chain_nm3_work;
+            forw_vde->casadi_sparsity_in = &vde_chain_nm3_sparsity_in;
+            forw_vde->casadi_sparsity_out = &vde_chain_nm3_sparsity_out;
+            forw_vde->casadi_n_in = &vde_chain_nm3_n_in;
+            forw_vde->casadi_n_out = &vde_chain_nm3_n_out;
+
+            jac_ode->casadi_fun = &jac_chain_nm3;
+            jac_ode->casadi_work = &jac_chain_nm3_work;
+            jac_ode->casadi_sparsity_in = &jac_chain_nm3_sparsity_in;
+            jac_ode->casadi_sparsity_out = &jac_chain_nm3_sparsity_out;
+            jac_ode->casadi_n_in = &jac_chain_nm3_n_in;
+            jac_ode->casadi_n_out = &jac_chain_nm3_n_out;
+
+			break;
+		case 3:
+            forw_vde->casadi_fun = &vde_chain_nm4;
+            forw_vde->casadi_work = &vde_chain_nm4_work;
+            forw_vde->casadi_sparsity_in = &vde_chain_nm4_sparsity_in;
+            forw_vde->casadi_sparsity_out = &vde_chain_nm4_sparsity_out;
+            forw_vde->casadi_n_in = &vde_chain_nm4_n_in;
+            forw_vde->casadi_n_out = &vde_chain_nm4_n_out;
+
+            jac_ode->casadi_fun = &jac_chain_nm4;
+            jac_ode->casadi_work = &jac_chain_nm4_work;
+            jac_ode->casadi_sparsity_in = &jac_chain_nm4_sparsity_in;
+            jac_ode->casadi_sparsity_out = &jac_chain_nm4_sparsity_out;
+            jac_ode->casadi_n_in = &jac_chain_nm4_n_in;
+            jac_ode->casadi_n_out = &jac_chain_nm4_n_out;
+			break;
+		case 4:
+            forw_vde->casadi_fun = &vde_chain_nm5;
+            forw_vde->casadi_work = &vde_chain_nm5_work;
+            forw_vde->casadi_sparsity_in = &vde_chain_nm5_sparsity_in;
+            forw_vde->casadi_sparsity_out = &vde_chain_nm5_sparsity_out;
+            forw_vde->casadi_n_in = &vde_chain_nm5_n_in;
+            forw_vde->casadi_n_out = &vde_chain_nm5_n_out;
+
+            jac_ode->casadi_fun = &jac_chain_nm5;
+            jac_ode->casadi_work = &jac_chain_nm5_work;
+            jac_ode->casadi_sparsity_in = &jac_chain_nm5_sparsity_in;
+            jac_ode->casadi_sparsity_out = &jac_chain_nm5_sparsity_out;
+            jac_ode->casadi_n_in = &jac_chain_nm5_n_in;
+            jac_ode->casadi_n_out = &jac_chain_nm5_n_out;
+			break;
+		case 5:
+            forw_vde->casadi_fun = &vde_chain_nm6;
+            forw_vde->casadi_work = &vde_chain_nm6_work;
+            forw_vde->casadi_sparsity_in = &vde_chain_nm6_sparsity_in;
+            forw_vde->casadi_sparsity_out = &vde_chain_nm6_sparsity_out;
+            forw_vde->casadi_n_in = &vde_chain_nm6_n_in;
+            forw_vde->casadi_n_out = &vde_chain_nm6_n_out;
+
+            jac_ode->casadi_fun = &jac_chain_nm6;
+            jac_ode->casadi_work = &jac_chain_nm6_work;
+            jac_ode->casadi_sparsity_in = &jac_chain_nm6_sparsity_in;
+            jac_ode->casadi_sparsity_out = &jac_chain_nm6_sparsity_out;
+            jac_ode->casadi_n_in = &jac_chain_nm6_n_in;
+            jac_ode->casadi_n_out = &jac_chain_nm6_n_out;
+			break;
+		default:
+			printf("Problem size not available\n");
+			exit(1);
+			break;
+	}
+
+	return;
+}
 
 static void select_ls_cost_jac_casadi(int N, int num_free_masses, external_function_casadi *ls_cost_jac)
 {
@@ -1272,7 +1372,7 @@ int main() {
     {
         nx[i] = NX;
         nu[i] = NU;
-        nbx[i] = 0*NMF;
+        nbx[i] = NMF;
         nbu[i] = NU;
 		nb[i] = nbu[i]+nbx[i];
 		ng[i] = 0;
@@ -1282,7 +1382,7 @@ int main() {
 
     nx[NN] = NX;
     nu[NN] = 0;
-    nbx[NN] = 0*NX;
+    nbx[NN] = NX;
     nbu[NN] = 0;
     nb[NN] = nbu[NN]+nbx[NN];
 	ng[NN] = 0;
@@ -1396,6 +1496,9 @@ int main() {
 	// explicit
 	external_function_casadi *expl_vde_for = malloc(NN*sizeof(external_function_casadi));
 	external_function_casadi *expl_ode_jac = malloc(NN*sizeof(external_function_casadi));
+    // explicit for closed-loop sim
+    external_function_casadi expl_vde_for_cl;
+	external_function_casadi expl_ode_jac_cl;
 
 	// implicit
 	external_function_casadi *impl_ode_fun = malloc(NN*sizeof(external_function_casadi));
@@ -1410,9 +1513,27 @@ int main() {
 	external_function_casadi *erk4_casadi = malloc(NN*sizeof(external_function_casadi));
 
 	select_dynamics_casadi(NN, NMF, expl_vde_for, expl_ode_jac, impl_ode_fun, impl_ode_jac_x, impl_ode_jac_xdot, impl_ode_jac_u, impl_ode_fun_jac_x_xdot, impl_ode_jac_x_xdot_u, impl_ode_jac_x_u, erk4_casadi);
+    
+    // dynamics for closed loop simulation (ERK by default)
+	select_dynamics_casadi_cl(NMF, &expl_vde_for_cl, &expl_ode_jac_cl);
+    
+    // assign memory for closed loop sim
+    int tmp_size;
+    char *c_ptr;
+	// forw_vde
+	tmp_size = 0;
+    tmp_size += external_function_casadi_calculate_size(&expl_vde_for_cl);
 
-	int tmp_size;
-	char *c_ptr;
+	void *forw_vde_casadi_mem = malloc(tmp_size);
+    external_function_casadi_assign(&expl_vde_for_cl, forw_vde_casadi_mem);
+
+	// jac_ode
+	tmp_size = 0;
+    tmp_size += external_function_casadi_calculate_size(&expl_ode_jac_cl);
+
+	void *jac_ode_casadi_mem = malloc(tmp_size);
+    external_function_casadi_assign(&expl_ode_jac_cl, jac_ode_casadi_mem);
+
 #if DYNAMICS==0 | DYNAMICS==1
 
 	// forw_vde
@@ -1681,8 +1802,8 @@ int main() {
     // NOTE(dimitris): use nlp_in->dims instead of &dims from now on since nb is filled with nbx+nbu!
 
     // Problem data
-    double wall_pos = -10;
-    double UMAX = 100;
+    double wall_pos = WALL_POS;
+    double umax = UMAX;
 
 	double x_pos_inf = +1e4;
 	double x_neg_inf = -1e4;
@@ -1816,6 +1937,100 @@ int main() {
 #endif
 
 
+    // ERK for closed loop simulation 
+	// int forw_vde_size = external_function_casadi_calculate_size(&expl_vde_for);
+	// void *forw_vde_mem = malloc(forw_vde_size);
+	// external_function_casadi_assign(&expl_vde_for, forw_vde_casadi_mem);
+
+    int cls_config_size = sim_solver_config_calculate_size();
+    void *cls_config_mem = malloc(cls_config_size);
+    sim_solver_config *cls_config = sim_solver_config_assign(cls_config_mem);
+    sim_erk_config_initialize_default(cls_config);
+
+    /************************************************
+    * sim dims
+    ************************************************/
+
+    int cls_dims_size = sim_dims_calculate_size();
+    void *cls_dims_mem = malloc(cls_dims_size);
+    sim_dims *cls_dims = sim_dims_assign(cls_dims_mem);
+
+    cls_dims->nx = NX;
+    cls_dims->nu = NU;
+
+    /************************************************
+    * sim opts
+    ************************************************/
+
+    int cls_opts_size = cls_config->opts_calculate_size(cls_config, cls_dims);
+    void *cls_opts_mem = malloc(cls_opts_size);
+    sim_rk_opts *cls_opts = cls_config->opts_assign(cls_config, cls_dims, cls_opts_mem);
+    cls_config->opts_initialize_default(cls_config, cls_dims, cls_opts);
+
+    cls_opts->ns = 4;
+    cls_opts->num_steps = 100;
+    cls_opts->sens_forw = true;
+    cls_config->opts_update(cls_config, cls_dims, cls_opts);
+
+    /************************************************
+    * sim memory
+    ************************************************/
+
+    int cls_mem_size = cls_config->memory_calculate_size(cls_config, cls_dims, cls_opts);
+    void *cls_mem_mem = malloc(cls_mem_size);
+    void *cls_mem = cls_config->memory_assign(cls_config, cls_dims, cls_opts, cls_mem_mem);
+
+    /************************************************
+    * sim workspace
+    ************************************************/
+
+    int cls_work_size = cls_config->workspace_calculate_size(cls_config, cls_dims, cls_opts);
+    void *cls_work = malloc(cls_work_size);
+
+    /************************************************
+    * sim in
+    ************************************************/
+
+    int cls_in_size = sim_in_calculate_size(cls_config, cls_dims);
+    void *cls_in_mem = malloc(cls_in_size);
+    sim_in *cls_in = sim_in_assign(cls_config, cls_dims, cls_in_mem);
+
+    cls_in->T = TF/NN;
+
+    cls_config->model_set_function(cls_in->model, EXPL_VDE_FOR,&expl_vde_for_cl);
+    // cls_config->model_set_function(cls_in->model, EXPL_VDE_ADJ, &expl_vde_adj);
+    // cls_config->model_set_function(cls_in->model, EXPL_ODE_HES, &expl_ode_hes);
+
+    // erk_model cls_model; 
+    // cls_model.expl_vde_for = (external_function_generic *) &expl_vde_for;
+    // cls_model.expl_ode_jac = (external_function_generic *) &expl_ode_jac;
+
+    /************************************************
+    * sim out
+    ************************************************/
+
+    int cls_out_size = sim_out_calculate_size(cls_config, cls_dims);
+    void *cls_out_mem = malloc(cls_out_size);
+    sim_out *cls_out = sim_out_assign(cls_config, cls_dims, cls_out_mem);
+
+    // Test ERK for closed-loop sim
+    // x
+    for (int ii = 0; ii < NX; ii++) {
+       cls_in->x[ii] =  xref[ii];
+    }
+
+    // p
+    for (int ii = 0;ii < NU; ii++){
+        cls_in->u[ii] = 0.0;
+    }
+
+    // seeds forw
+    for (int ii = 0; ii < NX * (NX + NU); ii++)
+        cls_in->S_forw[ii] = 0.0;
+    for (int ii = 0; ii < NX; ii++)
+        cls_in->S_forw[ii * (NX + 1)] = 1.0;
+
+    cls_config->evaluate(cls_config, cls_in, cls_out, cls_opts, cls_mem, cls_work);
 
 	/* dynamics */
 #if DYNAMICS==0
@@ -1899,8 +2114,8 @@ int main() {
     double lb0[NX+NU], ub0[NX+NU];
     for (int i = 0; i < NU; i++)
 	{
-        lb0[i] = -UMAX;
-        ub0[i] = +UMAX;
+        lb0[i] = -umax;
+        ub0[i] = +umax;
     }
     read_initial_state(NX, NMF, lb0+NU);
     read_initial_state(NX, NMF, ub0+NU);
@@ -1909,8 +2124,8 @@ int main() {
     double lb1[NMF+NU], ub1[NMF+NU];
     for (int j = 0; j < NU; j++)
 	{
-        lb1[j] = -UMAX;  // umin
-        ub1[j] = +UMAX;  // umax
+        lb1[j] = -umax;  // umin
+        ub1[j] = +umax;  // umax
     }
     for (int j = 0; j < NMF; j++)
 	{
@@ -2080,115 +2295,231 @@ int main() {
 
     int workspace_size = ocp_nlp_sqp_workspace_calculate_size(config, dims, nlp_opts);
     void *nlp_work = acados_malloc(workspace_size, 1);
+    
+    /************************************************
+    * closed-loop sim integrator
+    ************************************************/
 
     /************************************************
     * sqp solve
     ************************************************/
-
+    int rep_iter;
     int status;
+    double timings[NREP*NSIM] = {0.0};
+    int iterations[NSIM] = {0};
+    for(rep_iter = 0; rep_iter < NREP; rep_iter++){
 
-    // warm start output initial guess of solution
-    for (int i=0; i<=NN; i++)
-    {
-        blasfeo_pack_dvec(nu[i], uref, nlp_out->ux+i, 0);
-        blasfeo_pack_dvec(nx[i], xref, nlp_out->ux+i, nu[i]);
-    }
-    
-    // solve to steady state
-   
-   blasfeo_pack_dvec(nx[0], xref, &constraints[0]->d, nbu[0]);
-   blasfeo_pack_dvec(nx[0], xref, &constraints[0]->d, nbu[0]+nb[0]+ng[0]);
-    
-    for (int rep = 0; rep < INIT_ITER; rep++)
-    {
-        // call nlp solver
-        status = ocp_nlp_sqp(config, dims, nlp_in, nlp_out, nlp_opts, nlp_mem, nlp_work);
-    }
-
-	printf("\nsolution\n");
-	ocp_nlp_out_print(dims, nlp_out);
-
-    // printf("Press enter to continue\n");
-    // char enter = 0;
-    // while (enter != '\r' && enter != '\n') { enter = getchar(); }
-
-#if OFFLINE_COND==1
-    dense_qp_qpoases_opts *qpoases_opts = 
-        (dense_qp_qpoases_opts *)((ocp_qp_full_condensing_solver_opts *)
-        (nlp_opts->qp_solver_opts))->qp_solver_opts;
-
-    // qpoases_opts->use_precomputed_cholesky = 1;
-    // qpoases_opts->update_factorization = 1;
-    qpoases_opts->hotstart = 1;
-#endif
-    
-    status = ocp_nlp_sqp(config, dims, nlp_in, nlp_out, nlp_opts, nlp_mem, nlp_work);
-    
-#if OFFLINE_COND==1
-    // qpoases_opts->update_factorization = 0;
-
-    ocp_qp_full_condensing_opts *fcond_solver_opts = 
-        ((ocp_qp_full_condensing_solver_opts *)(nlp_opts->qp_solver_opts))->cond_opts;
-
-    fcond_solver_opts->condense_rhs_only = 1;
-    fcond_solver_opts->expand_primal_sol_only = 1;
-
-    sim_new_lifted_irk_memory *lifted_irk_mem;
-    int ii;
-    for (ii = 0; ii<NN; ii++) {
-        lifted_irk_mem = (sim_new_lifted_irk_memory *)(((ocp_nlp_dynamics_cont_memory *)nlp_mem->dynamics[ii])->sim_solver);
-        lifted_irk_mem->update_sens = 0;
-    }
-
-#endif
-    
-    // This call is needed to initialize the factorizations
-    // set initial state
-    read_initial_state(NX, NMF, lb0+NU);
-    read_initial_state(NX, NMF, ub0+NU);
-
-	blasfeo_pack_dvec(nb[0], lb0, &constraints[0]->d, 0);
-	blasfeo_pack_dvec(nb[0], ub0, &constraints[0]->d, nb[0]+ng[0]);
-    
-    acados_timer timer;
-    acados_tic(&timer);
-
-    for (int rep = 0; rep < NSIM; rep++)
-    {
-
-		// call nlp solver
-        status = ocp_nlp_sqp(config, dims, nlp_in, nlp_out, nlp_opts, nlp_mem, nlp_work);
+        // warm start output initial guess of solution
+        for (int i=0; i<=NN; i++)
+        {
+            blasfeo_pack_dvec(nu[i], uref, nlp_out->ux+i, 0);
+            blasfeo_pack_dvec(nx[i], xref, nlp_out->ux+i, nu[i]);
+        }
         
-        // printf("res_g = %f, res_b = %f, res_d = %f, res_m = %f\n", 
-        //         nlp_mem->nlp_res->inf_norm_res_g, 
-        //         nlp_mem->nlp_res->inf_norm_res_b,
-        //         nlp_mem->nlp_res->inf_norm_res_d,
-        //         nlp_mem->nlp_res->inf_norm_res_m);
+        // solve to steady state
+       
+        blasfeo_pack_dvec(nx[0], xref, &constraints[0]->d, nbu[0]);
+        blasfeo_pack_dvec(nx[0], xref, &constraints[0]->d, nbu[0]+nb[0]+ng[0]);
+        
+        for (int sim_iter = 0; sim_iter < INIT_ITER; sim_iter++)
+        {
+            // call nlp solver
+            status = ocp_nlp_sqp(config, dims, nlp_in, nlp_out, nlp_opts, nlp_mem, nlp_work);
+            // printf("\nsolution\n");
+            // ocp_nlp_out_print(dims, nlp_out);
+            
+            // printf("Press enter to continue\n");
+            // double enter = 0;
+            // while (enter != '\r' && enter != '\n') { enter = getchar(); }
+        }
 
-        // printf("number of qpOASES iterations = %i\n\n", ((dense_qp_qpoases_memory *)(nlp_mem->qp_solver_mem))->nwsr);
-		
-        // print_ocp_qp_in(((ocp_nlp_sqp_work*)nlp_work)->qp_in);
-		// print_ocp_qp_out(((ocp_nlp_sqp_work*)nlp_work)->qp_out);
-
-        // double enter = 0;
-        // while (enter != '\r' && enter != '\n') { enter = getchar(); }
+        printf("\nsolution\n");
+        ocp_nlp_out_print(dims, nlp_out);
         // printf("Press enter to continue\n");
+        // char enter = 0;
+        // while (enter != '\r' && enter != '\n') { enter = getchar(); }
 
-        // if (rep == 1) exit(1);
+#if OFFLINE_COND==1
+        dense_qp_qpoases_opts *qpoases_opts = 
+            (dense_qp_qpoases_opts *)((ocp_qp_full_condensing_solver_opts *)
+            (nlp_opts->qp_solver_opts))->qp_solver_opts;
+
+        // qpoases_opts->use_precomputed_cholesky = 1;
+        // qpoases_opts->update_factorization = 1;
+        qpoases_opts->hotstart = 1;
+#endif
         
-        blasfeo_dveccp(nx[0], &nlp_out->ux[1], nu[0], &constraints[0]->d, nbu[0]);
-        blasfeo_dveccp(nx[0], &nlp_out->ux[1], nu[0], &constraints[0]->d, nbu[0]+nb[0]+ng[0]);
+        status = ocp_nlp_sqp(config, dims, nlp_in, nlp_out, nlp_opts, nlp_mem, nlp_work);
+        
+#if OFFLINE_COND==1
+        // qpoases_opts->update_factorization = 0;
+
+        ocp_qp_full_condensing_opts *fcond_solver_opts = 
+            ((ocp_qp_full_condensing_solver_opts *)(nlp_opts->qp_solver_opts))->cond_opts;
+
+        fcond_solver_opts->condense_rhs_only = 1;
+        fcond_solver_opts->expand_primal_sol_only = 1;
+
+        sim_new_lifted_irk_memory *lifted_irk_mem;
+        int ii;
+        for (ii = 0; ii<NN; ii++) {
+            lifted_irk_mem = (sim_new_lifted_irk_memory *)(((ocp_nlp_dynamics_cont_memory *)nlp_mem->dynamics[ii])->sim_solver);
+            lifted_irk_mem->update_sens = 0;
+        }
+
+#endif
+        
+        // This call is needed to initialize the factorizations
+        // set initial state
+        read_initial_state(NX, NMF, lb0+NU);
+        read_initial_state(NX, NMF, ub0+NU);
+
+
+        blasfeo_pack_dvec(nb[0], lb0, &constraints[0]->d, 0);
+        blasfeo_pack_dvec(nb[0], ub0, &constraints[0]->d, nb[0]+ng[0]);
+        
+        printf("Starting pre-closed-loop simulation:\n\n");
+        for (int rep = 0; rep < N_PRESIM; rep++)
+        {
+
+            // call nlp solver
+            status = ocp_nlp_sqp(config, dims, nlp_in, nlp_out, nlp_opts, nlp_mem, nlp_work);
+            if (status!=0) {
+                printf("ocp_nlp_sqp returned status %d. Exiting.\n", status);
+                exit(1);
+            }
+            // simulate dynamics
+
+            // x
+            for(int ii = 0; ii < NU; ii++)
+                cls_in->u[ii] = blasfeo_dvecex1(&nlp_out->ux[0], ii);
+            // u
+            for(int ii = 0; ii < NX; ii++)
+                cls_in->x[ii] = blasfeo_dvecex1(&nlp_out->ux[0], ii + NU);
+
+            cls_config->evaluate(cls_config, cls_in, cls_out, cls_opts, cls_mem, cls_work);
+
+            // printf("\nsolution\n");
+            // ocp_nlp_out_print(dims, nlp_out);
+            
+            // printf("Press enter to continue\n");
+            // double enter = 0;
+            // while (enter != '\r' && enter != '\n') { enter = getchar(); }
+            
+            // blasfeo_pack_dvec(nx[0], cls_out->xn, &constraints[0]->d, nb[0]);
+            // blasfeo_pack_dvec(nx[0], cls_out->xn, &constraints[0]->d, nbu[0]+nb[0]+ng[0]);
+            blasfeo_dveccp(nx[0], &nlp_out->ux[1], nu[0], &constraints[0]->d, nbu[0]);
+            blasfeo_dveccp(nx[0], &nlp_out->ux[1], nu[0], &constraints[0]->d, nbu[0]+nb[0]+ng[0]);
+        }
+
+        acados_timer timer;
+        double time = 0.0;
+        double max_time = 0.0;
+        double avg_time = 0.0; 
+        
+        printf("Starting closed-loop simulation:\n\n");
+        for (int sim_iter = 0; sim_iter < NSIM; sim_iter++)
+        {
+
+            // call nlp solver
+            acados_tic(&timer);
+            status = ocp_nlp_sqp(config, dims, nlp_in, nlp_out, nlp_opts, nlp_mem, nlp_work);
+            time = acados_toc(&timer);
+            
+
+            timings[NSIM*rep_iter + sim_iter] = time;
+            printf("Sim iter = %i, CPU time = %f\n", sim_iter, time*1e3);
+            if(time > max_time)
+               max_time = time;
+            if (status!=0) {
+                printf("ocp_nlp_sqp returned status %d. Exiting.\n", status);
+                exit(1);
+            }
+            
+            avg_time +=time;
+            
+            // printf("res_g = %f, res_b = %f, res_d = %f, res_m = %f\n", 
+            //         nlp_mem->nlp_res->inf_norm_res_g, 
+            //         nlp_mem->nlp_res->inf_norm_res_b,
+            //         nlp_mem->nlp_res->inf_norm_res_d,
+            //         nlp_mem->nlp_res->inf_norm_res_m);
+            
+            iterations[sim_iter] = ((dense_qp_qpoases_memory *)
+                (((ocp_qp_full_condensing_solver_memory *)
+                (nlp_mem->qp_solver_mem))->solver_memory))->nwsr;
+
+            printf("number of qpOASES iterations = %i\n\n",iterations[sim_iter]);
+            
+            // print_ocp_qp_in(((ocp_nlp_sqp_work*)nlp_work)->qp_in);
+            // print_ocp_qp_out(((ocp_nlp_sqp_work*)nlp_work)->qp_out);
+
+            // printf("\nsolution\n");
+            // ocp_nlp_out_print(dims, nlp_out);
+            // printf("Press enter to continue\n");
+            // double enter = 0;
+            // while (enter != '\r' && enter != '\n') { enter = getchar(); }
+
+            // if (rep == 1) exit(1);
+            
+            // simulate dynamics
+
+            // x
+            for(int ii = 0; ii < NU; ii++)
+                cls_in->u[ii] = blasfeo_dvecex1(&nlp_out->ux[0], ii);
+            // u
+            for(int ii = 0; ii < NX; ii++)
+                cls_in->x[ii] = blasfeo_dvecex1(&nlp_out->ux[0], ii + NU);
+            
+           // blasfeo_print_dvec(NX,&nlp_out->ux[0], NU); 
+           cls_config->evaluate(cls_config, cls_in, cls_out, cls_opts, cls_mem, cls_work);
+            
+           //  printf("cls_out->xn = \n");
+           //  for (int ii = 0; ii < NX; ii++)
+           //      printf("%f\n",cls_out->xn[ii]);
+
+            blasfeo_pack_dvec(nx[0], cls_out->xn, &constraints[0]->d, nbu[0]);
+            blasfeo_pack_dvec(nx[0], cls_out->xn, &constraints[0]->d, nbu[0]+nb[0]+ng[0]);
+            // blasfeo_dveccp(nx[0], &nlp_out->ux[1], nu[0], &constraints[0]->d, nbu[0]);
+            // blasfeo_dveccp(nx[0], &nlp_out->ux[1], nu[0], &constraints[0]->d, nbu[0]+nb[0]+ng[0]);
+        }
+        avg_time = avg_time/NSIM;
+        printf("\nsolution\n");
+        ocp_nlp_out_print(dims, nlp_out);
+
+        printf("\n\nstatus = %i, iterations (max %d) = %d, avg time = %f ms, max time = %f\n\n", status, MAX_SQP_ITERS, nlp_mem->sqp_iter, avg_time*1e3, max_time*1e3);
     }
 
-    double time = acados_toc(&timer)/NSIM;
+    // compute min CPU time per sim iteration
+    
+    double min_timings[NSIM];
+    for(int i = 0; i < NSIM; i++){
+        min_timings[i] = 1e12;
+        for (int j = 0; j < NREP; j++){
+            if(timings[NSIM*j + i] < min_timings[i]) 
+                min_timings[i] = timings[NSIM*j + i];
+        } 
+    }
+
+    // compute worst case and average execution time
+    double max_cpu_time = 0.0;
+    int max_iterations = 0;
+    double avg_cpu_time = 0.0;
+    for ( int i = 0; i < NSIM; i++) {
+        avg_cpu_time+=min_timings[i];
+        if(max_cpu_time < min_timings[i])
+            max_cpu_time = min_timings[i];
+        if(max_iterations < iterations[i])
+            max_iterations = iterations[i];
+    }
+
+    avg_cpu_time= avg_cpu_time/NSIM;
+
+    printf("\n\nstatus = %i, avg time = %f ms, max time = %f, max number of qpOASES iterations = %d\n\n", 
+            status, avg_cpu_time*1e3, max_cpu_time*1e3, max_iterations);
 
 	// printf("\nresiduals\n");
 	// ocp_nlp_res_print(dims, nlp_mem->nlp_res);
 
-	printf("\nsolution\n");
-	ocp_nlp_out_print(dims, nlp_out);
-
-    printf("\n\nstatus = %i, iterations (max %d) = %d, total time = %f ms\n\n", status, MAX_SQP_ITERS, nlp_mem->sqp_iter, time*1e3);
 
     for (int k =0; k < 3; k++) {
         printf("u[%d] = \n", k);
