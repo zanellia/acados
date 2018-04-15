@@ -192,6 +192,19 @@ else()
             )
 
         add_executable(
+                nonlinear_chain_ocp_nlp_no_interface_nmpc_code_generation_example
+                nonlinear_chain_ocp_nlp_no_interface_nmpc_code_generation.c
+                ${CHAIN_MODEL_SRC}
+            )
+            target_link_libraries(
+                nonlinear_chain_ocp_nlp_no_interface_nmpc_code_generation_example
+                acados
+            )
+            add_test(
+                nonlinear_chain_ocp_nlp_no_interface_nmpc_code_generation_example
+                nonlinear_chain_ocp_nlp_no_interface_nmpc_code_generation_example
+        )
+        add_executable(
                 nonlinear_chain_ocp_nlp_no_interface_nmpc_example
                 nonlinear_chain_ocp_nlp_no_interface_nmpc.c
                 ${CHAIN_MODEL_SRC}
