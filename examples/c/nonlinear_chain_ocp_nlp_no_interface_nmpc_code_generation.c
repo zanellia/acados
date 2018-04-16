@@ -80,9 +80,9 @@
 // temp
 #include "acados/ocp_qp/ocp_qp_hpipm.h"
 
-#define OFFLINE_COND 1
+#define OFFLINE_COND 0
 
-#define NN 100
+#define NN 30
 #define TF 3.75
 
 #define UMAX 1 
@@ -90,12 +90,12 @@
 
 #define MAX_SQP_ITERS 1
 
-#define NUM_FREE_MASSES 3
+#define NUM_FREE_MASSES 5
 
 #define NSIM 200
 #define N_PRESIM 0
 #define INIT_ITER 100
-#define NREP 1
+#define NREP 5
 
 // dynamics: 0 erk, 1 lifted_irk, 2 irk, 3 discrete_model, 4 new_lifted_irk
 #define DYNAMICS 4
@@ -112,9 +112,9 @@
 // xcond: 0 no condensing, 1 part condensing, 2 full condensing
 #define XCOND 2
 
-#define IRK_STAGES_NUM 3
+#define IRK_STAGES_NUM 8
 
-#define LOG_FILE "./NMPC2018_log_files/LOG_FILE_OFFLINE_COND_1_NN_100_NUM_FREE_MASSES_3_IRK_STAGES_NUM_3.txt"
+#define LOG_FILE "./NMPC2018_log_files/LOG_FILE_OFFLINE_COND_0_NN_30_NUM_FREE_MASSES_5_IRK_STAGES_NUM_8.txt"
 
 enum sensitivities_scheme {
     EXACT_NEWTON,
@@ -2335,8 +2335,8 @@ int main() {
             // while (enter != '\r' && enter != '\n') { enter = getchar(); }
         }
 
-        printf("\nsolution\n");
-        ocp_nlp_out_print(dims, nlp_out);
+        /* printf("\nsolution\n"); */
+        /* ocp_nlp_out_print(dims, nlp_out); */
         // printf("Press enter to continue\n");
         // char enter = 0;
         // while (enter != '\r' && enter != '\n') { enter = getchar(); }
@@ -2380,7 +2380,7 @@ int main() {
         blasfeo_pack_dvec(nb[0], lb0, &constraints[0]->d, 0);
         blasfeo_pack_dvec(nb[0], ub0, &constraints[0]->d, nb[0]+ng[0]);
         
-        printf("Starting pre-closed-loop simulation:\n\n");
+        /* printf("Starting pre-closed-loop simulation:\n\n"); */
         for (int rep = 0; rep < N_PRESIM; rep++)
         {
 
@@ -2419,7 +2419,7 @@ int main() {
         double max_time = 0.0;
         double avg_time = 0.0; 
         
-        printf("Starting closed-loop simulation:\n\n");
+        /* printf("Starting closed-loop simulation:\n\n"); */
         for (int sim_iter = 0; sim_iter < NSIM; sim_iter++)
         {
 
@@ -2430,7 +2430,7 @@ int main() {
             
 
             timings[NSIM*rep_iter + sim_iter] = time;
-            printf("Sim iter = %i, CPU time = %f\n", sim_iter, time*1e3);
+            /* printf("Sim iter = %i, CPU time = %f\n", sim_iter, time*1e3); */
             if(time > max_time)
                max_time = time;
             if (status!=0) {
@@ -2450,7 +2450,7 @@ int main() {
                 (((ocp_qp_full_condensing_solver_memory *)
                 (nlp_mem->qp_solver_mem))->solver_memory))->nwsr;
 
-            printf("number of qpOASES iterations = %i\n\n",iterations[sim_iter]);
+            /* printf("number of qpOASES iterations = %i\n\n",iterations[sim_iter]); */
             
             // print_ocp_qp_in(((ocp_nlp_sqp_work*)nlp_work)->qp_in);
             // print_ocp_qp_out(((ocp_nlp_sqp_work*)nlp_work)->qp_out);
@@ -2485,10 +2485,10 @@ int main() {
             // blasfeo_dveccp(nx[0], &nlp_out->ux[1], nu[0], &constraints[0]->d, nbu[0]+nb[0]+ng[0]);
         }
         avg_time = avg_time/NSIM;
-        printf("\nsolution\n");
-        ocp_nlp_out_print(dims, nlp_out);
+        /* printf("\nsolution\n"); */
+        /* ocp_nlp_out_print(dims, nlp_out); */
 
-        printf("\n\nstatus = %i, iterations (max %d) = %d, avg time = %f ms, max time = %f\n\n", status, MAX_SQP_ITERS, nlp_mem->sqp_iter, avg_time*1e3, max_time*1e3);
+        /* printf("\n\nstatus = %i, iterations (max %d) = %d, avg time = %f ms, max time = %f\n\n", status, MAX_SQP_ITERS, nlp_mem->sqp_iter, avg_time*1e3, max_time*1e3); */
     }
 
     // compute min CPU time per sim iteration
@@ -2521,7 +2521,7 @@ int main() {
 
 	// printf("\nresiduals\n");
 	// ocp_nlp_res_print(dims, nlp_mem->nlp_res);
-    
+
     // write info to log file
     FILE *log_file = fopen(LOG_FILE, "wb");
 
@@ -2539,16 +2539,16 @@ int main() {
 
     fclose(log_file);
 
-    for (int k =0; k < 3; k++) {
-        printf("u[%d] = \n", k);
-		blasfeo_print_tran_dvec(nu[k], nlp_out->ux+k, 0);
-        printf("x[%d] = \n", k);
-		blasfeo_print_tran_dvec(nx[k], nlp_out->ux+k, nu[k]);
-    }
-    printf("u[N-1] = \n");
-	blasfeo_print_tran_dvec(nu[NN-1], nlp_out->ux+NN-1, 0);
-    printf("x[N] = \n");
-	blasfeo_print_tran_dvec(nx[NN], nlp_out->ux+NN, nu[NN]);
+    /* for (int k =0; k < 3; k++) { */
+    /*     printf("u[%d] = \n", k); */
+		/* blasfeo_print_tran_dvec(nu[k], nlp_out->ux+k, 0); */
+    /*     printf("x[%d] = \n", k); */
+		/* blasfeo_print_tran_dvec(nx[k], nlp_out->ux+k, nu[k]); */
+    /* } */
+    /* printf("u[N-1] = \n"); */
+	/* blasfeo_print_tran_dvec(nu[NN-1], nlp_out->ux+NN-1, 0); */
+    /* printf("x[N] = \n"); */
+	/* blasfeo_print_tran_dvec(nx[NN], nlp_out->ux+NN, nu[NN]); */
 
     /************************************************
     * free memory
@@ -2598,3 +2598,4 @@ int main() {
 	return 0;
 
 }
+

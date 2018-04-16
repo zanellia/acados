@@ -19,6 +19,11 @@
 
 cmake_minimum_required(VERSION 3.1)
 
+# add_definitions(-DCMAKE_NN)
+# add_definitions(-DCMAKE_OFFLINE_CONDENSING)
+# add_definitions(-DCMAKE_NN)
+# add_definitions(-DCMAKE_NN)
+
 set(ACADOS_WITH_WERROR ON CACHE BOOL "acados with Werror")
 
 set(ACADOS_WITH_C_INTERFACE ON CACHE BOOL "acados with c interface")
