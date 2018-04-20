@@ -469,6 +469,7 @@ int sim_new_lifted_irk(void *config_, sim_in *in, sim_out *out, void *opts_, voi
     double *ode_args = workspace->ode_args;
     int *ipiv = workspace->ipiv;
 	struct blasfeo_dmat *JGK = memory->JGK;
+    // TODO(andrea): S_forw should go into memory!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     struct blasfeo_dmat *S_forw = workspace->S_forw;
 	struct blasfeo_dvec *rG = workspace->rG;
     struct blasfeo_dvec *K = memory->K;
