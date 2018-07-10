@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 import os
+import subprocess
 
 OFFLINE_COND = ['1','0']
 NN = ['10', '20', '30']
-NUM_FREE_MASSES = ['2', '3', '4', '5']
-IRK_STAGES_NUM = ['2','3', '4', '6', '8']
+NUM_FREE_MASSES = ['2', '4', '6', '8']
+IRK_STAGES_NUM = ['2','3', '4']
 
 for i in range(len(OFFLINE_COND)):
     for j in range(len(NN)):
@@ -30,7 +31,11 @@ for i in range(len(OFFLINE_COND)):
                 os.chdir('examples/c')
                 curr_path = os.getcwd()
                 print('In %s' %curr_path)
-                os.system('./nonlinear_chain_ocp_nlp_no_interface_nmpc_code_generation_example')
+                exec_file = './nonlinear_chain_ocp_nlp_no_interface_nmpc_code_generation_example'
+                acados_status = subprocess.run([exec_file, ""])
+                if acados_status.returncode != 0:
+                    print('acados failed!')
+                    exit()
                 os.chdir('../../../examples/c')
                 curr_path = os.getcwd()
                 print('In %s' %curr_path)

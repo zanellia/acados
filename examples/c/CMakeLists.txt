@@ -62,6 +62,38 @@ file(GLOB CHAIN_MODEL_SRC
     chain_model/ls_cost_nm6.c
     chain_model/ls_costN_nm6.c
     # chain_model/casadi_erk4_chain_nm6.c
+    # 7 masses
+    chain_model/vde_chain_nm7.c
+    chain_model/jac_chain_nm7.c
+    chain_model/vde_adj_chain_nm7.c
+    #chain_model/vde_hess_chain_nm7.c
+    chain_model/ls_cost_nm7.c
+    chain_model/ls_costN_nm7.c
+    # chain_model/casadi_erk4_chain_nm7.c
+    # 8 masses
+    chain_model/vde_chain_nm8.c
+    chain_model/jac_chain_nm8.c
+    chain_model/vde_adj_chain_nm8.c
+    #chain_model/vde_hess_chain_nm8.c
+    chain_model/ls_cost_nm8.c
+    chain_model/ls_costN_nm8.c
+    # chain_model/casadi_erk4_chain_nm8.c
+    # 9 masses
+    chain_model/vde_chain_nm9.c
+    chain_model/jac_chain_nm9.c
+    chain_model/vde_adj_chain_nm9.c
+    #chain_model/vde_hess_chain_nm9.c
+    chain_model/ls_cost_nm9.c
+    chain_model/ls_costN_nm9.c
+    # chain_model/casadi_erk4_chain_nm9.c
+    # 10 masses
+    chain_model/vde_chain_nm10.c
+    chain_model/jac_chain_nm10.c
+    chain_model/vde_adj_chain_nm10.c
+    #chain_model/vde_hess_chain_nm10.c
+    chain_model/ls_cost_nm10.c
+    chain_model/ls_costN_nm10.c
+    # chain_model/casadi_erk4_chain_nm10.c
 
     ### implicit ###
     # 2 masses
@@ -104,6 +136,38 @@ file(GLOB CHAIN_MODEL_SRC
     implicit_chain_model/impl_ode_fun_jac_x_xdot_chain_nm6.c
     implicit_chain_model/impl_ode_jac_x_xdot_u_chain_nm6.c
     implicit_chain_model/impl_ode_jac_x_u_chain_nm6.c
+    # 7 masses
+    implicit_chain_model/impl_ode_fun_chain_nm7.c
+    implicit_chain_model/impl_ode_jac_x_chain_nm7.c
+    implicit_chain_model/impl_ode_jac_xdot_chain_nm7.c
+    implicit_chain_model/impl_ode_jac_u_chain_nm7.c
+    implicit_chain_model/impl_ode_fun_jac_x_xdot_chain_nm7.c
+    implicit_chain_model/impl_ode_jac_x_xdot_u_chain_nm7.c
+    implicit_chain_model/impl_ode_jac_x_u_chain_nm7.c
+    # 8 masses
+    implicit_chain_model/impl_ode_fun_chain_nm8.c
+    implicit_chain_model/impl_ode_jac_x_chain_nm8.c
+    implicit_chain_model/impl_ode_jac_xdot_chain_nm8.c
+    implicit_chain_model/impl_ode_jac_u_chain_nm8.c
+    implicit_chain_model/impl_ode_fun_jac_x_xdot_chain_nm8.c
+    implicit_chain_model/impl_ode_jac_x_xdot_u_chain_nm8.c
+    implicit_chain_model/impl_ode_jac_x_u_chain_nm8.c
+    # 9 masses
+    implicit_chain_model/impl_ode_fun_chain_nm9.c
+    implicit_chain_model/impl_ode_jac_x_chain_nm9.c
+    implicit_chain_model/impl_ode_jac_xdot_chain_nm9.c
+    implicit_chain_model/impl_ode_jac_u_chain_nm9.c
+    implicit_chain_model/impl_ode_fun_jac_x_xdot_chain_nm9.c
+    implicit_chain_model/impl_ode_jac_x_xdot_u_chain_nm9.c
+    implicit_chain_model/impl_ode_jac_x_u_chain_nm9.c
+    # 10 masses
+    implicit_chain_model/impl_ode_fun_chain_nm10.c
+    implicit_chain_model/impl_ode_jac_x_chain_nm10.c
+    implicit_chain_model/impl_ode_jac_xdot_chain_nm10.c
+    implicit_chain_model/impl_ode_jac_u_chain_nm10.c
+    implicit_chain_model/impl_ode_fun_jac_x_xdot_chain_nm10.c
+    implicit_chain_model/impl_ode_jac_x_xdot_u_chain_nm10.c
+    implicit_chain_model/impl_ode_jac_x_u_chain_nm10.c
 )
 
 set(CHEN_MODEL_SRC chen_model/chen_model.c)
