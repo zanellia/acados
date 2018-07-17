@@ -23,7 +23,6 @@
 #include <stdlib.h>
 
 // #include <xmmintrin.h>
-
 #include "blasfeo/include/blasfeo_target.h"
 #include "blasfeo/include/blasfeo_common.h"
 #include "blasfeo/include/blasfeo_d_aux_ext_dep.h"
@@ -103,10 +102,11 @@
 
 #define NUM_FREE_MASSES @NUM_FREE_MASSES@
 
-#define NSIM 200
+#define NSIM 250
 #define N_PRESIM 0
 #define INIT_ITER 100
 #define NREP 5
+#define N_INT_SIM_STEPS 100
 
 // dynamics: 0 erk, 1 lifted_irk, 2 irk, 3 discrete_model, 4 new_lifted_irk
 #define DYNAMICS 4
@@ -125,7 +125,7 @@
 
 #define IRK_STAGES_NUM @IRK_STAGES_NUM@
 
-#define LOG_FILE "../../../logs/NMPC2018_log_files/blasfeo_haswell_large_wall_03/LOG_FILE_OFFLINE_COND_@OFFLINE_COND@_NN_@NN@_NUM_FREE_MASSES_@NUM_FREE_MASSES@_IRK_STAGES_NUM_@IRK_STAGES_NUM@.txt"
+#define LOG_FILE "../../../logs/NMPC2018_log_files/temp_cl/LOG_FILE_OFFLINE_COND_@OFFLINE_COND@_NN_@NN@_NUM_FREE_MASSES_@NUM_FREE_MASSES@_IRK_STAGES_NUM_@IRK_STAGES_NUM@.txt"
 
 enum sensitivities_scheme {
     EXACT_NEWTON,
@@ -2332,7 +2332,7 @@ int main() {
     cls_config->opts_initialize_default(cls_config, cls_dims, cls_opts);
 
     cls_opts->ns = 4;
-    cls_opts->num_steps = 100;
+    cls_opts->num_steps = 1;
     cls_opts->sens_forw = true;
     cls_config->opts_update(cls_config, cls_dims, cls_opts);
 
@@ -2359,7 +2359,7 @@ int main() {
     void *cls_in_mem = malloc(cls_in_size);
     sim_in *cls_in = sim_in_assign(cls_config, cls_dims, cls_in_mem);
 
-    cls_in->T = TF/NN;
+    cls_in->T = TF/NN/N_INT_SIM_STEPS;
 
     cls_config->model_set_function(cls_in->model, EXPL_VDE_FOR,&expl_vde_for_cl);
     // cls_config->model_set_function(cls_in->model, EXPL_VDE_ADJ, &expl_vde_adj);
@@ -2671,6 +2671,7 @@ int main() {
     int status;
     double timings[NREP*NSIM] = {0.0};
     int iterations[NSIM] = {0};
+    double closed_loop_cost = 0.0; 
     for(rep_iter = 0; rep_iter < NREP; rep_iter++){
 
         // warm start output initial guess of solution
@@ -2754,12 +2755,13 @@ int main() {
             }
             // simulate dynamics
 
-            // x
+            // u
             for(int ii = 0; ii < NU; ii++)
                 cls_in->u[ii] = blasfeo_dvecex1(&nlp_out->ux[0], ii);
-            // u
+            // x
             for(int ii = 0; ii < NX; ii++)
                 cls_in->x[ii] = blasfeo_dvecex1(&nlp_out->ux[0], ii + NU);
+
 
             cls_config->evaluate(cls_config, cls_in, cls_out, cls_opts, cls_mem, cls_work);
 
@@ -2780,11 +2782,11 @@ int main() {
         double time = 0.0;
         double max_time = 0.0;
         double avg_time = 0.0; 
-        
+        closed_loop_cost = 0.0; 
+
         /* printf("Starting closed-loop simulation:\n\n"); */
         for (int sim_iter = 0; sim_iter < NSIM; sim_iter++)
         {
-
             // call nlp solver
             acados_tic(&timer);
             status = ocp_nlp_sqp(config, dims, nlp_in, nlp_out, nlp_opts, nlp_mem, nlp_work);
@@ -2826,16 +2828,30 @@ int main() {
             // if (rep == 1) exit(1);
             
             // simulate dynamics
-
-            // x
+            
+            // u
             for(int ii = 0; ii < NU; ii++)
                 cls_in->u[ii] = blasfeo_dvecex1(&nlp_out->ux[0], ii);
-            // u
+            // x
             for(int ii = 0; ii < NX; ii++)
                 cls_in->x[ii] = blasfeo_dvecex1(&nlp_out->ux[0], ii + NU);
-            
-           // blasfeo_print_dvec(NX,&nlp_out->ux[0], NU); 
-           cls_config->evaluate(cls_config, cls_in, cls_out, cls_opts, cls_mem, cls_work);
+
+            for(int jj = 0; jj < N_INT_SIM_STEPS; jj++)
+            { 
+
+                // update closed-loop cost
+                for(int ii = 0; ii < NU; ii++)
+                    closed_loop_cost += TF/NN/N_INT_SIM_STEPS*0.5*diag_cost_u[ii]*cls_in->u[ii]*cls_in->u[ii]; 
+
+                for(int ii = 0; ii < NX; ii++)
+                    closed_loop_cost += TF/NN/N_INT_SIM_STEPS*0.5*diag_cost_x[ii]*(cls_in->x[ii] - xref[ii])*(cls_in->x[ii] - xref[ii]); 
+
+                cls_config->evaluate(cls_config, cls_in, cls_out, cls_opts, cls_mem, cls_work);
+
+                // update x
+                for(int ii = 0; ii < NX; ii++)
+                    cls_in->x[ii] = cls_out->xn[ii];
+            }
             
            //  printf("cls_out->xn = \n");
            //  for (int ii = 0; ii < NX; ii++)
@@ -2878,8 +2894,8 @@ int main() {
 
     avg_cpu_time= avg_cpu_time/NSIM;
 
-    printf("\n\nstatus = %i, avg time = %f ms, max time = %f, max number of qpOASES iterations = %d\n\n", 
-            status, avg_cpu_time*1e3, max_cpu_time*1e3, max_iterations);
+    printf("\n\nstatus = %i, avg time = %f ms, max time = %f, max number of qpOASES iterations = %d, closed-loop cost = %f\n\n", 
+            status, avg_cpu_time*1e3, max_cpu_time*1e3, max_iterations, closed_loop_cost);
 
 	// printf("\nresiduals\n");
 	// ocp_nlp_res_print(dims, nlp_mem->nlp_res);
@@ -2898,6 +2914,8 @@ int main() {
 
     for(int ii = 0; ii < NSIM; ii++)
         fprintf(log_file, "%d, ", iterations[ii]);
+
+    fprintf(log_file, "%.5f, ", closed_loop_cost);
 
     fclose(log_file);
 
