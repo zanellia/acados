@@ -1,5 +1,6 @@
 import argparse
 from numpy import *
+imoport matlplotlib as plt
 
 # command line arguments parser
 parser = argparse.ArgumentParser(description='Process some integers.')

@@ -4,8 +4,9 @@ import subprocess
 
 OFFLINE_COND = ['1','0']
 NN = ['10', '20', '30']
-NUM_FREE_MASSES = ['2', '4', '6', '8']
-IRK_STAGES_NUM = ['2','3', '4']
+# NN = ['120', '140', '160', '180', '200', '220', '240', '260', '280', '300', '320']
+NUM_FREE_MASSES = ['3', '4', '5']
+IRK_STAGES_NUM = ['2','4', '6']
 
 for i in range(len(OFFLINE_COND)):
     for j in range(len(NN)):
