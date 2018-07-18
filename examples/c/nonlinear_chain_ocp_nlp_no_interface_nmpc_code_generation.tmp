@@ -95,14 +95,14 @@
 #define UMAX 1 
 /* #define UMAX 100 */ 
 /* #define WALL_POS -0.01 */ 
-#define WALL_POS -0.03 
+#define WALL_POS -0.01 
 /* #define WALL_POS -100.0 */
 
 #define MAX_SQP_ITERS 1
 
 #define NUM_FREE_MASSES @NUM_FREE_MASSES@
 
-#define NSIM 250
+#define NSIM 200
 #define N_PRESIM 0
 #define INIT_ITER 100
 #define NREP 5

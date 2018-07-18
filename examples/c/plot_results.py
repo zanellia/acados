@@ -27,7 +27,7 @@ for i in range(data_points):
             OFFLINE_COND = 1
         else:
             OFFLINE_COND = 0
-        NM_PAR = NM - 1
+        NM_PAR = NM 
         file_name = 'LOG_FILE_OFFLINE_COND_{}_NN_{}_NUM_FREE_MASSES_{}_IRK_STAGES_NUM_{}.txt'.format(OFFLINE_COND, NN, NM_PAR, NS)
 
         data = genfromtxt(file_name, delimiter=',')
