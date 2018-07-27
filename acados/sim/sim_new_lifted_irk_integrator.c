@@ -449,7 +449,7 @@ int sim_new_lifted_irk(void *config_, sim_in *in, sim_out *out, void *opts_, voi
 	double *u = in->u;
     double *S_forw_in = in->S_forw;
 
-    int newton_iter = opts->newton_iter;
+    // int newton_iter = opts->newton_iter;
     double *A_mat = opts->A_mat;
     double *b_vec = opts->b_vec;
     int num_steps = opts->num_steps;
@@ -479,17 +479,17 @@ int sim_new_lifted_irk(void *config_, sim_in *in, sim_out *out, void *opts_, voi
     struct blasfeo_dvec *xn = workspace->xn;
 
     // for adjoint
-    struct blasfeo_dmat *JG_traj = workspace->JG_traj;
+    // struct blasfeo_dmat *JG_traj = workspace->JG_traj;
     struct blasfeo_dvec *lambda = workspace->lambda;
     struct blasfeo_dvec *lambdaK = workspace->lambdaK;
-    struct blasfeo_dvec *xn_traj = workspace->xn_traj;
-    struct blasfeo_dvec *K_traj = workspace->K_traj;
+    // struct blasfeo_dvec *xn_traj = workspace->xn_traj;
+    // struct blasfeo_dvec *K_traj = workspace->K_traj;
     struct blasfeo_dvec *w = workspace->w;
     double *S_adj_in = workspace->S_adj_w;
 
     double *x_out = out->xn;
     double *S_forw_out = out->S_forw;
-    double *S_adj_out = out->S_adj;
+    // double *S_adj_out = out->S_adj;
 
 	ext_fun_arg_t ext_fun_type_in[5];
 	void *ext_fun_in[5]; // XXX large enough ?
