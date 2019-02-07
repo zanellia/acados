@@ -441,7 +441,7 @@ int ocp_nlp_constraints_bghp_model_set(void *config_, void *dims_,
     {
         ptr_i = (int *) value;
         for (ii=0; ii < nbx; ii++)
-            model->idxb[nbu+ii] = nbu+ptr_i[ii];
+            model->idxb[nbu+ii] = nu+ptr_i[ii];
         status = ACADOS_SUCCESS;
     }
     else if (!strcmp(field, "lbx"))
@@ -494,6 +494,11 @@ int ocp_nlp_constraints_bghp_model_set(void *config_, void *dims_,
     else if (!strcmp(field, "h"))
     {
         model->h = value;
+        status = ACADOS_SUCCESS;
+    }
+    else if (!strcmp(field, "p"))
+    {
+        model->p = value;
         status = ACADOS_SUCCESS;
     }
     else if (!strcmp(field, "lh")) // TODO(fuck_lint) remove
@@ -959,7 +964,7 @@ void ocp_nlp_constraints_bghp_update_qp_matrices(void *config_, void *dims_, voi
     {
         if (nh != 1)
         {
-            printf("Not implemented");
+            printf("BGHP-type constraint: nh!=1 not implemented. Exiting.");
             exit(1);
         }
         //

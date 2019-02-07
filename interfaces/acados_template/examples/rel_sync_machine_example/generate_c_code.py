@@ -7,10 +7,18 @@ import matplotlib.pyplot as plt
 import scipy.linalg
 
 CODE_GEN = 1
+FORMULATION = 2 # 0 for hexagon 1 for sphere 2 SCQP sphere
 
 i_d_ref = 1.484
 i_q_ref = 1.429
 w_val   = 200
+
+i_d_ref = -20
+i_q_ref = 20
+w_val   = 300
+
+udc = 580
+u_max = 2/3*udc
 
 # fitted psi_d map
 def psi_d_num(x,y):
@@ -83,7 +91,7 @@ def export_dae_model():
                         psi_d - Psi[0], \
                         psi_q - Psi[1])
 
-    model = ode_model()
+    model = acados_dae()
 
     model.f_impl_expr = f_impl
     model.f_expl_expr = []
@@ -96,6 +104,57 @@ def export_dae_model():
 
     return model 
 
+def export_voltage_sphere_con():
+    
+    con_name = 'v_sphere'
+
+    # set up states 
+    psi_d = SX.sym('psi_d')
+    psi_q = SX.sym('psi_q')
+    x = vertcat(psi_d, psi_q)
+
+    # set up controls 
+    u_d = SX.sym('u_d')
+    u_q = SX.sym('u_q')
+    u = vertcat(u_d, u_q)
+
+    # voltage sphere
+    constraint = acados_constraint()
+
+    constraint.expr = u_d**2 + u_q**2  
+    # constraint.expr = u_d + u_q  
+    constraint.x = x
+    constraint.u = u
+    constraint.nc = 1
+    constraint.name = con_name
+
+    return constraint 
+
+def export_nonlinear_part_voltage_constraint():
+    
+    con_name = 'v_sphere_nl'
+
+    # set up states 
+    psi_d = SX.sym('psi_d')
+    psi_q = SX.sym('psi_q')
+    x = vertcat(psi_d, psi_q)
+
+    # set up controls 
+    u_d = SX.sym('u_d')
+    u_q = SX.sym('u_q')
+    u = vertcat(u_d, u_q)
+
+    # voltage sphere
+    constraint = acados_constraint()
+
+    constraint.expr = vertcat(u_d, u_q)
+    # constraint.expr = u_d + u_q  
+    constraint.x = x
+    constraint.u = u
+    constraint.nc = 2
+    constraint.name = con_name
+
+    return constraint 
 def get_general_constraints_DC(u_max):
     
     # polytopic constraint on the input
@@ -120,10 +179,14 @@ def get_general_constraints_DC(u_max):
     # form D and C matrices 
     # (acados C interface works with column major format)
     D = nmp.transpose(nmp.array([[1, m1],[1, -m1]]))
+    # D = nmp.array([[1, m1],[1, -m1]])
+    # TODO(andrea): ???
+    # D = nmp.transpose(nmp.array([[m1, 1],[-m1, 1]]))
+    D = nmp.array([[m1, 1],[-m1, 1]])
     C = nmp.transpose(nmp.array([[0, 0], [0, 0]]))
     
-    lg  = nmp.array([-q1, -q1])
-    ug  = nmp.array([+q1, +q1])
+    ug  = nmp.array([-q1, -q1])
+    lg  = nmp.array([+q1, +q1])
     lbu = nmp.array([-q2]) 
     ubu = nmp.array([+q2]) 
     
@@ -140,21 +203,30 @@ def get_general_constraints_DC(u_max):
 # create render arguments
 ra = ocp_nlp_render_arguments()
 
+
 # export model 
 model = export_dae_model()
+
+# export constraint description
+constraint = export_voltage_sphere_con()
+constraint_nl = export_nonlinear_part_voltage_constraint()
 
 # set model_name 
 ra.model_name = model.name
 
-udc = 580
-u_max = udc/sqrt(3)
-i_max = 10.0
-psi_max = 0.1
+if FORMULATION == 1:
+    # constraints name 
+    ra.con_h_name = constraint.name
+
+if FORMULATION == 2:
+    # constraints name 
+    ra.con_h_name = constraint.name
+    ra.con_p_name = constraint_nl.name
 
 # Ts  = 0.0016
 # Ts  = 0.0012
-# Ts  = 0.0008
-Ts  = 0.0004
+Ts  = 0.0008
+# Ts  = 0.0004
 
 nx  = model.x.size()[0]
 nu  = model.u.size()[0]
@@ -173,15 +245,31 @@ nlp_dims.ny   = ny
 nlp_dims.nyN  = nyN 
 nlp_dims.nbx  = 0
 # nlp_dims.nbu  = 0 
-nlp_dims.nbu  = 1 
+
+if FORMULATION == 0:
+    nlp_dims.nbu  = 1 
+    nlp_dims.ng   = 2 
+
+if FORMULATION == 1:
+    nlp_dims.ng  = 0 
+    nlp_dims.nh  = 1
+
+if FORMULATION == 2:
+    nlp_dims.ng  = 0 
+    nlp_dims.npd  = 2
+    nlp_dims.nh  = 1
+    nlp_dims.nhN = 0
+
 # nlp_dims.nbu  = 2 
-nlp_dims.ng   = 2 
+# nlp_dims.ng   = 2 
 # nlp_dims.ng   = 0 
 nlp_dims.ngN  = 0 
 nlp_dims.nbxN = 0
 nlp_dims.nu   = nu
 nlp_dims.np   = np
 nlp_dims.N    = N
+# nlp_dims.npdN = 0
+# nlp_dims.nh  = 1
 
 # set weighting matrices
 nlp_cost = ra.cost
@@ -242,7 +330,6 @@ lg = res["lg"]
 ug = res["ug"]
 lbu = res["lbu"]
 ubu = res["ubu"]
-# import pdb; pdb.set_trace()
 
 # setting bounds
 # lbu <= u <= ubu and lbx <= x <= ubx
@@ -251,19 +338,26 @@ nlp_con = ra.constraints
 # nlp_con.lbu = nmp.array([-u_max, -u_max])
 # nlp_con.ubu = nmp.array([+u_max, +u_max])
 nlp_con.idxbu = nmp.array([1])
+
 nlp_con.lbu = lbu
 nlp_con.ubu = ubu
+
+if FORMULATION > 0:
+    nlp_con.lh = nmp.array([-1.0e8])
+    nlp_con.uh = nmp.array([u_max**2])
+
 nlp_con.x0 = nmp.array([0.0, -0.0])
 
-# setting general constraints
-# lg <= D*u + C*u <= ug
-nlp_con.D   = D
-nlp_con.C   = C 
-nlp_con.lg  = lg
-nlp_con.ug  = ug 
-# nlp_con.CN  = ... 
-# nlp_con.lgN = ... 
-# nlp_con.ugN = ...
+if FORMULATION == 0:
+    # setting general constraints
+    # lg <= D*u + C*u <= ug
+    nlp_con.D   = D
+    nlp_con.C   = C 
+    nlp_con.lg  = lg
+    nlp_con.ug  = ug 
+    # nlp_con.CN  = ... 
+    # nlp_con.lgN = ... 
+    # nlp_con.ugN = ...
 
 # setting parameters
 nlp_con.p = nmp.array([w_val, 0.0, 0.0])
@@ -272,9 +366,9 @@ nlp_con.p = nmp.array([w_val, 0.0, 0.0])
 ra.constants = []
 
 # set QP solver
-# ra.solver_config.qp_solver = 'PARTIAL_CONDENSING_HPIPM'
+ra.solver_config.qp_solver = 'PARTIAL_CONDENSING_HPIPM'
 # ra.solver_config.qp_solver = 'FULL_CONDENSING_HPIPM'
-ra.solver_config.qp_solver = 'FULL_CONDENSING_QPOASES'
+# ra.solver_config.qp_solver = 'FULL_CONDENSING_QPOASES'
 ra.solver_config.hessian_approx = 'GAUSS_NEWTON'
 # ra.solver_config.hessian_approx = 'EXACT'
 # ra.solver_config.integrator_type = 'ERK'
@@ -290,8 +384,12 @@ ra.acados_include_path = '/usr/local/include'
 ra.acados_lib_path = '/usr/local/lib'
 
 if CODE_GEN == 1:
-    # import pdb; pdb.set_trace()
-    generate_solver(model, ra)
+    if FORMULATION == 0:
+        generate_solver(model, ra)
+    if FORMULATION == 1:
+        generate_solver(model, ra, con_h=constraint)
+    if FORMULATION == 2:
+        generate_solver(model, ra, con_h=constraint, con_p=constraint_nl)
 
 # make 
 os.chdir('c_generated_code')
@@ -319,7 +417,10 @@ simX = nmp.ndarray((Nsim, nx))
 simU = nmp.ndarray((Nsim, nu))
 
 for i in range(Nsim):
-    acados.acados_solve()
+    status = acados.acados_solve()
+    
+    if status is not 0:
+        print('max number of iterations reached!')
 
     # get solution
     field_name = "x"
@@ -382,7 +483,46 @@ plt.plot([0, Ts*Nsim], [nlp_cost.yref[1], nlp_cost.yref[1]], '--')
 plt.ylabel('psi_q')
 plt.xlabel('t')
 plt.grid(True)
+
+# plot hexagon
+r = u_max
+
+x1 = r
+y1 = 0
+x2 = r*cos(pi/3)
+y2 = r*sin(pi/3)
+
+q1 = -(y2 - y1/x1*x2)/(1-x2/x1)
+m1 = -(y1 + q1)/x1
+
+# q1 <= uq + m1*ud <= -q1
+# q1 <= uq - m1*ud <= -q1
+
+# box constraints
+m2 = 0
+q2 = r*sin(pi/3)
+# -q2 <= uq  <= q2
+
+plt.figure()
+plt.plot(simU[:,0], simU[:,1], 'o')
+plt.xlabel('ud')
+plt.ylabel('uq')
+ud = nmp.linspace(-1.5*u_max, 1.5*u_max, 100)
+plt.plot(ud, -m1*ud -q1)
+plt.plot(ud, -m1*ud +q1)
+plt.plot(ud, +m1*ud -q1)
+plt.plot(ud, +m1*ud +q1)
+plt.plot(ud, -q2*nmp.ones((100, 1)))
+plt.plot(ud, q2*nmp.ones((100, 1)))
+plt.grid(True)
+ax = plt.gca()
+ax.set_xlim([-1.5*u_max, 1.5*u_max])
+ax.set_ylim([-1.5*u_max, 1.5*u_max])
+circle = plt.Circle((0, 0), u_max, color='red', fill=False)
+ax.add_artist(circle)
 plt.show()
 
 # free memory
 acados.acados_free()
+
+

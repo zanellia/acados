@@ -8,6 +8,10 @@ class ocp_nlp_dims:
         self._np   = 0     # number of parameters
         self._ny   = None  # number of residuals in Lagrange term
         self._nyN  = None  # number of residuals in Mayer term
+        self._npd  = 0     # number of positive definite constraints
+        self._npdN = 0     # number of positive definite constraints in last stage
+        self._nh   = 0     # number of nonlinear constraints
+        self._nhN  = 0     # number of nonlinear constraints in last stage
         self._nbx  = 0     # number of state bounds 
         self._nbu  = 0     # number of input bounds
         self._ng   = 0     # number of general constraints
@@ -34,6 +38,22 @@ class ocp_nlp_dims:
     @property
     def ny(self):
         return self._ny
+
+    @property
+    def npd(self):
+        return self._npd
+
+    @property
+    def npdN(self):
+        return self._npdN
+
+    @property
+    def nh(self):
+        return self._nh
+
+    @property
+    def nhN(self):
+        return self._nhN
 
     @property
     def nyN(self):
@@ -93,17 +113,45 @@ class ocp_nlp_dims:
 
     @ny.setter
     def ny(self, ny):
-        if type(ny) == int and ny > 0:
+        if type(ny) == int and ny > -1:
             self._ny = ny
         else:
             raise Exception('Invalid ny value. Exiting.')
 
     @nyN.setter
     def nyN(self, nyN):
-        if type(nyN) == int and nyN > 0:
+        if type(nyN) == int and nyN > -1:
             self._nyN = nyN
         else:
             raise Exception('Invalid nyN value. Exiting.')
+
+    @npd.setter
+    def npd(self, npd):
+        if type(npd) == int and npd > -1:
+            self._npd = npd
+        else:
+            raise Exception('Invalid npd value. Exiting.')
+
+    @npdN.setter
+    def npdN(self, npdN):
+        if type(npdN) == int and npdN > -1:
+            self._npdN = npdN
+        else:
+            raise Exception('Invalid npdN value. Exiting.')
+
+    @nh.setter
+    def nh(self, nh):
+        if type(nh) == int and nh > -1:
+            self._nh = nh
+        else:
+            raise Exception('Invalid nh value. Exiting.')
+
+    @nhN.setter
+    def nhN(self, nhN):
+        if type(nhN) == int and nhN > -1:
+            self._nhN = nhN
+        else:
+            raise Exception('Invalid nhN value. Exiting.')
 
     @nbu.setter
     def nbu(self, nbu):
@@ -261,6 +309,8 @@ class ocp_nlp_constraints:
         self._idxbu  = None
         self._lg     = None  
         self._ug     = None  
+        self._lh     = None  
+        self._uh     = None  
         self._D      = None  
         self._C      = None  
         self._lbxN   = None  
@@ -269,6 +319,8 @@ class ocp_nlp_constraints:
         self._CN     = None  
         self._lgN    = None  
         self._ugN    = None  
+        self._lhN    = None  
+        self._uhN    = None  
         self._x0     = None  
 
     @property
@@ -304,6 +356,14 @@ class ocp_nlp_constraints:
         return self._ug
 
     @property
+    def lh(self):
+        return self._lh
+
+    @property
+    def uh(self):
+        return self._uh
+
+    @property
     def D(self):
         return self._D
 
@@ -335,6 +395,13 @@ class ocp_nlp_constraints:
     def ugN(self):
         return self._ugN
 
+    @property
+    def lgN(self):
+        return self._lgN
+
+    @property
+    def ugN(self):
+        return self._ugN
 
     @property
     def x0(self):
@@ -399,6 +466,20 @@ class ocp_nlp_constraints:
             self._ug = ug
         else:
             raise Exception('Invalid ug value. Exiting.')
+
+    @lh.setter
+    def lh(self, lh):
+        if type(lh) == np.ndarray:
+            self._lh = lh
+        else:
+            raise Exception('Invalid lh value. Exiting.')
+
+    @uh.setter
+    def uh(self, uh):
+        if type(uh) == np.ndarray:
+            self._uh = uh
+        else:
+            raise Exception('Invalid uh value. Exiting.')
 
     @D.setter
     def D(self, D):
@@ -540,6 +621,10 @@ class ocp_nlp_render_arguments:
         self.constraints = ocp_nlp_constraints()
         self.solver_config = ocp_nlp_solver_config()
         self.model_name = None 
+        self.con_p_name = None 
+        self.con_pN_name = None 
+        self.con_h_name = None 
+        self.con_hN_name = None 
         self.constants = []
         self.acados_include_path = []
         self.acados_lib_path = []
