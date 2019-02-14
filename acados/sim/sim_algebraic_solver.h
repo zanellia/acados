@@ -117,10 +117,7 @@ typedef struct
 
 // get & set functions
 void sim_algebraic_solver_dims_set(void *config_, void *dims_, const char *field, const int* value);
-
-void sim_algebraic_solver_get_nx(void *dims_, int *nx);
-void sim_algebraic_solver_get_nu(void *dims_, int *nu);
-void sim_algebraic_solver_get_nz(void *dims_, int *nz);
+void sim_algebraic_solver_dims_get(void *config_, void *dims_, const char *field, int *value);
 
 // dims
 int sim_algebraic_solver_dims_calculate_size();
@@ -129,7 +126,7 @@ void *sim_algebraic_solver_dims_assign(void *config_, void *raw_memory);
 // model
 int sim_algebraic_solver_model_calculate_size(void *config, void *dims);
 void *sim_algebraic_solver_model_assign(void *config, void *dims, void *raw_memory);
-int sim_algebraic_solver_model_set_function(void *model_, sim_function_t fun_type, void *fun);
+int sim_algebraic_solver_model_set(void *model_, sim_function_t fun_type, void *fun);
 
 // opts
 int sim_algebraic_solver_opts_calculate_size(void *config, void *dims);

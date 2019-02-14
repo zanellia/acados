@@ -161,7 +161,7 @@ int main() {
     WN[1+ny[N]*1] = QN[1];
 
 	// Make plan
-	ocp_nlp_solver_plan *plan = ocp_nlp_plan_create(N);
+	ocp_nlp_plan *plan = ocp_nlp_plan_create(N);
 	plan->nlp_solver = SQP;
 	// plan->ocp_qp_solver_plan.qp_solver = PARTIAL_CONDENSING_HPIPM;
 	plan->ocp_qp_solver_plan.qp_solver = FULL_CONDENSING_QPOASES;
@@ -183,7 +183,7 @@ int main() {
 	for (int i = 0; i <= N; i++)
 		plan->nlp_constraints[i] = BGH;
 
-	ocp_nlp_solver_config *config = ocp_nlp_config_create(*plan);
+	ocp_nlp_config *config = ocp_nlp_config_create(*plan);
 
 	ocp_nlp_dims *dims = ocp_nlp_dims_create(config);
 

@@ -62,9 +62,10 @@ OSQP_PATH = $(EXT_PATH)/osqp
 
 # parallelize using openmp
 ACADOS_WITH_OPENMP = 0
+ACADOS_NUM_THREADS = 4
 
 # include QPOASES
-ACADOS_WITH_QPOASES = 1
+ACADOS_WITH_QPOASES = 0
 
 # include HPMPC
 ACADOS_WITH_HPMPC = 0
@@ -76,7 +77,7 @@ ACADOS_WITH_QPDUNES = 0
 ACADOS_WITH_QORE = 0
 
 # include OSQP
-ACADOS_WITH_OSQP = 1
+ACADOS_WITH_OSQP = 0
 
 # C interface
 ACADOS_WITH_C_INTERFACE = 1
@@ -98,7 +99,7 @@ CFLAGS += -O2 -fPIC
 CFLAGS  += #-g -Wall -pedantic -Wfloat-equal #-pg
 
 ifeq ($(ACADOS_WITH_OPENMP), 1)
-CFLAGS += -DACADOS_WITH_OPENMP -fopenmp
+CFLAGS += -DACADOS_WITH_OPENMP -DACADOS_NUM_THREADS=$(ACADOS_NUM_THREADS) -fopenmp
 endif
 ifeq ($(ACADOS_WITH_QPOASES), 1)
 CFLAGS += -DACADOS_WITH_QPOASES
@@ -132,3 +133,4 @@ CFLAGS += -I$(TOP) -I$(TOP)/interfaces -I$(TOP)/include -I$(BLASFEO_PATH)/includ
 LDFLAGS += -L$(TOP)/lib
 
 CXXFLAGS = $(CFLAGS) -std=c++11
+CFLAGS += -std=c99

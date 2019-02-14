@@ -101,22 +101,27 @@ void sim_algebraic_solver_dims_set(void *config_, void *dims_, const char *field
     }
 }
 
-void sim_algebraic_solver_get_nx(void *dims_, int *nx)
+void sim_algebraic_solver_dims_get(void *config_, void *dims_, const char *field, int *value)
 {
-    sim_algebraic_solver_dims *dims = (sim_algebraic_solver_dims *) dims_;
-    *nx = dims->nx;
-}
+    sim_algebraic_solver_dims *dims = dims_;
 
-void sim_algebraic_solver_get_nu(void *dims_, int *nu)
-{
-    sim_algebraic_solver_dims *dims = (sim_algebraic_solver_dims *) dims_;
-    *nu = dims->nu;
-}
-
-void sim_algebraic_solver_get_nz(void *dims_, int *nz)
-{
-    sim_algebraic_solver_dims *dims = (sim_algebraic_solver_dims *) dims_;
-    *nz = dims->nz;
+    if (!strcmp(field, "nx"))
+    {
+        *value = dims->nx;
+    }
+    else if (!strcmp(field, "nu"))
+    {
+        *value = dims->nu;
+    }
+    else if (!strcmp(field, "nz"))
+    {
+        *value = dims->nz;
+    }
+    else
+    {
+        printf("\nerror: sim_algebraic_solver_dims_get: field not available: %s\n", field);
+        exit(1);
+    }
 }
 
 /************************************************
@@ -144,7 +149,7 @@ void *sim_algebraic_solver_model_assign(void *config, void *dims, void *raw_memo
     return data;
 }
 
-int sim_algebraic_solver_model_set_function(void *model_, sim_function_t fun_type, void *fun)
+int sim_algebraic_solver_model_set(void *model_, sim_function_t fun_type, void *fun)
 {
     irk_model *model = model_;
 
@@ -178,7 +183,7 @@ int sim_algebraic_solver_opts_calculate_size(void *config_, void *dims)
 
     int size = 0;
 
-    size += sizeof(sim_rk_opts);
+    size += sizeof(sim_opts);
 
     size += ns_max * ns_max * sizeof(double);  // A_mat
     size += ns_max * sizeof(double);           // b_vec
@@ -201,8 +206,8 @@ void *sim_algebraic_solver_opts_assign(void *config_, void *dims, void *raw_memo
 
     char *c_ptr = (char *) raw_memory;
 
-    sim_rk_opts *opts = (sim_rk_opts *) c_ptr;
-    c_ptr += sizeof(sim_rk_opts);
+    sim_opts *opts = (sim_opts *) c_ptr;
+    c_ptr += sizeof(sim_opts);
 
     align_char_to(8, &c_ptr);
 
@@ -225,7 +230,7 @@ void *sim_algebraic_solver_opts_assign(void *config_, void *dims, void *raw_memo
 void sim_algebraic_solver_opts_initialize_default(void *config_, void *dims_, void *opts_)
 {
     sim_algebraic_solver_dims *dims = (sim_algebraic_solver_dims *) dims_;
-    sim_rk_opts *opts = opts_;
+    sim_opts *opts = opts_;
 
     opts->ns = 3;  // GL 3
     int ns = opts->ns;
@@ -264,7 +269,7 @@ void sim_algebraic_solver_opts_initialize_default(void *config_, void *dims_, vo
 
 void sim_algebraic_solver_opts_update(void *config_, void *dims, void *opts_)
 {
-    sim_rk_opts *opts = opts_;
+    sim_opts *opts = opts_;
 
     int ns = opts->ns;
 
@@ -285,8 +290,8 @@ void sim_algebraic_solver_opts_update(void *config_, void *dims, void *opts_)
 
 int sim_algebraic_solver_opts_set(void *config_, void *opts_, const char *field, void *value)
 {
-    sim_rk_opts *opts = (sim_rk_opts *) opts_;
-    return sim_rk_opts_set(opts, field, value);
+    sim_opts *opts = (sim_opts *) opts_;
+    return sim_opts_set_(opts, field, value);
 }
 
 /************************************************
@@ -306,7 +311,7 @@ void *sim_algebraic_solver_memory_assign(void *config, void *dims, void *opts_, 
 int sim_algebraic_solver_workspace_calculate_size(void *config_, void *dims_, void *opts_)
 {
     sim_algebraic_solver_dims *dims = (sim_algebraic_solver_dims *) dims_;
-    sim_rk_opts *opts = opts_;
+    sim_opts *opts = opts_;
 
     int ns = opts->ns;
 
@@ -387,7 +392,7 @@ int sim_algebraic_solver_workspace_calculate_size(void *config_, void *dims_, vo
 
 static void *sim_algebraic_solver_workspace_cast(void *config_, void *dims_, void *opts_, void *raw_memory)
 {
-    sim_rk_opts *opts = opts_;
+    sim_opts *opts = opts_;
     sim_algebraic_solver_dims *dims = (sim_algebraic_solver_dims *) dims_;
 
     int ns = opts->ns;
@@ -512,8 +517,8 @@ int sim_algebraic_solver(void *config_, sim_in *in, sim_out *out, void *opts_, v
 {
 /* Get variables from workspace, etc; -- 
     cast pointers */
-    sim_solver_config *config = config_;
-    sim_rk_opts *opts = opts_;
+    sim_config *config = config_;
+    sim_opts *opts = opts_;
 
     // if ( opts->ns != opts->tableau_size )
     // {
@@ -915,7 +920,7 @@ int sim_algebraic_solver(void *config_, sim_in *in, sim_out *out, void *opts_, v
 
 void sim_algebraic_solver_config_initialize_default(void *config_)
 {
-    sim_solver_config *config = config_;
+    sim_config *config = config_;
 
     config->evaluate = &sim_algebraic_solver;
     config->precompute = &sim_algebraic_solver_precompute;
@@ -929,12 +934,10 @@ void sim_algebraic_solver_config_initialize_default(void *config_)
     config->workspace_calculate_size = &sim_algebraic_solver_workspace_calculate_size;
     config->model_calculate_size = &sim_algebraic_solver_model_calculate_size;
     config->model_assign = &sim_algebraic_solver_model_assign;
-    config->model_set_function = &sim_algebraic_solver_model_set_function;
+    config->model_set = &sim_algebraic_solver_model_set;
     config->dims_calculate_size = &sim_algebraic_solver_dims_calculate_size;
     config->dims_assign = &sim_algebraic_solver_dims_assign;
     config->dims_set = &sim_algebraic_solver_dims_set;
-    config->get_nx = &sim_algebraic_solver_get_nx;
-    config->get_nu = &sim_algebraic_solver_get_nu;
-    config->get_nz = &sim_algebraic_solver_get_nz;
+    config->dims_get = &sim_algebraic_solver_dims_get;
     return;
 }
