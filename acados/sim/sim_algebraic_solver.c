@@ -149,27 +149,43 @@ void *sim_algebraic_solver_model_assign(void *config, void *dims, void *raw_memo
     return data;
 }
 
-int sim_algebraic_solver_model_set(void *model_, sim_function_t fun_type, void *fun)
+int sim_algebraic_solver_model_set(void *model_, const char *field, void *value)
 {
     irk_model *model = model_;
 
-    switch (fun_type)
+    if (!strcmp(field, "impl_ode_fun"))
     {
-        case IMPL_ODE_FUN:
-            model->impl_ode_fun = (external_function_generic *) fun;
-            break;
-        case IMPL_ODE_FUN_JAC_X_XDOT:
-            model->impl_ode_fun_jac_x_xdot_z = (external_function_generic *) fun;
-            break;
-        case IMPL_ODE_JAC_X_XDOT_U:
-            model->impl_ode_jac_x_xdot_u_z = (external_function_generic *) fun;
-            break;
-        case IMPL_ODE_HESS:
-            model->impl_ode_hess = (external_function_generic *) fun;
-            break;
-        default:
-            return ACADOS_FAILURE;
+        model->impl_ode_fun = value;
     }
+    else if (!strcmp(field, "impl_ode_fun_jac_x_xdot"))
+    {
+        // TODO(oj): remove this case and fix dependencies
+        model->impl_ode_fun_jac_x_xdot_z = value;
+    }
+    else if (!strcmp(field, "impl_ode_fun_jac_x_xdot_z"))
+    {
+        model->impl_ode_fun_jac_x_xdot_z = value;
+    }
+    else if (!strcmp(field, "impl_ode_jac_x_xdot_u"))
+    {
+        // TODO(oj): remove this and update with z everywhere
+        model->impl_ode_jac_x_xdot_u_z = value;
+    }
+    else if (!strcmp(field, "impl_ode_jac_x_xdot_u_z"))
+    {
+        model->impl_ode_jac_x_xdot_u_z = value;
+    }
+    else if (!strcmp(field, "impl_ode_hes") | !strcmp(field, "impl_ode_hess"))
+    {
+        model->impl_ode_hess = value;
+    }
+    else
+    {
+        printf("\nerror: sim_irk_model_set: wrong field: %s\n", field);
+		exit(1);
+//        return ACADOS_FAILURE;
+    }
+
     return ACADOS_SUCCESS;
 }
 
@@ -766,7 +782,7 @@ int sim_algebraic_solver(void *config_, sim_in *in, sim_out *out, void *opts_, v
         // blasfeo_print_exp_dmat((nz+nx) *ns, (nz+nx) *ns, dG_dK, 0, 0);
         if ((opts->jac_reuse && (iter == 0)) || (!opts->jac_reuse))
         {
-            blasfeo_dgetrf_rowpivot(nK, nK, dG_dK, 0, 0, dG_dK, 0, 0, ipiv);
+            blasfeo_dgetrf_rp(nK, nK, dG_dK, 0, 0, dG_dK, 0, 0, ipiv);
         }
 
         // permute also the r.h.s
@@ -821,7 +837,7 @@ int sim_algebraic_solver(void *config_, sim_in *in, sim_out *out, void *opts_, v
 
     // // factorize dG_dK
     // acados_tic(&timer_la);
-    // blasfeo_dgetrf_rowpivot(nK, nK, dG_dK, 0, 0, dG_dK, 0, 0, ipiv_ss);
+    // blasfeo_dgetrf_rp(nK, nK, dG_dK, 0, 0, dG_dK, 0, 0, ipiv_ss);
     // timing_la += acados_toc(&timer_la);
     // /* obtain dK_dxu */
     // // set up right hand side
@@ -877,7 +893,7 @@ int sim_algebraic_solver(void *config_, sim_in *in, sim_out *out, void *opts_, v
 
     // solve linear system
     acados_tic(&timer_la);
-    blasfeo_dgetrf_rowpivot(nx + nz, nx + nz, &df_dxdotz, 0, 0, &df_dxdotz, 0, 0,
+    blasfeo_dgetrf_rp(nx + nz, nx + nz, &df_dxdotz, 0, 0, &df_dxdotz, 0, 0,
                                                                 ipiv_one_stage);
     blasfeo_drowpe(nx + nz, ipiv_one_stage, &dk0_dxu);
     blasfeo_dtrsm_llnu(nx + nz, nx + nu, 1.0, &df_dxdotz, 0, 0,

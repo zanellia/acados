@@ -126,7 +126,7 @@ void *sim_algebraic_solver_dims_assign(void *config_, void *raw_memory);
 // model
 int sim_algebraic_solver_model_calculate_size(void *config, void *dims);
 void *sim_algebraic_solver_model_assign(void *config, void *dims, void *raw_memory);
-int sim_algebraic_solver_model_set(void *model_, sim_function_t fun_type, void *fun);
+int sim_algebraic_solver_model_set(void *model_, const char *field, void *value);
 
 // opts
 int sim_algebraic_solver_opts_calculate_size(void *config, void *dims);
