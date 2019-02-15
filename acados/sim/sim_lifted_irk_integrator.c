@@ -65,57 +65,63 @@ void *sim_lifted_irk_dims_assign(void *config_, void *raw_memory)
     return dims;
 }
 
-
-
-void sim_lifted_irk_dims_set(void *config_, void *dims_, const char *field, const int *value)
+static void sim_lifted_irk_set_nu(void *config_, void *dims_, const int *nu)
 {
-    sim_lifted_irk_dims *dims = dims_;
+    sim_lifted_irk_dims *dims = (sim_lifted_irk_dims *) dims_;
+    dims->nu = *nu;
+}
 
+static void sim_lifted_irk_set_nx(void *config_, void *dims_, const int *nx)
+{
+    sim_lifted_irk_dims *dims = (sim_lifted_irk_dims *) dims_;
+    dims->nx = *nx;
+}
+
+static void sim_lifted_irk_set_nz(void *config_, void *dims_, const int *nz)
+{
+    sim_lifted_irk_dims *dims = (sim_lifted_irk_dims *) dims_;
+    dims->nz = *nz;
+}
+
+
+void sim_lifted_irk_dims_set(void *config_, void *dims_, const char *field, const int* value)
+{
     if (!strcmp(field, "nx"))
     {
-        dims->nx = *value;
+        sim_lifted_irk_set_nx(config_, dims_, value);
     }
     else if (!strcmp(field, "nu"))
     {
-        dims->nu = *value;
+        sim_lifted_irk_set_nu(config_, dims_, value);
     }
     else if (!strcmp(field, "nz"))
     {
-        dims->nz = *value;
+        sim_lifted_irk_set_nz(config_, dims_, value);
     }
     else
     {
-        printf("\nerror: sim_lifted_irk_dims_set: field not available: %s\n", field);
+        printf("\nerror: dimension type not available in module\n");
         exit(1);
     }
 }
 
-
-
-void sim_lifted_irk_dims_get(void *config_, void *dims_, const char *field, int *value)
+void sim_lifted_irk_get_nx(void *dims_, int *nx)
 {
-    sim_lifted_irk_dims *dims = dims_;
-
-    if (!strcmp(field, "nx"))
-    {
-        *value = dims->nx;
-    }
-    else if (!strcmp(field, "nu"))
-    {
-        *value = dims->nu;
-    }
-    else if (!strcmp(field, "nz"))
-    {
-        *value = dims->nz;
-    }
-    else
-    {
-        printf("\nerror: sim_lifted_irk_dims_get: field not available: %s\n", field);
-        exit(1);
-    }
+    sim_lifted_irk_dims *dims = (sim_lifted_irk_dims *) dims_;
+    *nx = dims->nx;
 }
 
+void sim_lifted_irk_get_nu(void *dims_, int *nu)
+{
+    sim_lifted_irk_dims *dims = (sim_lifted_irk_dims *) dims_;
+    *nu = dims->nu;
+}
 
+void sim_lifted_irk_get_nz(void *dims_, int *nz)
+{
+    sim_lifted_irk_dims *dims = (sim_lifted_irk_dims *) dims_;
+    *nz = dims->nz;
+}
 
 /************************************************
 * model
@@ -146,30 +152,23 @@ void *sim_lifted_irk_model_assign(void *config, void *dims, void *raw_memory)
 
 
 
-int sim_lifted_irk_model_set(void *model_, const char *field, void *value)
+int sim_lifted_irk_model_set_function(void *model_, sim_function_t fun_type, void *fun)
 {
     lifted_irk_model *model = model_;
 
-    if (!strcmp(field, "impl_ode_fun"))
+    switch (fun_type)
     {
-        model->impl_ode_fun = value;
+        case IMPL_ODE_FUN:
+            model->impl_ode_fun = (external_function_generic *) fun;
+            break;
+        case IMPL_ODE_FUN_JAC_X_XDOT_U:
+            model->impl_ode_fun_jac_x_xdot_u = (external_function_generic *) fun;
+            break;
+        default:
+            return ACADOS_FAILURE;
     }
-    else if (!strcmp(field, "impl_ode_fun_jac_x_xdot_u"))
-    {
-        model->impl_ode_fun_jac_x_xdot_u = value;
-    }
-    else
-    {
-        printf("\nerror: sim_lifted_irk_model_set: wrong field: %s\n", field);
-		exit(1);
-//        return ACADOS_FAILURE;
-    }
-
     return ACADOS_SUCCESS;
 }
-
-
-
 /************************************************
 * opts
 ************************************************/
@@ -180,7 +179,7 @@ int sim_lifted_irk_opts_calculate_size(void *config_, void *dims)
 
     int size = 0;
 
-    size += sizeof(sim_opts);
+    size += sizeof(sim_rk_opts);
 
     size += ns_max * ns_max * sizeof(double);  // A_mat
     size += ns_max * sizeof(double);           // b_vec
@@ -205,8 +204,8 @@ void *sim_lifted_irk_opts_assign(void *config_, void *dims, void *raw_memory)
 
     char *c_ptr = (char *) raw_memory;
 
-    sim_opts *opts = (sim_opts *) c_ptr;
-    c_ptr += sizeof(sim_opts);
+    sim_rk_opts *opts = (sim_rk_opts *) c_ptr;
+    c_ptr += sizeof(sim_rk_opts);
 
     align_char_to(8, &c_ptr);
 
@@ -230,7 +229,7 @@ void *sim_lifted_irk_opts_assign(void *config_, void *dims, void *raw_memory)
 
 void sim_lifted_irk_opts_initialize_default(void *config_, void *dims_, void *opts_)
 {
-    sim_opts *opts = opts_;
+    sim_rk_opts *opts = opts_;
     sim_lifted_irk_dims *dims = (sim_lifted_irk_dims *) dims_;
 
     int nx = dims->nx;
@@ -268,7 +267,7 @@ void sim_lifted_irk_opts_initialize_default(void *config_, void *dims_, void *op
 
 void sim_lifted_irk_opts_update(void *config_, void *dims, void *opts_)
 {
-    sim_opts *opts = opts_;
+    sim_rk_opts *opts = opts_;
 
     int ns = opts->ns;
 
@@ -289,8 +288,8 @@ void sim_lifted_irk_opts_update(void *config_, void *dims, void *opts_)
 
 int sim_lifted_irk_opts_set(void *config_, void *opts_, const char *field, void *value)
 {
-    sim_opts *opts = (sim_opts *) opts_;
-    return sim_opts_set_(opts, field, value);
+    sim_rk_opts *opts = (sim_rk_opts *) opts_;
+    return sim_rk_opts_set(opts, field, value);
 }
 
 
@@ -300,7 +299,7 @@ int sim_lifted_irk_opts_set(void *config_, void *opts_, const char *field, void 
 
 int sim_lifted_irk_memory_calculate_size(void *config, void *dims_, void *opts_)
 {
-    sim_opts *opts = opts_;
+    sim_rk_opts *opts = opts_;
     sim_lifted_irk_dims *dims = (sim_lifted_irk_dims *) dims_;
 
     int ns = opts->ns;
@@ -338,7 +337,7 @@ void *sim_lifted_irk_memory_assign(void *config, void *dims_, void *opts_, void 
 {
     char *c_ptr = (char *) raw_memory;
 
-    sim_opts *opts = opts_;
+    sim_rk_opts *opts = opts_;
     sim_lifted_irk_dims *dims = (sim_lifted_irk_dims *) dims_;
 
     int ns = opts->ns;
@@ -409,7 +408,7 @@ void *sim_lifted_irk_memory_assign(void *config, void *dims_, void *opts_, void 
 
 int sim_lifted_irk_workspace_calculate_size(void *config_, void *dims_, void *opts_)
 {
-    sim_opts *opts = opts_;
+    sim_rk_opts *opts = opts_;
     sim_lifted_irk_dims *dims = (sim_lifted_irk_dims *) dims_;
 
     int ns = opts->ns;
@@ -444,7 +443,7 @@ int sim_lifted_irk_workspace_calculate_size(void *config_, void *dims_, void *op
 static void *sim_lifted_irk_cast_workspace(void *config_, void *dims_, void *opts_,
                                                void *raw_memory)
 {
-    sim_opts *opts = opts_;
+    sim_rk_opts *opts = opts_;
     sim_lifted_irk_dims *dims = (sim_lifted_irk_dims *) dims_;
 
     int ns = opts->ns;
@@ -520,8 +519,8 @@ int sim_lifted_irk(void *config_, sim_in *in, sim_out *out, void *opts_, void *m
                        void *work_)
 {
     // typecasting
-    sim_config *config = config_;
-    sim_opts *opts = opts_;
+    sim_solver_config *config = config_;
+    sim_rk_opts *opts = opts_;
     sim_lifted_irk_memory *memory = (sim_lifted_irk_memory *) mem_;
 
     void *dims_ = in->dims;
@@ -543,21 +542,11 @@ int sim_lifted_irk(void *config_, sim_in *in, sim_out *out, void *opts_, void *m
         return ACADOS_FAILURE;
     }
     // assert - only use supported features
-    if (nz != 0)
-    {
-        printf("nz should be zero - DAEs are not supported by the lifted IRK integrator");
-        return ACADOS_FAILURE;
-    }
-    if (opts->output_z)
-    {
-        printf("opts->output_z should be false - DAEs are not supported for the lifted IRK integrator");
-        return ACADOS_FAILURE;
-    }
-    if (opts->sens_algebraic)
-    {
-        printf("opts->sens_algebraic should be false - DAEs are not supported for the lifted IRK integrator");
-        return ACADOS_FAILURE;
-    }
+    assert(nz == 0 && "nz should be zero - DAEs are not (yet) supported for this integrator");
+    assert(opts->output_z == false &&
+            "opts->output_z should be false - DAEs are not (yet) supported for this integrator");
+    assert(opts->sens_algebraic == false &&
+       "opts->sens_algebraic should be false - DAEs are not (yet) supported for this integrator");
 
     int ii, jj, ss;
     double a;
@@ -758,7 +747,7 @@ int sim_lifted_irk(void *config_, sim_in *in, sim_out *out, void *opts_, void *m
 
         if (update_sens)
         {
-            blasfeo_dgetrf_rp(nx * ns, nx * ns, JGK, 0, 0, JGK, 0, 0, ipiv);
+            blasfeo_dgetrf_rowpivot(nx * ns, nx * ns, JGK, 0, 0, JGK, 0, 0, ipiv);
         }
 
         // update r.h.s (6.23, Quirynen2017)
@@ -821,7 +810,7 @@ int sim_lifted_irk(void *config_, sim_in *in, sim_out *out, void *opts_, void *m
 
 void sim_lifted_irk_config_initialize_default(void *config_)
 {
-    sim_config *config = config_;
+    sim_solver_config *config = config_;
 
     config->evaluate = &sim_lifted_irk;
     config->precompute = &sim_lifted_irk_precompute;
@@ -835,10 +824,12 @@ void sim_lifted_irk_config_initialize_default(void *config_)
     config->workspace_calculate_size = &sim_lifted_irk_workspace_calculate_size;
     config->model_calculate_size = &sim_lifted_irk_model_calculate_size;
     config->model_assign = &sim_lifted_irk_model_assign;
-    config->model_set = &sim_lifted_irk_model_set;
+    config->model_set_function = &sim_lifted_irk_model_set_function;
     config->dims_calculate_size = &sim_lifted_irk_dims_calculate_size;
     config->dims_assign = &sim_lifted_irk_dims_assign;
     config->dims_set = &sim_lifted_irk_dims_set;
-    config->dims_get = &sim_lifted_irk_dims_get;
+    config->get_nx = &sim_lifted_irk_get_nx;
+    config->get_nu = &sim_lifted_irk_get_nu;
+    config->get_nz = &sim_lifted_irk_get_nz;
     return;
 }

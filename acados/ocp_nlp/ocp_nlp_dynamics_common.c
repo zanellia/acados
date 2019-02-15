@@ -39,12 +39,10 @@ int ocp_nlp_dynamics_config_calculate_size()
 
     size += sizeof(ocp_nlp_dynamics_config);
 
-    size += sim_config_calculate_size();
+    size += sim_solver_config_calculate_size();
 
     return size;
 }
-
-
 
 ocp_nlp_dynamics_config *ocp_nlp_dynamics_config_assign(void *raw_memory)
 {
@@ -53,8 +51,8 @@ ocp_nlp_dynamics_config *ocp_nlp_dynamics_config_assign(void *raw_memory)
     ocp_nlp_dynamics_config *config = (ocp_nlp_dynamics_config *) c_ptr;
     c_ptr += sizeof(ocp_nlp_dynamics_config);
 
-    config->sim_solver = sim_config_assign(c_ptr);
-    c_ptr += sim_config_calculate_size();
+    config->sim_solver = sim_solver_config_assign(c_ptr);
+    c_ptr += sim_solver_config_calculate_size();
 
     return config;
 }

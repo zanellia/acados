@@ -50,14 +50,11 @@ enum return_values
     ACADOS_FAILURE,
     ACADOS_MAXITER,
     ACADOS_MINSTEP,
-    ACADOS_QP_FAILURE,
-    ACADOS_READY,
 };
 
 
 
 // opts values ( please keep in alphabetical order ! )
-// TODO outdated, proably remove !!!!!!!!!
 enum acados_opts
 {
     COMPUTE_ADJ,

@@ -2,14 +2,7 @@
 
 
 
-# default make target
-all: acados_static acados_c_static
-
-
-
-# include config & tailored rules
 include ./Makefile.rule
-include ./Makefile.osqp
 
 
 
@@ -53,9 +46,6 @@ endif
 ifeq ($(ACADOS_WITH_QPDUNES), 1)
 OBJS += acados/ocp_qp/ocp_qp_qpdunes.o
 endif
-ifeq ($(ACADOS_WITH_OSQP), 1)
-OBJS += acados/ocp_qp/ocp_qp_osqp.o
-endif
 OBJS += acados/ocp_qp/ocp_qp_partial_condensing.o
 OBJS += acados/ocp_qp/ocp_qp_full_condensing.o
 OBJS += acados/ocp_qp/ocp_qp_partial_condensing_solver.o
@@ -79,7 +69,6 @@ OBJS += acados/utils/external_function_generic.o
 
 # acados dependencies
 STATIC_DEPS = blasfeo_static hpipm_static
-SHARED_DEPS = blasfeo_shared hpipm_shared
 CLEAN_DEPS = blasfeo_clean hpipm_clean
 ifeq ($(ACADOS_WITH_QPOASES), 1)
 STATIC_DEPS += qpoases_static
@@ -97,12 +86,10 @@ ifeq ($(ACADOS_WITH_QORE), 1)
 STATIC_DEPS += qore_static
 CLEAN_DEPS += qore_clean
 endif
-ifeq ($(ACADOS_WITH_OSQP), 1)
-STATIC_DEPS += osqp_static
-CLEAN_DEPS += osqp_clean
-endif
 
 
+
+all: acados_static acados_c_static
 
 acados_static: $(STATIC_DEPS)
 	( cd acados; $(MAKE) obj TOP=$(TOP) )
@@ -113,29 +100,12 @@ acados_static: $(STATIC_DEPS)
 	@echo " libacore.a static library build complete."
 	@echo
 
-acados_shared: $(SHARED_DEPS)
-	( cd acados; $(MAKE) obj TOP=$(TOP) )
-	ar rcs libacore.a $(OBJS)
-	$(CC) -L./lib -shared -o libacore.so $(OBJS) -lblasfeo -lhpipm -lm -fopenmp
-	mkdir -p lib
-	mv libacore.so lib
-	@echo
-	@echo " libacore.so shared library build complete."
-	@echo
-
 blasfeo_static:
-	( cd $(BLASFEO_PATH); $(MAKE) static_library CC=$(CC) LA=$(BLASFEO_VERSION) TARGET=$(BLASFEO_TARGET) BLAS_API=0 )
+	( cd $(BLASFEO_PATH); $(MAKE) static_library CC=$(CC) LA=$(BLASFEO_VERSION) TARGET=$(BLASFEO_TARGET) )
 	mkdir -p include/blasfeo/include
 	mkdir -p lib
 	cp $(BLASFEO_PATH)/include/*.h include/blasfeo/include
 	cp $(BLASFEO_PATH)/lib/libblasfeo.a lib
-
-blasfeo_shared:
-	( cd $(BLASFEO_PATH); $(MAKE) shared_library CC=$(CC) LA=$(BLASFEO_VERSION) TARGET=$(BLASFEO_TARGET) BLAS_API=0 )
-	mkdir -p include/blasfeo/include
-	mkdir -p lib
-	cp $(BLASFEO_PATH)/include/*.h include/blasfeo/include
-	cp $(BLASFEO_PATH)/lib/libblasfeo.so lib
 
 hpipm_static: blasfeo_static
 	( cd $(HPIPM_PATH); $(MAKE) static_library CC=$(CC) TARGET=$(HPIPM_TARGET) BLASFEO_PATH=$(BLASFEO_PATH) )
@@ -143,13 +113,6 @@ hpipm_static: blasfeo_static
 	mkdir -p lib
 	cp $(HPIPM_PATH)/include/*.h include/hpipm/include
 	cp $(HPIPM_PATH)/lib/libhpipm.a lib
-
-hpipm_shared: blasfeo_shared
-	( cd $(HPIPM_PATH); $(MAKE) shared_library CC=$(CC) TARGET=$(HPIPM_TARGET) BLASFEO_PATH=$(BLASFEO_PATH) )
-	mkdir -p include/hpipm/include
-	mkdir -p lib
-	cp $(HPIPM_PATH)/include/*.h include/hpipm/include
-	cp $(HPIPM_PATH)/lib/libhpipm.so lib
 
 hpmpc_static: blasfeo_static
 	( cd $(HPMPC_PATH); $(MAKE) static_library CC=$(CC) TARGET=$(HPMPC_TARGET) BLASFEO_PATH=$(BLASFEO_PATH)  )
@@ -189,12 +152,6 @@ qpdunes_static:
 	cp -r $(QPDUNES_PATH)/include/* include/qpdunes/include
 	cp $(QPDUNES_PATH)/src/libqpdunes.a lib
 	cp $(QPDUNES_PATH)/externals/qpOASES-3.0beta/bin/libqpOASES.a lib
-	
-osqp_static: $(OSQP_LIB_STATIC)
-	mkdir -p include/osqp/include
-	mkdir -p lib
-	cp -r $(OSQP_PATH)/include/* include/osqp/include
-	mv libosqp.a lib
 
 acados_c_static: acados_static
 ifeq ($(ACADOS_WITH_C_INTERFACE), 1)
@@ -203,15 +160,6 @@ ifeq ($(ACADOS_WITH_C_INTERFACE), 1)
 	mkdir -p lib
 	cp -r interfaces/acados_c/*.h include/acados_c
 	mv interfaces/acados_c/libacados_c.a lib
-endif
-
-acados_c_shared: acados_shared
-ifeq ($(ACADOS_WITH_C_INTERFACE), 1)
-	( cd interfaces/acados_c; $(MAKE) shared_library CC=$(CC) TOP=$(TOP) )
-	mkdir -p include/acados_c
-	mkdir -p lib
-	cp -r interfaces/acados_c/*.h include/acados_c
-	mv interfaces/acados_c/libacados_c.so lib
 endif
 
 examples_c: acados_c_static
@@ -242,11 +190,6 @@ qore_clean:
 
 qpdunes_clean:
 	( cd $(QPDUNES_PATH); $(MAKE) clean )
-	
-osqp_clean:
-	@$(RM) $(OSQP_ALL_OBJ)
-	@$(RM) $(OSQP_QDLDL_INC_DIR)qdldl_types.h
-	@$(RM) $(OSQP_INC_DIR)osqp_configure.h
 
 deep_clean: clean $(CLEAN_DEPS)
 	( cd examples/c; $(MAKE) clean )

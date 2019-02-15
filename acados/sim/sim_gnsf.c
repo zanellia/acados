@@ -42,8 +42,6 @@
 // #include "blasfeo/include/blasfeo_d_aux_ext_dep.h" // can be included for printing while
 // debugging
 
-
-
 /************************************************
  * dims
  ************************************************/
@@ -73,81 +71,117 @@ void *sim_gnsf_dims_assign(void *config_, void *raw_memory)
     return dims;
 }
 
-
-
 /************************************************
  * get & set functions
  ************************************************/
 
-void sim_gnsf_dims_set(void *config_, void *dims_, const char *field, const int *value)
+static void sim_gnsf_set_nu(void *config_, void *dims_, const int *nu)
 {
-    sim_gnsf_dims *dims = dims_;
+    sim_gnsf_dims *dims = (sim_gnsf_dims *) dims_;
+    dims->nu = *nu;
+}
 
+static void sim_gnsf_set_nx(void *config_, void *dims_, const int *nx)
+{
+    sim_gnsf_dims *dims = (sim_gnsf_dims *) dims_;
+    dims->nx = *nx;
+}
+
+static void sim_gnsf_set_nz(void *config_, void *dims_, const int *nz)
+{
+    sim_gnsf_dims *dims = (sim_gnsf_dims *) dims_;
+    dims->nz = *nz;
+}
+
+static void sim_gnsf_set_ny(void *config_, void *dims_, const int *ny)
+{
+    sim_gnsf_dims *dims = (sim_gnsf_dims *) dims_;
+    dims->ny = *ny;
+}
+
+static void sim_gnsf_set_nuhat(void *config_, void *dims_, const int *nuhat)
+{
+    sim_gnsf_dims *dims = (sim_gnsf_dims *) dims_;
+    dims->nuhat = *nuhat;
+}
+
+static void sim_gnsf_set_nout(void *config_, void *dims_, const int *nout)
+{
+    sim_gnsf_dims *dims = (sim_gnsf_dims *) dims_;
+    dims->n_out = *nout;
+}
+
+static void sim_gnsf_set_nz1(void *config_, void *dims_, const int *nz1)
+{
+    sim_gnsf_dims *dims = (sim_gnsf_dims *) dims_;
+    dims->nz1 = *nz1;
+}
+
+static void sim_gnsf_set_nx1(void *config_, void *dims_, const int *nx1)
+{
+    sim_gnsf_dims *dims = (sim_gnsf_dims *) dims_;
+    dims->nx1 = *nx1;
+}
+
+
+void sim_gnsf_dims_set(void *config_, void *dims_, const char *field, const int* value)
+{
     if (!strcmp(field, "nx"))
     {
-        dims->nx = *value;
+        sim_gnsf_set_nx(config_, dims_, value);
     }
     else if (!strcmp(field, "nu"))
     {
-        dims->nu = *value;
+        sim_gnsf_set_nu(config_, dims_, value);
     }
     else if (!strcmp(field, "nz"))
     {
-        dims->nz = *value;
+        sim_gnsf_set_nz(config_, dims_, value);
     }
     else if (!strcmp(field, "nx1") || !strcmp(field, "gnsf_nx1"))
     {
-        dims->nx1 = *value;
+        sim_gnsf_set_nx1(config_, dims_, value);
     }
     else if (!strcmp(field, "nz1") || !strcmp(field, "gnsf_nz1"))
     {
-        dims->nz1 = *value;
+        sim_gnsf_set_nz1(config_, dims_, value);
     }
     else if (!strcmp(field, "nout") || !strcmp(field, "gnsf_nout"))
     {
-        dims->n_out = *value;
+        sim_gnsf_set_nout(config_, dims_, value);
     }
     else if (!strcmp(field, "ny") || !strcmp(field, "gnsf_ny"))
     {
-        dims->ny = *value;
+        sim_gnsf_set_ny(config_, dims_, value);
     }
     else if (!strcmp(field, "nuhat") || !strcmp(field, "gnsf_nuhat"))
     {
-        dims->nuhat = *value;
+        sim_gnsf_set_nuhat(config_, dims_, value);
     }
     else
     {
-        printf("\nerror: sim_gnsf_dims_set: field not available: %s\n", field);
+        printf("\nerror: dimension type not available in module\n");
         exit(1);
     }
 }
 
-
-
-void sim_gnsf_dims_get(void *config_, void *dims_, const char *field, int *value)
+void sim_gnsf_get_nx(void *dims_, int *nx)
 {
-    sim_gnsf_dims *dims = dims_;
-
-    if (!strcmp(field, "nx"))
-    {
-        *value = dims->nx;
-    }
-    else if (!strcmp(field, "nu"))
-    {
-        *value = dims->nu;
-    }
-    else if (!strcmp(field, "nz"))
-    {
-        *value = dims->nz;
-    }
-    else
-    {
-        printf("\nerror: sim_gnsf_dims_get: field not available: %s\n", field);
-        exit(1);
-    }
+    sim_gnsf_dims *dims = (sim_gnsf_dims *) dims_;
+    *nx = dims->nx;
 }
 
+void sim_gnsf_get_nu(void *dims_, int *nu)
+{
+    sim_gnsf_dims *dims = (sim_gnsf_dims *) dims_;
+    *nu = dims->nu;
+}
 
+void sim_gnsf_get_nz(void *dims_, int *nz)
+{
+    sim_gnsf_dims *dims = (sim_gnsf_dims *) dims_;
+    *nz = dims->nz;
+}
 
 /************************************************
  * import functions
@@ -187,7 +221,6 @@ static void sim_gnsf_import_matrices(void *dims_, gnsf_model *model)
 }
 
 
-
 /************************************************
  * opts
  ************************************************/
@@ -198,7 +231,7 @@ int sim_gnsf_opts_calculate_size(void *config_, void *dims)
 
     int size = 0;
 
-    size += sizeof(sim_opts);
+    size += sizeof(sim_rk_opts);
 
     size += ns_max * ns_max * sizeof(double);  // A_mat
     size += ns_max * sizeof(double);           // b_vec
@@ -221,8 +254,8 @@ void *sim_gnsf_opts_assign(void *config_, void *dims, void *raw_memory)
 
     char *c_ptr = (char *) raw_memory;
 
-    sim_opts *opts = (sim_opts *) c_ptr;
-    c_ptr += sizeof(sim_opts);
+    sim_rk_opts *opts = (sim_rk_opts *) c_ptr;
+    c_ptr += sizeof(sim_rk_opts);
 
     align_char_to(8, &c_ptr);
 
@@ -245,7 +278,7 @@ void *sim_gnsf_opts_assign(void *config_, void *dims, void *raw_memory)
 void sim_gnsf_opts_initialize_default(void *config_, void *dims_, void *opts_)
 {
     sim_gnsf_dims *dims = (sim_gnsf_dims *) dims_;
-    sim_opts *opts = opts_;
+    sim_rk_opts *opts = opts_;
 
     opts->ns = 3;  // GL 3
     int ns = opts->ns;
@@ -280,7 +313,7 @@ void sim_gnsf_opts_initialize_default(void *config_, void *dims_, void *opts_)
 
 void sim_gnsf_opts_update(void *config_, void *dims, void *opts_)
 {
-    sim_opts *opts = opts_;
+    sim_rk_opts *opts = opts_;
 
     int ns = opts->ns;
 
@@ -300,11 +333,9 @@ void sim_gnsf_opts_update(void *config_, void *dims, void *opts_)
 
 int sim_gnsf_opts_set(void *config_, void *opts_, const char *field, void *value)
 {
-    sim_opts *opts = (sim_opts *) opts_;
-    return sim_opts_set_(opts, field, value);
+    sim_rk_opts *opts = (sim_rk_opts *) opts_;
+    return sim_rk_opts_set(opts, field, value);
 }
-
-
 
 /************************************************
  * model
@@ -345,8 +376,6 @@ int sim_gnsf_model_calculate_size(void *config, void *dims_)
     return size;
 }
 
-
-
 void *sim_gnsf_model_assign(void *config, void *dims_, void *raw_memory)
 {
     char *c_ptr = (char *) raw_memory;
@@ -374,9 +403,6 @@ void *sim_gnsf_model_assign(void *config, void *dims_, void *raw_memory)
     gnsf_model *model = (gnsf_model *) c_ptr;
     c_ptr += sizeof(gnsf_model);
 
-    // set default
-    model->auto_import_gnsf = true;
-
     // assign model matrices
     assign_and_advance_double((nx1 + nz1) * nx1, &model->A, &c_ptr);
     assign_and_advance_double((nx1 + nz1) * nu, &model->B, &c_ptr);
@@ -398,43 +424,32 @@ void *sim_gnsf_model_assign(void *config, void *dims_, void *raw_memory)
     return model;
 }
 
-
-
-int sim_gnsf_model_set(void *model_, const char *field, void *value)
+int sim_gnsf_model_set_function(void *model_, sim_function_t fun_type, void *fun)
 {
     gnsf_model *model = model_;
 
-    if (!strcmp(field, "phi_fun"))
+    switch (fun_type)
     {
-        model->phi_fun = value;
+        case PHI_FUN:
+            model->phi_fun = (external_function_generic *) fun;
+            break;
+        case PHI_FUN_JAC_Y:
+            model->phi_fun_jac_y = (external_function_generic *) fun;
+            break;
+        case PHI_JAC_Y_UHAT:
+            model->phi_jac_y_uhat = (external_function_generic *) fun;
+            break;
+        case LO_FUN:
+            model->f_lo_fun_jac_x1_x1dot_u_z = (external_function_generic *) fun;
+            break;
+        case GET_GNSF_MATRICES:
+            model->get_gnsf_matrices = (external_function_generic *) fun;
+            break;
+        default:
+            return ACADOS_FAILURE;
     }
-    else if (!strcmp(field, "phi_fun_jac_y"))
-    {
-        model->phi_fun_jac_y = value;
-    }
-    else if (!strcmp(field, "phi_jac_y_uhat"))
-    {
-        model->phi_jac_y_uhat = value;
-    }
-    else if (!strcmp(field, "f_lo_jac_x1_x1dot_u_z"))
-    {
-        model->f_lo_fun_jac_x1_x1dot_u_z = value;
-    }
-    else if (!strcmp(field, "get_gnsf_matrices"))
-    {
-        model->get_gnsf_matrices = value;
-    }
-    else
-    {
-        printf("\nerror: sim_gnsf_model_set: wrong field: %s\n", field);
-		exit(1);
-//        return ACADOS_FAILURE;
-    }
-
     return ACADOS_SUCCESS;
 }
-
-
 
 /************************************************
  * GNSF PRECOMPUTATION
@@ -444,7 +459,7 @@ static void *gnsf_cast_pre_workspace(void *config_, sim_gnsf_dims *dims_, void *
                                      void *raw_memory)
 {
     sim_gnsf_dims *dims = (sim_gnsf_dims *) dims_;
-    sim_opts *opts = (sim_opts *) opts_;
+    sim_rk_opts *opts = (sim_rk_opts *) opts_;
 
     // int nx      = dims->nx;
     int nu      = dims->nu;
@@ -532,19 +547,18 @@ int sim_gnsf_precompute(void *config_, sim_in *in, sim_out *out, void *opts_, vo
     int status = ACADOS_SUCCESS;
 
     sim_gnsf_dims *dims = (sim_gnsf_dims *) in->dims;
-    sim_opts *opts = opts_;
+    sim_rk_opts *opts = opts_;
     gnsf_model *model = in->model;
 
 
-    if (model->get_gnsf_matrices == NULL && model->auto_import_gnsf)
+    if (model->get_gnsf_matrices == NULL)
     {
         printf("sim_gnsf error: get_gnsf_matrices function seems to be unset!\n");
         status = ACADOS_FAILURE;
         return status;
     }
 
-    if (model->auto_import_gnsf)
-        sim_gnsf_import_matrices(dims, model);
+    sim_gnsf_import_matrices(dims, model);
 
     // dimension ints
     int nx      = dims->nx;
@@ -763,7 +777,7 @@ int sim_gnsf_precompute(void *config_, sim_in *in, sim_out *out, void *opts_, vo
      *   Compute QQ1 KK*, ZZ* via QQ1
      ************************************************/
     // SOLVE EE1 \ DD1, ... EE1 \ AA1;
-    blasfeo_dgetrf_rp(nK1, nK1, &EE1, 0, 0, &EE1, 0, 0, ipivEE1);  // factorize EE1
+    blasfeo_dgetrf_rowpivot(nK1, nK1, &EE1, 0, 0, &EE1, 0, 0, ipivEE1);  // factorize EE1
 
     blasfeo_drowpe(nK1, ipivEE1, &AA1);  // permute also rhs
     blasfeo_dtrsm_llnu(nK1, nx1, 1.0, &EE1, 0, 0, &AA1, 0, 0, &AA1, 0, 0);
@@ -793,7 +807,7 @@ int sim_gnsf_precompute(void *config_, sim_in *in, sim_out *out, void *opts_, vo
     // cc1 now contains EE1\cc1
 
     // SOLVE EE2 \ DD2, ... EE2 \ AA2;
-    blasfeo_dgetrf_rp(nZ1, nZ1, &EE2, 0, 0, &EE2, 0, 0, ipivEE2);  // factorize EE2
+    blasfeo_dgetrf_rowpivot(nZ1, nZ1, &EE2, 0, 0, &EE2, 0, 0, ipivEE2);  // factorize EE2
 
     blasfeo_drowpe(nZ1, ipivEE2, &AA2);  // permute also rhs
     blasfeo_dtrsm_llnu(nZ1, nx1, 1.0, &EE2, 0, 0, &AA2, 0, 0, &AA2, 0, 0);
@@ -824,7 +838,7 @@ int sim_gnsf_precompute(void *config_, sim_in *in, sim_out *out, void *opts_, vo
     blasfeo_dgemm_nn(nZ1, nZ1, nK1, -1.0, &DD2, 0, 0, &DD1, 0, 0, 0.0, &QQ1, 0, 0, &QQ1, 0,
                      0);                                               // QQ1 = -DD2*DD1
     blasfeo_ddiare(nZ1, 1.0, &QQ1, 0, 0);                               // add eye(nZ1) to QQ1
-    blasfeo_dgetrf_rp(nZ1, nZ1, &QQ1, 0, 0, &QQ1, 0, 0, ipivQQ1);  // factorize QQ1
+    blasfeo_dgetrf_rowpivot(nZ1, nZ1, &QQ1, 0, 0, &QQ1, 0, 0, ipivQQ1);  // factorize QQ1
 
     /* build ZZv */
     blasfeo_dgemm_nn(nZ1, nvv, nK1, 1.0, &DD2, 0, 0, &CC1, 0, 0, 0.0, &ZZv, 0, 0, &ZZv, 0,
@@ -903,7 +917,7 @@ int sim_gnsf_precompute(void *config_, sim_in *in, sim_out *out, void *opts_, vo
         }
     }
     // factorize M2 in M2_LU
-    blasfeo_dgetrf_rp(nK2, nK2, &M2_LU, 0, 0, &M2_LU, 0, 0, ipivM2);
+    blasfeo_dgetrf_rowpivot(nK2, nK2, &M2_LU, 0, 0, &M2_LU, 0, 0, ipivM2);
 
     // solve dK2_dx2 = M2 \ dK2_dx2 to obtain dK2_dx2
     blasfeo_drowpe(nK2, ipivM2, &dK2_dx2);  // permute rhs dK2_dx2
@@ -920,7 +934,7 @@ int sim_gnsf_precompute(void *config_, sim_in *in, sim_out *out, void *opts_, vo
         blasfeo_pack_dmat(ny, nz1, model->L_z, ny, Lz, 0, 0);
 
         // SOLVE E11 \ A1,   E11 \ B1,      E11 \ C1,   E11\E12;
-        blasfeo_dgetrf_rp(nx1, nx1, &E11, 0, 0, &E11, 0, 0, ipivEE1);  // factorize E11
+        blasfeo_dgetrf_rowpivot(nx1, nx1, &E11, 0, 0, &E11, 0, 0, ipivEE1);  // factorize E11
 
         blasfeo_drowpe(nx1, ipivEE1, &A1);  // permute also rhs
         blasfeo_dtrsm_llnu(nx1, nx1, 1.0, &E11, 0, 0, &A1, 0, 0, &A1, 0, 0);
@@ -943,7 +957,7 @@ int sim_gnsf_precompute(void *config_, sim_in *in, sim_out *out, void *opts_, vo
 
 
         // SOLVE E22 \ A2,   E22 \ B2,      E22 \ C2,   E22\E21;
-        blasfeo_dgetrf_rp(nz1, nz1, &E22, 0, 0, &E22, 0, 0, ipivEE2);  // factorize E22
+        blasfeo_dgetrf_rowpivot(nz1, nz1, &E22, 0, 0, &E22, 0, 0, ipivEE2);  // factorize E22
 
         blasfeo_drowpe(nz1, ipivEE2, &A2);  // permute also rhs
         blasfeo_dtrsm_llnu(nz1, nx1, 1.0, &E22, 0, 0, &A2, 0, 0, &A2, 0, 0);
@@ -969,7 +983,7 @@ int sim_gnsf_precompute(void *config_, sim_in *in, sim_out *out, void *opts_, vo
         blasfeo_dgemm_nn(nz1, nz1, nx1, -1.0, &E21, 0, 0, &E12, 0, 0, 0.0, &Q1, 0, 0, &Q1, 0,
                         0);                                               // Q1 = -E21*E12
         blasfeo_ddiare(nz1, 1.0, &Q1, 0, 0);                               // add eye(nz1) to Q1
-        blasfeo_dgetrf_rp(nz1, nz1, &Q1, 0, 0, &Q1, 0, 0, ipivQQ1);  // factorize Q1
+        blasfeo_dgetrf_rowpivot(nz1, nz1, &Q1, 0, 0, &Q1, 0, 0, ipivQQ1);  // factorize Q1
 
         /* build Z0v */
         blasfeo_dgemm_nn(nz1, n_out, nx1, 1.0, &E21, 0, 0, &C1, 0, 0, 1.0, &C2, 0, 0, Z0v, 0,
@@ -1026,7 +1040,7 @@ int sim_gnsf_precompute(void *config_, sim_in *in, sim_out *out, void *opts_, vo
 
         /** for z2 **/           // factorize ELO
         blasfeo_pack_dmat(nxz2, nxz2, model->E_LO, nxz2, ELO_LU, 0, 0);
-        blasfeo_dgetrf_rp(nxz2, nxz2, ELO_LU, 0, 0, ELO_LU, 0, 0, ipiv_ELO);
+        blasfeo_dgetrf_rowpivot(nxz2, nxz2, ELO_LU, 0, 0, ELO_LU, 0, 0, ipiv_ELO);
         //
         // blasfeo_print_dmat(nxz2, nxz2, ELO_LU, )
         blasfeo_pack_dmat(nxz2, nx2, model->A_LO, nxz2, ELO_inv_ALO, 0, 0);
@@ -1049,7 +1063,7 @@ int sim_gnsf_memory_calculate_size(void *config, void *dims_, void *opts_)
 {
     // typecast
     sim_gnsf_dims *dims = (sim_gnsf_dims *) dims_;
-    sim_opts *opts = opts_;
+    sim_rk_opts *opts = opts_;
 
     // necessary integers
     int nx      = dims->nx;
@@ -1147,7 +1161,7 @@ void *sim_gnsf_memory_assign(void *config, void *dims_, void *opts_, void *raw_m
 
     // typecast
     sim_gnsf_dims *dims = (sim_gnsf_dims *) dims_;
-    sim_opts *opts = opts_;
+    sim_rk_opts *opts = opts_;
 
     // necessary integers
     int nx      = dims->nx;
@@ -1271,7 +1285,7 @@ int sim_gnsf_workspace_calculate_size(void *config, void *dims_, void *opts_)
 {
     // typecast
     sim_gnsf_dims *dims = (sim_gnsf_dims *) dims_;
-    sim_opts *opts = opts_;
+    sim_rk_opts *opts = opts_;
 
     // dimension ints
     int nx      = dims->nx;
@@ -1437,7 +1451,7 @@ static void *sim_gnsf_cast_workspace(void *config, void *dims_, void *opts_, voi
 {
     // typecast
     sim_gnsf_dims *dims = (sim_gnsf_dims *) dims_;
-    sim_opts *opts = opts_;
+    sim_rk_opts *opts = opts_;
 
     // dimension ints
     int nx      = dims->nx;
@@ -1562,7 +1576,7 @@ int sim_gnsf(void *config, sim_in *in, sim_out *out, void *args, void *mem_, voi
 
     // typecast
     sim_gnsf_memory *mem = (sim_gnsf_memory *) mem_;
-    sim_opts *opts = (sim_opts *) args;
+    sim_rk_opts *opts = (sim_rk_opts *) args;
     sim_gnsf_dims *dims = (sim_gnsf_dims *) in->dims;
     gnsf_model *model = in->model;
     gnsf_workspace *workspace =
@@ -1909,7 +1923,7 @@ int sim_gnsf(void *config, sim_in *in, sim_out *out, void *args, void *mem_, voi
             // factorize J_r_vv
             if ((opts->jac_reuse && (ss == 0) & (iter == 0)) || (!opts->jac_reuse))
             {
-                blasfeo_dgetrf_rp(nvv, nvv, &J_r_vv, 0, 0, &J_r_vv, 0, 0, ipiv);
+                blasfeo_dgetrf_rowpivot(nvv, nvv, &J_r_vv, 0, 0, &J_r_vv, 0, 0, ipiv);
             }
 
             /* Solve linear system and update vv */
@@ -2028,7 +2042,7 @@ int sim_gnsf(void *config, sim_in *in, sim_out *out, void *args, void *mem_, voi
                                  nx1);  // + dPhi_duhat * L_u;
             }
             acados_tic(&la_timer);
-            blasfeo_dgetrf_rp(nvv, nvv, &J_r_vv, 0, 0, &J_r_vv, 0, 0,
+            blasfeo_dgetrf_rowpivot(nvv, nvv, &J_r_vv, 0, 0, &J_r_vv, 0, 0,
                                     ipiv);        // factorize J_r_vv
             // printf("dPHI_dyuhat = (forward, ss = %d) \n", ss);
             // blasfeo_print_exp_dmat(nvv, ny+nuhat, &dPHI_dyuhat, 0, 0);
@@ -2216,7 +2230,7 @@ int sim_gnsf(void *config, sim_in *in, sim_out *out, void *args, void *mem_, voi
 
                 /* solve dvv0_dxn1u = - dr0_dvv0 \ dr0_dxn1u */
                 acados_tic(&la_timer);
-                blasfeo_dgetrf_rp(n_out, n_out, &dr0_dvv0, 0, 0, &dr0_dvv0, 0, 0,
+                blasfeo_dgetrf_rowpivot(n_out, n_out, &dr0_dvv0, 0, 0, &dr0_dvv0, 0, 0,
                                         ipiv_vv0);        // factorize dr0_dvv0
 
                 blasfeo_drowpe(n_out, ipiv_vv0, &J_r_x1u);  // permute also rhs
@@ -2427,7 +2441,7 @@ int sim_gnsf(void *config, sim_in *in, sim_out *out, void *args, void *mem_, voi
                                  nx1);  // + dPhi_duhat * L_u;
             }
             acados_tic(&la_timer);
-            blasfeo_dgetrf_rp(nvv, nvv, &J_r_vv, 0, 0, &J_r_vv, 0, 0,
+            blasfeo_dgetrf_rowpivot(nvv, nvv, &J_r_vv, 0, 0, &J_r_vv, 0, 0,
                                     ipiv);  // factorize J_r_vv
             out->info->LAtime += acados_toc(&la_timer);
 
@@ -2463,7 +2477,7 @@ int sim_gnsf(void *config, sim_in *in, sim_out *out, void *args, void *mem_, voi
 
 void sim_gnsf_config_initialize_default(void *config_)
 {
-    sim_config *config = config_;
+    sim_solver_config *config = config_;
     config->evaluate = &sim_gnsf;
     config->precompute = &sim_gnsf_precompute;
     // opts
@@ -2479,11 +2493,13 @@ void sim_gnsf_config_initialize_default(void *config_)
     // model
     config->model_calculate_size = &sim_gnsf_model_calculate_size;
     config->model_assign = &sim_gnsf_model_assign;
-    config->model_set = &sim_gnsf_model_set;
+    config->model_set_function = &sim_gnsf_model_set_function;
     // dims
     config->dims_calculate_size = &sim_gnsf_dims_calculate_size;
     config->dims_assign = &sim_gnsf_dims_assign;
     config->dims_set = &sim_gnsf_dims_set;
-    config->dims_get = &sim_gnsf_dims_get;
+    config->get_nx = &sim_gnsf_get_nx;
+    config->get_nu = &sim_gnsf_get_nu;
+    config->get_nz = &sim_gnsf_get_nz;
     return;
 }

@@ -54,8 +54,7 @@ int main() {
     double zu[] = {1.0, 1.0, 1.0};
 
     dense_qp_solver_plan plan;
-//    plan.qp_solver = DENSE_QP_QPOASES;
-    plan.qp_solver = DENSE_QP_HPIPM;
+    plan.qp_solver = DENSE_QP_QPOASES;
 
     qp_solver_config *config = dense_qp_config_create(&plan);
 
