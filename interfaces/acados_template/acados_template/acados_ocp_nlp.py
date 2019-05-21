@@ -472,44 +472,44 @@ class ocp_nlp_constraints:
     """
     def __init__(self):
         # bounds on x and u
-        self.__lbx    = []  #: lower bounds on x
-        self.__lbu    = []  #: lower bounds on u
-        self.__ubx    = []  #: upper bounds on x 
-        self.__ubu    = []  #: upper bounds on u 
-        self.__idxbx  = []  #: indexes of bounds on x 
-        self.__idxbu  = []  #: indexes of bounds on u
+        self.__lbx      = []   #: lower bounds on x
+        self.__lbu      = []   #: lower bounds on u
+        self.__ubx      = []   #: upper bounds on x 
+        self.__ubu      = []   #: upper bounds on u 
+        self.__idxbx    = []   #: indexes of bounds on x 
+        self.__idxbu    = []   #: indexes of bounds on u
         # bounds on x at t=T
-        self.__lbx_e   = []  #: lower bounds on x at t=T 
-        self.__ubx_e   = []  #: upper bounds on x at t=T 
-        self.__idxbx_e = []  #: indexes for bounds on x at t=T 
+        self.__lbx_e    = []   #: lower bounds on x at t=T 
+        self.__ubx_e    = []   #: upper bounds on x at t=T 
+        self.__idxbx_e  = []   #: indexes for bounds on x at t=T 
         # soft bounds on x and u
-        self.__lsbx   = []  #: soft lower bounds on x
-        self.__lsbu   = []  #: soft lower bounds on u
-        self.__usbx   = []  #: soft upper bounds on x 
-        self.__usbu   = []  #: soft upper bounds on u 
-        self.__idxsbx = []  #: indexes of soft bounds on x 
-        self.__idxsbu = []  #: indexes of soft bounds on u
+        self.__lsbx     = []   #: soft lower bounds on x
+        self.__lsbu     = []   #: soft lower bounds on u
+        self.__usbx     = []   #: soft upper bounds on x 
+        self.__usbu     = []   #: soft upper bounds on u 
+        self.__idxsbx   = []   #: indexes of soft bounds on x 
+        self.__idxsbu   = []   #: indexes of soft bounds on u
         # soft bounds on x and u at t=T
-        self.__lsbx_e  = []  #: soft lower bounds on x at t=T
-        self.__usbx_e  = []  #: soft upper bounds on x at t=T
-        self.__idxsbx_e= []  #: indexes of soft bounds on x at t=T 
+        self.__lsbx_e   = []   #: soft lower bounds on x at t=T
+        self.__usbx_e   = []   #: soft upper bounds on x at t=T
+        self.__idxsbx_e = []   #: indexes of soft bounds on x at t=T 
         # polytopic constraints 
-        self.__lg     = []  #: lower bound for general inequalities 
-        self.__ug     = []  #: upper bound for general inequalities 
-        self.__D      = []  #: D matrix in lg <= D * u + C * x <= ug
-        self.__C      = []  #: C matrix in lg <= D * u + C * x <= ug
+        self.__lg       = []   #: lower bound for general inequalities 
+        self.__ug       = []   #: upper bound for general inequalities 
+        self.__D        = []   #: D matrix in lg <= D * u + C * x <= ug
+        self.__C        = []   #: C matrix in lg <= D * u + C * x <= ug
         # polytopic constraints at t=T 
-        self.__C_e     = []  #: C matrix at t=T 
-        self.__lg_e    = []  #: lower bound on general inequalities at t=T 
-        self.__ug_e    = []  #: upper bound on general inequalities at t=T 
+        self.__C_e      = []   #: C matrix at t=T 
+        self.__lg_e     = []   #: lower bound on general inequalities at t=T 
+        self.__ug_e     = []   #: upper bound on general inequalities at t=T 
         # nonlinear constraints
-        self.__lh     = []  #: lower bound for nonlinear inequalities 
-        self.__uh     = []  #: upper bound for nonlinear inequalities 
+        self.__lh       = []   #: lower bound for nonlinear inequalities 
+        self.__uh       = []   #: upper bound for nonlinear inequalities 
         # nonlinear constraints at t=T
-        self.__uh_e    = []  #: upper bound on nonlinear inequalities at t=T 
-        self.__lh_e    = []  #: lower bound on nonlinear inequalities at t=T 
-        self.__x0     = []  #: initial state 
-        self.__p      = []  #: parameters 
+        self.__uh_e    = []    #: upper bound on nonlinear inequalities at t=T 
+        self.__lh_e    = []    #: lower bound on nonlinear inequalities at t=T 
+        self.__x0      = []    #: initial state 
+        self.__p       = []    #: parameters 
 
     @property
     def lbx(self):
@@ -1092,14 +1092,17 @@ def json2dict_rec(ocp_nlp, ocp_nlp_dims, ocp_nlp_layout):
                 try: 
                     v = np.reshape(v, dims)
                 except:  
-                    raise Exception('acados -- mismatching dimensions for field {0}. Provided data has dimensions {1}, while associated dimensions {2} are {3}'.format(out_key, [], dims_names, dims))
-                # v = []
+                    raise Exception('acados -- mismatching dimensions for field {0}.', 
+                        'Provided data has dimensions {1}, while associated dimensions {2} are {3}'
+                        .format(out_key, [], dims_names, dims))
             else:
                 v = np.array(v)
                 v_dims = v.shape
                 try: 
                     v = np.reshape(v, dims)
                 except:  
-                    raise Exception('acados -- mismatching dimensions for field {0}. Provided data has dimensions {1}, while associated dimensions {2} are {3}'.format(out_key, v_dims, dims_names, dims))
+                    raise Exception('acados -- mismatching dimensions for field {0}.', 
+                        'Provided data has dimensions {1}, while associated dimensions {2} are {3}' 
+                        .format(out_key, v_dims, dims_names, dims))
         out[k.replace(k, out_key)] = v
     return out
