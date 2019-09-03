@@ -30,6 +30,7 @@ def generate_c_code_explicit_ode( model ):
     # load model
     x = model.x
     u = model.u
+    p = model.p
     f_expl = model.f_expl_expr
     model_name = model.name
 
@@ -37,13 +38,28 @@ def generate_c_code_explicit_ode( model ):
     nx = x.size()[0]
     nu = u.size()[0]
 
+    if type(p) is list:
+        # check that z is empty
+        if len(p) == 0:
+            np = 0
+        else:
+            raise Exception('p is a non-empty list. It should be either an empty list or an SX object.')
+    else:
+        np = p.size()[0]
+
     ## set up functions to be exported
     Sx = SX.sym('Sx', nx, nx)
     Sp = SX.sym('Sp', nx, nu)
     lambdaX = SX.sym('lambdaX', nx, 1)
 
     fun_name = model_name + '_expl_ode_fun'
-    expl_ode_fun = Function(fun_name, [x,u], [f_expl])
+
+    ## Set up functions
+    if np != 0:
+        expl_ode_fun = Function(fun_name, [x, u, p], [f_expl])
+    else:
+        expl_ode_fun = Function(fun_name, [x, u], [f_expl])
+
     # TODO: Polish: get rid of SX.zeros
     vdeX = SX.zeros(nx,nx)
     vdeX = vdeX + jtimes(f_expl,x,Sx)
@@ -52,14 +68,21 @@ def generate_c_code_explicit_ode( model ):
     vdeP = vdeP + jtimes(f_expl,x,Sp)
 
     fun_name = model_name + '_expl_vde_forw'
-    expl_vde_forw = Function(fun_name, [x,Sx,Sp,u], [f_expl,vdeX,vdeP])
+
+    if np != 0:
+        expl_vde_forw = Function(fun_name, [x, Sx, Sp, u, p], [f_expl,vdeX,vdeP])
+    else:
+        expl_vde_forw = Function(fun_name, [x, Sx, Sp, u], [f_expl,vdeX,vdeP])
 
     jacX = SX.zeros(nx,nx) + jacobian(f_expl,x)
 
     adj = jtimes(f_expl, vertcat(x, u), lambdaX, True)
 
     fun_name = model_name + '_expl_vde_adj'
-    expl_vde_adj = Function(fun_name, [x,lambdaX,u], [adj])
+    if np != 0:
+        expl_vde_adj = Function(fun_name, [x, lambdaX, u, p], [adj])
+    else:
+        expl_vde_adj = Function(fun_name, [x, lambdaX, u], [adj])
 
     S_forw = vertcat(horzcat(Sx, Sp), horzcat(DM.zeros(nu,nx), DM.eye(nu)))
     hess = mtimes(transpose(S_forw),jtimes(adj, vertcat(x,u), S_forw))
@@ -69,7 +92,10 @@ def generate_c_code_explicit_ode( model ):
             hess2 = vertcat(hess2, hess[i,j])
 
     fun_name = model_name + '_expl_ode_hess'
-    expl_ode_hess = Function(fun_name, [x, Sx, Sp, lambdaX, u], [adj, hess2])
+    if np != 0:
+        expl_ode_hess = Function(fun_name, [x, Sx, Sp, lambdaX, u, p], [adj, hess2])
+    else:
+        expl_ode_hess = Function(fun_name, [x, Sx, Sp, lambdaX, u], [adj, hess2])
 
     ## generate C code
     if not os.path.exists('c_generated_code'):
