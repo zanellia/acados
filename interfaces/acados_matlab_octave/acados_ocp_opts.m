@@ -52,12 +52,28 @@ classdef acados_ocp_opts < handle
 			obj.opts_struct.codgen_model = 'true';
 			obj.opts_struct.param_scheme = 'multiple_shooting_unif_grid';
 			obj.opts_struct.param_scheme_N = 10;
+			% obj.opts_struct.param_scheme_shooting_nodes % only needed for nonuniform grid
 			obj.opts_struct.nlp_solver = 'sqp';
 			obj.opts_struct.nlp_solver_exact_hessian = 'false';
+			obj.opts_struct.nlp_solver_max_iter = 100;
+			obj.opts_struct.nlp_solver_tol_stat = 1e-6;
+			obj.opts_struct.nlp_solver_tol_eq = 1e-6;
+			obj.opts_struct.nlp_solver_tol_ineq = 1e-6;
+			obj.opts_struct.nlp_solver_tol_comp = 1e-6;
+			obj.opts_struct.nlp_solver_ext_qp_res = 0; % compute QP residuals at each NLP iteration
+			obj.opts_struct.nlp_solver_step_length = 1.0; % fixed step length in SQP algorithm
 			obj.opts_struct.qp_solver = 'partial_condensing_hpipm';
-			obj.opts_struct.sim_method = 'irk';
-			obj.opts_struct.regularize_method = 'no_regularize';
+			obj.opts_struct.qp_solver_iter_max = 50;
+			% obj.opts_struct.qp_solver_cond_N = 5; % for partial condensing_hpipm
+			obj.opts_struct.qp_solver_cond_ric_alg = 0; % 0: dont factorize hessian in the condensing; 1: factorize
+			obj.opts_struct.qp_solver_ric_alg = 0; % HPIPM specific
+			obj.opts_struct.qp_solver_warm_start = 0; % 0 no warm start; 1 warm start primal variables; 2 warm start primal and dual variables
+			obj.opts_struct.sim_method = 'irk'; % erk; irk; irk_gnsf
+			obj.opts_struct.sim_method_num_stages = 4;
+			obj.opts_struct.sim_method_num_steps = 1;
+			obj.opts_struct.sim_method_newton_iter = 3;
 			obj.opts_struct.gnsf_detect_struct = 'true';
+			obj.opts_struct.regularize_method = 'no_regularize';
 			obj.opts_struct.output_dir = fullfile(pwd, 'build');
 		end
 
@@ -89,6 +105,8 @@ classdef acados_ocp_opts < handle
 				obj.opts_struct.nlp_solver_tol_comp = value;
 			elseif (strcmp(field, 'nlp_solver_ext_qp_res'))
 				obj.opts_struct.nlp_solver_ext_qp_res = value;
+			elseif (strcmp(field, 'nlp_solver_step_length'))
+				obj.opts_struct.nlp_solver_step_length = value;
 			elseif (strcmp(field, 'qp_solver'))
 				obj.opts_struct.qp_solver = value;
 			elseif (strcmp(field, 'qp_solver_iter_max'))
@@ -107,6 +125,8 @@ classdef acados_ocp_opts < handle
 				obj.opts_struct.sim_method_num_stages = value;
 			elseif (strcmp(field, 'sim_method_num_steps'))
 				obj.opts_struct.sim_method_num_steps = value;
+			elseif (strcmp(field, 'sim_method_newton_iter'))
+				obj.opts_struct.sim_method_newton_iter = value;
 			elseif (strcmp(field, 'gnsf_detect_struct'))
 				obj.opts_struct.gnsf_detect_struct = value;
 			elseif (strcmp(field, 'regularize_method'))

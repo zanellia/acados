@@ -32,33 +32,41 @@
 %
 
 %% check that environment variables are provided
-require_env_variable('LD_LIBRARY_PATH');
-require_env_variable('ACADOS_INSTALL_DIR');
 
-if is_octave()
-    require_env_variable('OCTAVE_PATH');
-else
-    require_env_variable('MATLABPATH');
+
+try
+    require_env_variable('LD_LIBRARY_PATH');
+    require_env_variable('ACADOS_INSTALL_DIR');
+    if is_octave()
+        require_env_variable('OCTAVE_PATH');
+    else
+        require_env_variable('MATLABPATH');
+    end
+catch exception
+    exit_with_error(exception);
 end
 
 
-% sim tests
+%% test that checks work
+try
+    test_checks;
+catch exception
+    if ~isempty(strfind(exception.message, 'sim_set: error setting x, wrong dimension'))
+        disp('Success: setter checks work in general')
+    else
+        exit_with_error(exception);
+    end
+end
+
+
+%% sim tests
 try
     test_sens_forw;
-catch error
-    exit_with_error(error);
-end
-
-try
     test_sens_adj;
-catch error
-    exit_with_error(error);
-end
-
-try
     test_sens_hess;
-catch error
-    exit_with_error(error);
+    test_sim_dae;
+catch exception
+    exit_with_error(exception);
 end
 
 fprintf('\nrun_tests_sim: success!\n\n');

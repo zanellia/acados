@@ -32,18 +32,19 @@
 # POSSIBILITY OF SUCH DAMAGE.;
 #
 
+## use this file to run the tests on the local machine
 
 if [[ "${BASH_SOURCE[0]}" != "${0}" ]]
 then
-	echo "Script is being sourced"
+    echo "Script is being sourced"
 else
-	echo "ERROR: Script is a subshell"
-	echo "To affect your current shell enviroment source this script with:"
-	echo "source env.sh"
-	exit
+    echo "ERROR: Script is a subshell"
+    echo "To affect your current shell enviroment source this script with:"
+    echo "source env.sh"
+    exit
 fi
 
-# check that this file is run
+# to be able to also run the other examples
 export ENV_RUN=true
 
 # if acados folder not specified assume parent of the folder of the single examples
@@ -54,13 +55,13 @@ echo "ACADOS_INSTALL_DIR=$ACADOS_INSTALL_DIR"
 
 # export casadi folder and matlab/octave mex folder
 # MATLAB case
-export MATLABPATH=$MATLABPATH:$ACADOS_INSTALL_DIR/external/casadi-matlab/:$ACADOS_INSTALL_DIR/interfaces/acados_matlab/
-export MATLABPATH=$MATLABPATH:$ACADOS_INSTALL_DIR/external/casadi-matlab/:$ACADOS_INSTALL_DIR/interfaces/acados_matlab/acados_template_mex/
+export MATLABPATH=$MATLABPATH:$ACADOS_INSTALL_DIR/external/casadi-matlab/:$ACADOS_INSTALL_DIR/interfaces/acados_matlab_octave/
+export MATLABPATH=$MATLABPATH:$ACADOS_INSTALL_DIR/external/casadi-matlab/:$ACADOS_INSTALL_DIR/interfaces/acados_matlab_octave/acados_template_mex/
 echo
 echo "MATLABPATH=$MATLABPATH"
 # Octave case
-export OCTAVE_PATH=$OCTAVE_PATH:$ACADOS_INSTALL_DIR/external/casadi-octave/:$ACADOS_INSTALL_DIR/interfaces/acados_matlab/
-export OCTAVE_PATH=$OCTAVE_PATH:$ACADOS_INSTALL_DIR/external/casadi-matlab/:$ACADOS_INSTALL_DIR/interfaces/acados_matlab/acados_template_mex/
+export OCTAVE_PATH=$OCTAVE_PATH:$ACADOS_INSTALL_DIR/external/casadi-octave/:$ACADOS_INSTALL_DIR/interfaces/acados_matlab_octave/
+export OCTAVE_PATH=$OCTAVE_PATH:$ACADOS_INSTALL_DIR/external/casadi-octave/:$ACADOS_INSTALL_DIR/interfaces/acados_matlab_octave/acados_template_mex/
 echo
 echo "OCTAVE_PATH=$OCTAVE_PATH"
 

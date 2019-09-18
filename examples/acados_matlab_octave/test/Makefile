@@ -1,4 +1,3 @@
-#!/bin/bash
 #
 # Copyright 2019 Gianluca Frison, Dimitris Kouzoupis, Robin Verschueren,
 # Andrea Zanelli, Niels van Duijkeren, Jonathan Frey, Tommaso Sartor,
@@ -32,11 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.;
 #
 
+dummy:
 
-pushd "${TRAVIS_BUILD_DIR}/external/swig";
-    ./autogen.sh;
-    ./configure --prefix=$(pwd)/swig_install --enable-silent-rules;
-    make;
-    make install > /dev/null;    # quiet installation
-    export PATH=$(pwd):$PATH;    # add swig to PATH
-popd;
+clean:
+	rm -rf build/

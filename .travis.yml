@@ -7,8 +7,6 @@ env:
     - ACADOS_EXAMPLES="ON"
     - ACADOS_WITH_QPOASES="ON"
     - ACADOS_LINT="OFF"
-    - SWIG_MATLAB="OFF"
-    - SWIG_PYTHON="OFF"
     - TEMPLATE_PYTHON="OFF"
     - TEMPLATE_MATLAB="OFF"
     - ACADOS_MATLAB="OFF"
@@ -38,16 +36,22 @@ matrix:
       # osx_image: xcode10.1
       env:
         - DEPLOY_NAME="osx-python"
-    - name: Linux Gcc6
+
+    - name: Linux Gcc6 - Octave interface
       env:
-        - DEPLOY_NAME="linux-python-gcc6"
+        - DEPLOY_NAME="linux octave gcc6"
         - MATRIX_EVAL="CC=gcc-6 && CXX=g++-6"
-    - name: Linux Gcc4.9 - Octave interface
+        - ACADOS_OCTAVE="ON"
+        - ACADOS_EXAMPLES="OFF"
+        - ACADOS_UNIT_TESTS="OFF"
+
+    - name: Linux Gcc4.9 - Octave interface + coverage
       env:
-        - DEPLOY_NAME="linux-python-matlab-gcc49"
+        - DEPLOY_NAME="linux-octave-coverage-gcc49"
         - MATRIX_EVAL="CC=gcc-4.9 && CXX=g++-4.9"
         - COVERAGE="lcov"
         - ACADOS_OCTAVE="ON"
+
     - name: Linux Clang
       env:
         - DEPLOY_NAME="linux-python-clang37"
@@ -63,7 +67,6 @@ matrix:
 cache:
   ccache: true
   directories:
-      - "${CASADIPATH}"
 
 before_install:
   - eval "${MATRIX_EVAL}"
@@ -82,14 +85,19 @@ script:
 
 after_success:
   - SECTION='after_success'
-  - mkdir -p "${DEPLOY_FOLDER}"
+  # - mkdir -p "${DEPLOY_FOLDER}"
   - source "${SCRIPT_DIR}/dispatch.sh"
 
+before_deploy:
+  - cd "${ACADOS_INSTALL_DIR}/lib/"
+  - tar -zcf acados-$TRAVIS_TAG-$TRAVIS_OS_NAME.tar.gz *
+  - cd ../..
+   
 deploy:
   provider: releases
   api_key: "${GITHUB_OAUTH_TOKEN}"
   file_glob: true
-  file: "${DEPLOY_FOLDER}/*"
+  file: "${ACADOS_INSTALL_DIR}/lib/acados-*"
   skip_cleanup: true
   on:
     tags: true

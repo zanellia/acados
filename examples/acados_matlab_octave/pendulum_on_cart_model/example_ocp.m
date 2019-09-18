@@ -37,9 +37,7 @@ clear VARIABLES
 % check that env.sh has been run
 env_run = getenv('ENV_RUN');
 if (~strcmp(env_run, 'true'))
-	disp('ERROR: env.sh has not been sourced! Before executing this example, run:');
-	disp('source env.sh');
-	return;
+	error('env.sh has not been sourced! Before executing this example, run: source env.sh');
 end
 
 %% arguments
@@ -165,8 +163,8 @@ ocp_model.set('cost_type_e', cost_type);
 	ocp_model.set('cost_Vx_e', Vx_e);
 	ocp_model.set('cost_W', W);
 	ocp_model.set('cost_W_e', W_e);
-	ocp_model.set('cost_yr', yr);
-	ocp_model.set('cost_yr_e', yr_e);
+	ocp_model.set('cost_y_ref', yr);
+	ocp_model.set('cost_y_ref_e', yr_e);
 %else % if (strcmp(cost_type, 'ext_cost'))
 %	ocp_model.set('cost_expr_ext_cost', model.expr_ext_cost);
 %	ocp_model.set('cost_expr_ext_cost_e', model.expr_ext_cost_e);
@@ -266,7 +264,7 @@ ocp.set('init_x', x_traj_init);
 ocp.set('init_u', u_traj_init);
 
 % change number of sqp iterations
-ocp.set('nlp_solver_max_iter', 20);
+%ocp.set('nlp_solver_max_iter', 20);
 
 % solve
 tic;
@@ -289,36 +287,7 @@ time_qp_sol = ocp.get('time_qp_sol');
 
 fprintf('\nstatus = %d, sqp_iter = %d, time_ext = %f [ms], time_int = %f [ms] (time_lin = %f [ms], time_qp_sol = %f [ms], time_reg = %f [ms])\n', status, sqp_iter, time_ext*1e3, time_tot*1e3, time_lin*1e3, time_qp_sol*1e3, time_reg*1e3);
 
-stat = ocp.get('stat');
-if (strcmp(nlp_solver, 'sqp'))
-	fprintf('\niter\tres_g\t\tres_b\t\tres_d\t\tres_m\t\tqp_stat\tqp_iter');
-	if size(stat,2)>7
-		fprintf('\tqp_res_g\tqp_res_b\tqp_res_d\tqp_res_m');
-	end
-	fprintf('\n');
-	for ii=1:size(stat,1)
-		fprintf('%d\t%e\t%e\t%e\t%e\t%d\t%d', stat(ii,1), stat(ii,2), stat(ii,3), stat(ii,4), stat(ii,5), stat(ii,6), stat(ii,7));
-		if size(stat,2)>7
-			fprintf('\t%e\t%e\t%e\t%e', stat(ii,8), stat(ii,9), stat(ii,10), stat(ii,11));
-		end
-		fprintf('\n');
-	end
-	fprintf('\n');
-else % sqp_rti
-	fprintf('\niter\tqp_stat\tqp_iter');
-	if size(stat,2)>3
-		fprintf('\tqp_res_g\tqp_res_b\tqp_res_d\tqp_res_m');
-	end
-	fprintf('\n');
-	for ii=1:size(stat,1)
-		fprintf('%d\t%d\t%d', stat(ii,1), stat(ii,2), stat(ii,3));
-		if size(stat,2)>3
-			fprintf('\t%e\t%e\t%e\t%e', stat(ii,4), stat(ii,5), stat(ii,6), stat(ii,7));
-		end
-		fprintf('\n');
-	end
-	fprintf('\n');
-end
+ocp.print('stat');
 
 
 %% figures
@@ -338,6 +307,7 @@ plot(0:N-1, u);
 xlim([0 N]);
 legend('F');
 
+stat = ocp.get('stat');
 if (strcmp(nlp_solver, 'sqp'))
 	figure(3);
 % 	plot([0: size(stat,1)-1], log10(stat(:,2)), 'r-x');
@@ -353,7 +323,7 @@ if (strcmp(nlp_solver, 'sqp'))
     hold off
 	xlabel('iter')
 	ylabel('res')
-    legend('res g', 'res b', 'res d', 'res m');
+    legend('res stat', 'res eq', 'res ineq', 'res compl');
 end
 
 
@@ -402,9 +372,6 @@ for ii=1:N+1
 end
 
 
-
-waitforbuttonpress;
-
-
-return;
-
+if is_octave()
+    waitforbuttonpress;
+end

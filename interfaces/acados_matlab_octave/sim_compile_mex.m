@@ -38,7 +38,7 @@ acados_folder = getenv('ACADOS_INSTALL_DIR');
 mex_flags = getenv('ACADOS_MEX_FLAGS');
 
 % set paths
-acados_mex_folder = fullfile(acados_folder, 'interfaces', 'acados_matlab');
+acados_mex_folder = fullfile(acados_folder, 'interfaces', 'acados_matlab_octave');
 acados_include = ['-I' acados_folder];
 acados_interfaces_include = ['-I' fullfile(acados_folder, 'interfaces')];
 acados_lib_path = ['-L' fullfile(acados_folder, 'lib')];
@@ -59,9 +59,10 @@ for k=1:length(mex_names)
 	mex_files{k} = fullfile(acados_mex_folder, [mex_names{k}, '.c']);
 end
 
-% compile mex
+
+%% compile mex
 if is_octave()
-	if exist(fullfile(opts.output_dir, 'cflags_octave.txt'), 'file')==0
+	if ~exist(fullfile(opts.output_dir, 'cflags_octave.txt'), 'file')
 		diary(fullfile(opts.output_dir, 'cflags_octave.txt'));
 		diary on
 		mkoctfile -p CFLAGS
@@ -74,6 +75,7 @@ if is_octave()
 		fprintf(input_file, '%s', cflags_tmp);
 		fclose(input_file);
 	end
+	% read cflags from file
 	input_file = fopen(fullfile(opts.output_dir, 'cflags_octave.txt'), 'r');
 	cflags_tmp = fscanf(input_file, '%[^\n]s');
 	fclose(input_file);
@@ -84,9 +86,11 @@ for ii=1:length(mex_files)
 	disp(['compiling ', mex_files{ii}])
 	if is_octave()
 %		mkoctfile -p CFLAGS
-		mex(acados_include, acados_interfaces_include, acados_lib_path, '-lacados', '-lhpipm', '-lblasfeo', mex_files{ii})
+		mex(acados_include, acados_interfaces_include, acados_lib_path,...
+            '-lacados', '-lhpipm', '-lblasfeo', mex_files{ii})
 	else
-		mex(mex_flags, 'CFLAGS=$CFLAGS -std=c99 -fopenmp', acados_include, acados_interfaces_include, acados_lib_path, '-lacados', '-lhpipm', '-lblasfeo', mex_files{ii})
+		mex(mex_flags, 'CFLAGS=$CFLAGS -std=c99 -fopenmp', acados_include,...
+            acados_interfaces_include, acados_lib_path, '-lacados', '-lhpipm', '-lblasfeo', mex_files{ii})
 	end
 end
 

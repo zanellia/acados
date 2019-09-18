@@ -39,9 +39,7 @@ clear all
 % check that env.sh has been run
 env_run = getenv('ENV_RUN');
 if (~strcmp(env_run, 'true'))
-	disp('ERROR: env.sh has not been sourced! Before executing this example, run:');
-	disp('source env.sh');
-	return;
+	error('env.sh has not been sourced! Before executing this example, run: source env.sh');
 end
 
 
@@ -92,7 +90,7 @@ else % irk irk_gnsf
 %	end
 	sim_model.set('dim_nx', model.nx);
 	sim_model.set('dim_nu', model.nu);
-%	sim_model.set('nz', model.nz);
+%	sim_model.set('dim_nz', model.nz);
 end
 
 sim_model.model_struct
@@ -156,5 +154,3 @@ Su
 
 fprintf('\nsuccess!\n\n');
 
-
-return;

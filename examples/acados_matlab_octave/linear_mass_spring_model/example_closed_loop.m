@@ -39,9 +39,7 @@ clear all
 % check that env.sh has been run
 env_run = getenv('ENV_RUN');
 if (~strcmp(env_run, 'true'))
-	disp('ERROR: env.sh has not been sourced! Before executing this example, run:');
-	disp('source env.sh');
-	return;
+	error('env.sh has not been sourced! Before executing this example, run: source env.sh');
 end
 
 
@@ -93,8 +91,8 @@ yr_e = zeros(ny_e, 1); % output reference in mayer term
 % constraints
 x0 = zeros(nx, 1); x0(1)=2.5; x0(2)=2.5;
 Jbx = zeros(nbx, nx); for ii=1:nbx Jbx(ii,ii)=1.0; end
-lbx = -4*ones(nx, 1);
-ubx =  4*ones(nx, 1);
+lbx = -4*ones(nbx, 1);
+ubx =  4*ones(nbx, 1);
 Jbu = zeros(nbu, nu); for ii=1:nbu Jbu(ii,ii)=1.0; end
 lbu = -0.5*ones(nu, 1);
 ubu =  0.5*ones(nu, 1);
@@ -130,15 +128,15 @@ if (strcmp(ocp_cost_type, 'linear_ls'))
 	ocp_model.set('cost_Vx_e', Vx_e);
 	ocp_model.set('cost_W', W);
 	ocp_model.set('cost_W_e', W_e);
-	ocp_model.set('cost_yr', yr);
-	ocp_model.set('cost_yr_e', yr_e);
+	ocp_model.set('cost_y_ref', yr);
+	ocp_model.set('cost_y_ref_e', yr_e);
 elseif (strcmp(ocp_cost_type, 'nonlinear_ls'))
 	ocp_model.set('cost_expr_y', model.expr_y);
 	ocp_model.set('cost_expr_y_e', model.expr_y_e);
 	ocp_model.set('cost_W', W);
 	ocp_model.set('cost_W_e', W_e);
-	ocp_model.set('cost_yr', yr);
-	ocp_model.set('cost_yr_e', yr_e);
+	ocp_model.set('cost_y_ref', yr);
+	ocp_model.set('cost_y_ref_e', yr_e);
 else % if (strcmp(ocp_cost_type, 'ext_cost'))
 	ocp_model.set('cost_expr_ext_cost', model.expr_ext_cost);
 	ocp_model.set('cost_expr_ext_cost_e', model.expr_ext_cost_e);
@@ -297,7 +295,6 @@ ylabel('u')
 xlabel('sample')
 
 
-
 status = ocp.get('status');
 
 if status==0
@@ -307,7 +304,6 @@ else
 end
 
 
-waitforbuttonpress;
-
-
-return;
+if is_octave()
+    waitforbuttonpress;
+end

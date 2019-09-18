@@ -1,3 +1,4 @@
+#! /usr/bin/bash
 #
 # Copyright 2019 Gianluca Frison, Dimitris Kouzoupis, Robin Verschueren,
 # Andrea Zanelli, Niels van Duijkeren, Jonathan Frey, Tommaso Sartor,
@@ -32,28 +33,42 @@
 #
 
 
-# Find Casadi libraries
-find_library(Casadi_LIBRARY
-    NAMES casadi
-    PATHS
-        ENV CASADIPATH
-        ${CMAKE_SOURCE_DIR}/external/*
-    PATH_SUFFIXES casadi lib casadi/lib)
+if [[ "${BASH_SOURCE[0]}" != "${0}" ]]
+then
+	echo "Script is being sourced"
+else
+	echo "ERROR: Script is a subshell"
+	echo "To affect your current shell enviroment source this script with:"
+	echo "source env.sh"
+	exit
+fi
 
-find_path(Casadi_INCLUDE_DIR
-    NAMES casadi/casadi.hpp
-    PATHS
-        ENV CASADIPATH
-        ${CMAKE_SOURCE_DIR}/external/*
-    PATH_SUFFIXES casadi include casadi/include)
+# check that this file is run
+export ENV_RUN=true
 
-include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(Casadi DEFAULT_MSG Casadi_LIBRARY Casadi_INCLUDE_DIR)
+# if acados folder not specified assume parent of the folder of the single examples
+ACADOS_INSTALL_DIR=${ACADOS_INSTALL_DIR:-"$(pwd)/../../.."}
+export ACADOS_INSTALL_DIR
+echo
+echo "ACADOS_INSTALL_DIR=$ACADOS_INSTALL_DIR"
 
-add_library(casadi UNKNOWN IMPORTED)
-set_target_properties(casadi
-    PROPERTIES
-        IMPORTED_LOCATION "${Casadi_LIBRARY}"
-        INTERFACE_INCLUDE_DIRECTORIES "${Casadi_INCLUDE_DIR}")
+# export casadi folder and matlab/octave mex folder
+# MATLAB case
+export MATLABPATH=$MATLABPATH:$ACADOS_INSTALL_DIR/external/casadi-matlab/:$ACADOS_INSTALL_DIR/interfaces/acados_matlab_octave/
+export MATLABPATH=$MATLABPATH:$ACADOS_INSTALL_DIR/external/casadi-matlab/:$ACADOS_INSTALL_DIR/interfaces/acados_matlab_octave/acados_template_mex/
+echo
+echo "MATLABPATH=$MATLABPATH"
+# Octave case
+export OCTAVE_PATH=$OCTAVE_PATH:$ACADOS_INSTALL_DIR/external/casadi-octave/:$ACADOS_INSTALL_DIR/interfaces/acados_matlab_octave/
+export OCTAVE_PATH=$OCTAVE_PATH:$ACADOS_INSTALL_DIR/external/casadi-octave/:$ACADOS_INSTALL_DIR/interfaces/acados_matlab_octave/acados_template_mex/
+echo
+echo "OCTAVE_PATH=$OCTAVE_PATH"
 
-mark_as_advanced(Casadi_INCLUDE_DIR Casadi_LIBRARY)
+# export acados mex flags
+#export ACADOS_MEX_FLAGS="GCC=/usr/bin/gcc-4.9"
+
+# if model folder not specified assume this folder
+MODEL_FOLDER=${MODEL_FOLDER:-"./build"}
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ACADOS_INSTALL_DIR/lib:$MODEL_FOLDER
+echo
+echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"

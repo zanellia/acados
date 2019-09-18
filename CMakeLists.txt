@@ -52,7 +52,11 @@ set(BLASFEO_TARGET "X64_INTEL_HASWELL" CACHE STRING "BLASFEO Target architecture
 set(HPIPM_TARGET "AVX" CACHE STRING "HPIPM Target architecture")
 set(LA "HIGH_PERFORMANCE" CACHE STRING "Linear algebra optimization level")
 
-set(BUILD_SHARED_LIBS ON CACHE STRING "Build shared libraries")
+if (CMAKE_SYSTEM_NAME MATCHES "Windows")
+	set(BUILD_SHARED_LIBS OFF CACHE STRING "Build shared libraries")
+else()
+  set(BUILD_SHARED_LIBS ON CACHE STRING "Build shared libraries")
+endif()
 
 # Additional targets
 option(ACADOS_UNIT_TESTS "Compile Unit tests" OFF)
@@ -66,8 +70,6 @@ option(ACADOS_WITH_OOQP "OOQP solver" OFF)
 option(ACADOS_WITH_QPDUNES "qpDUNES solver" OFF)
 option(ACADOS_WITH_OSQP "OSQP solver" OFF)
 # Interfaces
-option(SWIG_MATLAB "Swig Matlab Interface" OFF)
-option(SWIG_PYTHON "Swig Python Interface" OFF)
 option(TEMPLATE_MATLAB "Template Matlab Interface" OFF)
 option(TEMPLATE_PYTHON "Template Python Interface" OFF)
 option(DEV_MATLAB "Developer Matlab Interface" OFF)
@@ -111,7 +113,6 @@ endif()
 # Rpath handling, see https://cmake.org/Wiki/CMake_RPATH_handling#What_is_RPATH_.3F
 set(CMAKE_SKIP_BUILD_RPATH FALSE)
 set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
-set(CMAKE_INSTALL_RPATH "$ENV{CASADIPATH}/casadi")
 
 if(CMAKE_BUILD_TYPE MATCHES WithExternalLibs)
 	set(ACADOS_WITH_HPMPC ON CACHE BOOL "Add HPMPC solver")
@@ -155,19 +156,6 @@ if(ACADOS_WITH_QORE MATCHES ON)
 	endif()
 endif()
 
-if(SWIG_MATLAB OR SWIG_PYTHON)
-	if(CMAKE_SYSTEM_NAME MATCHES "dSpace")
-		set(SWIG_MATLAB OFF CACHE BOOL "Swig Matlab Interface" FORCE)
-		set(SWIG_PYTHON OFF CACHE BOOL "Swig Python Interface" FORCE)
-		message(WARNING "Swig has been disabled, not compatible with dSpace system")
-	endif()
-	if(CMAKE_BUILD_TYPE MATCHES NoExternalLibs)
-		set(SWIG_MATLAB OFF CACHE BOOL "Swig Matlab Interface" FORCE)
-		set(SWIG_PYTHON OFF CACHE BOOL "Swig Python Interface" FORCE)
-		message(WARNING "Swig has been disabled, not compatible with NoExternalLibs target")
-	endif()
-endif()
-
 if(ACADOS_LINT)
 	if(CMAKE_SYSTEM_NAME MATCHES "Windows" OR CMAKE_SYSTEM_NAME MATCHES "dSpace")
 		set(ACADOS_LINT OFF CACHE BOOL "Lint" FORCE)
@@ -186,11 +174,6 @@ add_subdirectory(acados)
 
 # Configure interfaces
 add_subdirectory(${PROJECT_SOURCE_DIR}/interfaces/acados_c)
-
-if((SWIG_PYTHON OR SWIG_MATLAB))
-    add_subdirectory(${PROJECT_SOURCE_DIR}/interfaces/acados_cpp)
-    add_subdirectory(${PROJECT_SOURCE_DIR}/swig)
-endif()
 
 # Configure external libraries
 add_subdirectory(${EXTERNAL_SRC_DIR})
@@ -224,7 +207,6 @@ add_custom_target(uninstall
 # Current config messages
 message(STATUS "Target: BLASFEO is ${BLASFEO_TARGET}, HPIPM is ${HPIPM_TARGET}")
 message(STATUS "Linear algebra: ${LA}")
-message(STATUS "Swig: Python (${SWIG_PYTHON}) Matlab (${SWIG_MATLAB})")
 message(STATUS "Matlab MEX (${ACADOS_MATLAB})")
 message(STATUS "Octave MEX (${ACADOS_OCTAVE})")
 message(STATUS "System name:version ${CMAKE_SYSTEM_NAME}:${CMAKE_SYSTEM_VERSION}")

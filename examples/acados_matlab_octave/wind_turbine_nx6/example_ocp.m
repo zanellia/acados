@@ -39,9 +39,7 @@ clear all
 % check that env.sh has been run
 env_run = getenv('ENV_RUN');
 if (~strcmp(env_run, 'true'))
-	disp('ERROR: env.sh has not been sourced! Before executing this example, run:');
-	disp('source env.sh');
-	return;
+	error('env.sh has not been sourced! Before executing this example, run: source env.sh');
 end
 
 
@@ -315,8 +313,8 @@ nn = 1;
 ocp.set('p', wind0_ref(:,nn));
 
 % set reference
-ocp.set('cost_yr', y_ref(:,nn));
-ocp.set('cost_yr_e', y_ref(:,nn));
+ocp.set('cost_y_ref', y_ref(:,nn));
+ocp.set('cost_y_ref_e', y_ref(1:ny_e,nn));
 
 % solve
 disp('before solve')
@@ -346,41 +344,12 @@ time_qp_sol = ocp.get('time_qp_sol');
 
 fprintf('\nstatus = %d, sqp_iter = %d, time_ext = %f [ms], time_int = %f [ms] (time_lin = %f [ms], time_qp_sol = %f [ms], time_reg = %f [ms])\n', status, sqp_iter, time_ext*1e3, time_tot*1e3, time_lin*1e3, time_qp_sol*1e3, time_reg*1e3);
 
-stat = ocp.get('stat');
-if (strcmp(nlp_solver, 'sqp'))
-	fprintf('\niter\tres_g\t\tres_b\t\tres_d\t\tres_m\t\tqp_stat\tqp_iter');
-	if size(stat,2)>7
-		fprintf('\tqp_res_g\tqp_res_b\tqp_res_d\tqp_res_m');
-	end
-	fprintf('\n');
-	for ii=1:size(stat,1)
-		fprintf('%d\t%e\t%e\t%e\t%e\t%d\t%d', stat(ii,1), stat(ii,2), stat(ii,3), stat(ii,4), stat(ii,5), stat(ii,6), stat(ii,7));
-		if size(stat,2)>7
-			fprintf('\t%e\t%e\t%e\t%e', stat(ii,8), stat(ii,9), stat(ii,10), stat(ii,11));
-		end
-		fprintf('\n');
-	end
-	fprintf('\n');
-else % sqp_rti
-	fprintf('\niter\tqp_stat\tqp_iter');
-	if size(stat,2)>3
-		fprintf('\tqp_res_g\tqp_res_b\tqp_res_d\tqp_res_m');
-	end
-	fprintf('\n');
-	for ii=1:size(stat,1)
-		fprintf('%d\t%d\t%d', stat(ii,1), stat(ii,2), stat(ii,3));
-		if size(stat,2)>3
-			fprintf('\t%e\t%e\t%e\t%e', stat(ii,4), stat(ii,5), stat(ii,6), stat(ii,7));
-		end
-		fprintf('\n');
-	end
-	fprintf('\n');
-end
+ocp.print('stat');
 
 
 % figures
 
-figure(1);
+figure;
 subplot(3,1,1);
 plot(0:N, x);
 xlim([0 N]);
@@ -402,7 +371,7 @@ ylabel('electrical power');
 %legend('F');
 
 if (strcmp(nlp_solver, 'sqp'))
-	figure(2);
+	figure;
 	plot([0: size(stat,1)-1], log10(stat(:,2)), 'r-x');
 	hold on
 	plot([0: size(stat,1)-1], log10(stat(:,3)), 'b-x');
@@ -414,7 +383,6 @@ if (strcmp(nlp_solver, 'sqp'))
 end
 
 
-
 if status==0
 	fprintf('\nsuccess!\n\n');
 else
@@ -422,7 +390,6 @@ else
 end
 
 
-waitforbuttonpress;
-
-
-return;
+if is_octave()
+    waitforbuttonpress;
+end

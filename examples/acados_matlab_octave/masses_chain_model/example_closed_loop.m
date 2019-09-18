@@ -39,9 +39,7 @@ clear all
 % check that env.sh has been run
 env_run = getenv('ENV_RUN');
 if (~strcmp(env_run, 'true'))
-	disp('ERROR: env.sh has not been sourced! Before executing this example, run:');
-	disp('source env.sh');
-	return;
+	error('env.sh has not been sourced! Before executing this example, run: source env.sh');
 end
 
 
@@ -155,8 +153,8 @@ ocp_model.set('cost_Vx', Vx);
 ocp_model.set('cost_Vx_e', Vx_e);
 ocp_model.set('cost_W', W);
 ocp_model.set('cost_W_e', W_e);
-ocp_model.set('cost_yr', yr);
-ocp_model.set('cost_yr_e', yr_e);
+ocp_model.set('cost_y_ref', yr);
+ocp_model.set('cost_y_ref_e', yr_e);
 % dynamics
 if (strcmp(ocp_sim_method, 'erk'))
 	ocp_model.set('dyn_type', 'explicit');
@@ -365,7 +363,6 @@ else
 end
 
 
-waitforbuttonpress;
-
-
-return;
+if is_octave()
+    waitforbuttonpress;
+end

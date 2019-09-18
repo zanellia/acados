@@ -30,25 +30,9 @@
 % ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 % POSSIBILITY OF SUCH DAMAGE.;
 %
+%   Author: Jonathan Frey: jonathanpaulfrey(at)gmail.com
 
 function gnsf = reformulate_with_LOS( model, gnsf, print_info)
-%   This file is part of acados.
-%
-%   acados is free software; you can redistribute it and/or
-%   modify it under the terms of the GNU Lesser General Public
-%   License as published by the Free Software Foundation; either
-%   version 3 of the License, or (at your option) any later version.
-%
-%   acados is distributed in the hope that it will be useful,
-%   but WITHOUT ANY WARRANTY; without even the implied warranty of
-%   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-%   Lesser General Public License for more details.
-%
-%   You should have received a copy of the GNU Lesser General Public
-%   License along with acados; if not, write to the Free Software Foundation,
-%   Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
-%
-%   Author: Jonathan Frey: jonathanpaulfrey(at)gmail.com
 
 %% Description:
 % This function takes an intitial transcription of the implicit ODE model
@@ -131,7 +115,7 @@ if gnsf.ny > 0
         end
     end
 else
-    I_LOS_candidates = 1:nx;
+    I_LOS_candidates = 1:(nx+nz);
 end
 
 if print_info
@@ -205,6 +189,7 @@ while true
             if isempty(i_phi)
                 i_phi = length(gnsf.phi_expr) + 1;
                 gnsf.C( i_eq, i_phi) = 1; % add column to C with 1 entry
+                gnsf.phi_expr = [ gnsf.phi_expr; 0];
             end
             gnsf.phi_expr(i_phi) = gnsf.phi_expr(i_phi) + ...
                 gnsf.E(i_eq, ii) / gnsf.C(i_eq, i_phi) * xdot_z(ii);
@@ -224,6 +209,7 @@ while true
         I_linear_dependence = find(E(eq,:));
         I_linear_dependence = union( find(A(eq,:)), I_linear_dependence);
         I_nsf_components = union(I_linear_dependence, I_nsf_components);
+        I_nsf_components = I_nsf_components(:)'; % ensure row vector for octave
     end
     %
     new_nsf_components = intersect(I_LOS_candidates, I_nsf_components);
@@ -299,8 +285,7 @@ gnsf.idx_perm_f = [I_nsf_eq, I_LOS_eq];
 gnsf.ipiv_f = idx_perm_to_ipiv(gnsf.idx_perm_f);
 
 f_LO = SX.sym('f_LO',0,0);
-E_LO = [];
-% keyboard
+
 %% rewrite I_LOS_eq as LOS
 if gnsf.n_out == 0
     C_phi = zeros(gnsf.nx+gnsf.nz,1);
@@ -324,6 +309,7 @@ n_LO = length(I_LOS_eq);
 B_LO = zeros(n_LO, gnsf.nu);
 E_LO = zeros(n_LO);
 c_LO = zeros(n_LO, 1);
+
 for eq = I_LOS_eq
     i_LO = find( I_LOS_eq == eq );
     f_LO = vertcat(f_LO, ...
@@ -334,7 +320,7 @@ for eq = I_LOS_eq
     c_LO(i_LO, :) = c(eq);
     B_LO(i_LO, :) = B(eq, :);
 end
-% keyboard
+
 if any(size(f_LO) == 0)
     f_LO = SX.zeros(gnsf.nx2 + gnsf.nz2,1);
 end
