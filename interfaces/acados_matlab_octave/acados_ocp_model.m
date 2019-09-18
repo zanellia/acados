@@ -43,16 +43,35 @@ classdef acados_ocp_model < handle
         function idx = J_to_idx(J)
             size_J = size(J);
             nrows = size_J(1);
-            idx = zeros(nrows);
+            idx = zeros(nrows,1);
             for i = 1:nrows
-                this_idx = nonzeros(J(i,:));
+                this_idx = find(J(i,:));
                 if length(this_idx) ~= 1
-                    error('Invalid J matrix. Exiting.');
+                    error(['J_to_idx: Invalid J matrix. Exiting. Found more than one nonzero in row ' num2str(i)]);
                 end
                 if J(i,this_idx) ~= 1
-                    error('J matrices can only contain 1s. Exiting.')
+                    error(['J_to_idx: J matrices can only contain 1s, got J(' num2str(i) ', ' num2str(this_idx) ') = ' num2str(J(i,this_idx)) ]);
                 end
                 idx(i) = this_idx - 1; % strore 0-based index
+            end
+		end
+		
+		function idx = J_to_idx_slack(J)
+            size_J = size(J);
+            nrows = size_J(1);
+			idx = zeros(nrows,1);
+			i_idx = 1;
+            for i = 1:nrows
+                this_idx = find(J(i,:));
+                if length(this_idx) == 1
+					i_idx = i_idx + 1;
+					idx(i_idx) = this_idx - 1; % strore 0-based index
+				elseif length(this_idx) > 1
+                    error(['J_to_idx: Invalid J matrix. Exiting. Found more than one nonzero in row ' num2str(i)]);
+                end
+                if J(i,this_idx) ~= 1
+                    error(['J_to_idx: J matrices can only contain 1s, got J(' num2str(i) ', ' num2str(this_idx) ') = ' num2str(J(i,this_idx)) ]);
+                end
             end
         end
     end % methods(static)
@@ -223,7 +242,7 @@ classdef acados_ocp_model < handle
                     obj.acados_ocp_nlp_json.constraints.x0 = value;
                 elseif (strcmp(field, 'constr_Jbx'))
                     obj.model_struct.constr_Jbx = value;
-                       obj.acados_ocp_nlp_json.constraints.idxbx = obj.J_to_idx(value);
+                    obj.acados_ocp_nlp_json.constraints.idxbx = obj.J_to_idx(value);
                 elseif (strcmp(field, 'constr_lbx'))
                     obj.model_struct.constr_lbx = value;
                     obj.acados_ocp_nlp_json.constraints.lbx = value;
@@ -300,14 +319,14 @@ classdef acados_ocp_model < handle
                     obj.acados_ocp_nlp_json.constraints.uh_e = value;
                 elseif (strcmp(field, 'constr_Jsbu'))
                     obj.model_struct.constr_Jsbu = value;
-                       obj.acados_ocp_nlp_json.constraints.idxsbu = obj.J_to_idx(value);
+                       obj.acados_ocp_nlp_json.constraints.idxsbu = obj.J_to_idx_slack(value);
     %            elseif (strcmp(field, 'constr_lsbu'))
     %                obj.model_struct.constr_lsbu = value;
     %            elseif (strcmp(field, 'constr_usbu'))
     %                obj.model_struct.constr_usbu = value;
                 elseif (strcmp(field, 'constr_Jsbx'))
                     obj.model_struct.constr_Jsbx = value;
-                    obj.acados_ocp_nlp_json.constraints.idxsbx = obj.J_to_idx(value);
+                    obj.acados_ocp_nlp_json.constraints.idxsbx = obj.J_to_idx_slack(value);
     %            elseif (strcmp(field, 'constr_lsbx'))
     %                obj.model_struct.constr_lsbx = value;
     %            elseif (strcmp(field, 'constr_usbx'))
@@ -328,14 +347,14 @@ classdef acados_ocp_model < handle
     %                obj.model_struct.constr_usg_e = value;
                 elseif (strcmp(field, 'constr_Jsh'))
                     obj.model_struct.constr_Jsh = value;
-                    obj.acados_ocp_nlp_json.constraints.idxsh = obj.J_to_idx(value);
+                    obj.acados_ocp_nlp_json.constraints.idxsh = obj.J_to_idx_slack(value);
     %            elseif (strcmp(field, 'constr_lsh'))
     %                obj.model_struct.constr_lsh = value;
     %            elseif (strcmp(field, 'constr_ush'))
     %                obj.model_struct.constr_ush = value;
                 elseif (strcmp(field, 'constr_Jsh_e'))
                     obj.model_struct.constr_Jsh_e = value;
-                    obj.acados_ocp_nlp_json.constraints.idxsh_e = obj.J_to_idx(value);
+                    obj.acados_ocp_nlp_json.constraints.idxsh_e = obj.J_to_idx_slack(value);
     %            elseif (strcmp(field, 'constr_lsh_e'))
     %                obj.model_struct.constr_lsh_e = value;
     %            elseif (strcmp(field, 'constr_ush_e'))
