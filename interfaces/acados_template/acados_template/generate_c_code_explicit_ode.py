@@ -55,11 +55,11 @@ def generate_c_code_explicit_ode( model ):
     nu = u.size()[0]
 
     ## set up functions to be exported
-    if isinstance(f_expl, casadi.SX):
+    if str(type(f_expl)) == "<class 'casadi.casadi.SX'>":
         Sx = SX.sym('Sx', nx, nx)
         Sp = SX.sym('Sp', nx, nu)
         lambdaX = SX.sym('lambdaX', nx, 1)
-    elif isinstance(f_expl, casadi.MX):
+    elif str(type(f_expl)) == "<class 'casadi.casadi.MX'>":
         Sx = MX.sym('Sx', nx, nx)
         Sp = MX.sym('Sp', nx, nu)
         lambdaX = MX.sym('lambdaX', nx, 1)
@@ -69,14 +69,14 @@ def generate_c_code_explicit_ode( model ):
     fun_name = model_name + '_expl_ode_fun'
     expl_ode_fun = Function(fun_name, [x,u], [f_expl])
     # TODO: Polish: get rid of SX.zeros
-    if isinstance(f_expl, casadi.SX):
+    if str(type(f_expl)) == "<class 'casadi.casadi.SX'>":
         vdeX = SX.zeros(nx,nx)
     else: 
         vdeX = MX.zeros(nx,nx)
 
     vdeX = vdeX + jtimes(f_expl,x,Sx)
 
-    if isinstance(f_expl, casadi.SX):
+    if str(type(f_expl)) == "<class 'casadi.casadi.SX'>":
         vdeP = SX.zeros(nx,nu) + jacobian(f_expl,u)
     else: 
         vdeP = MX.zeros(nx,nu) + jacobian(f_expl,u)
@@ -86,7 +86,7 @@ def generate_c_code_explicit_ode( model ):
     fun_name = model_name + '_expl_vde_forw'
     expl_vde_forw = Function(fun_name, [x,Sx,Sp,u], [f_expl,vdeX,vdeP])
 
-    if isinstance(f_expl, casadi.SX):
+    if str(type(f_expl)) == "<class 'casadi.casadi.SX'>":
         jacX = SX.zeros(nx,nx) + jacobian(f_expl,x)
     else: 
         jacX = MX.zeros(nx,nx) + jacobian(f_expl,x)

@@ -39,8 +39,9 @@
 #include "acados/utils/print.h"
 #include "acados_c/ocp_nlp_interface.h"
 #include "acados_c/external_function_interface.h"
-#include "acados_solver_{{ocp.model_name}}.h"
-#include "acados_sim_solver_{{ocp.model_name}}.h"
+#include "acados_solver_{{ocp.model.name}}.h"
+#include "acados_sim_solver_{{ocp.model.name}}.h"
+
 
 // ** global data **
 ocp_nlp_in * nlp_in;
@@ -104,7 +105,7 @@ external_function_casadi * p_constraint_e;
 external_function_casadi * h_constraint;
 {% endif %}
 {% if ocp.dims.nh_e > 0 %}
-external_function_casadi * h_constraint_e;
+external_function_casadi h_e_constraint;
 {% endif %}
 
 int main() {
@@ -148,7 +149,7 @@ int main() {
     if ({{ ocp.model_name }}_sim_opts->sens_forw){
         sim_out_get({{ ocp.model_name }}_sim_config, {{ ocp.model_name }}_sim_dims, {{ ocp.model_name }}_sim_out, "S_forw", S_forw_out);
         printf("\nS_forw_out: \n");
-        d_print_exp_mat({{ ocp.dims.nx }}, {{ ocp.dims.nx }} + {{ ocp.dims.nu }}, S_forw_out, {{ ocp.dims.nx }});
+        d_print_exp_mat({{ ocp.dims.nx }}, {{ ocp.dims.nx }} + {{ ocp.dims.nx }} + {{ ocp.dims.nu }}, S_forw_out, {{ ocp.dims.nx }});
     }
 
     int status = 0;
