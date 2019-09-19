@@ -53,6 +53,14 @@ classdef acados_ocp < handle
             [~,~] = mkdir(obj.opts_struct.output_dir);
             addpath(obj.opts_struct.output_dir);
 
+            % TODO(andrea): this is temporary. later on the solver_config
+            % object will separate from the OCP object
+            model.acados_ocp_nlp_json.solver_config.qp_solver = upper(obj.opts_struct.qp_solver);
+            model.acados_ocp_nlp_json.solver_config.integrator_type = upper(obj.opts_struct.sim_method);
+            model.acados_ocp_nlp_json.solver_config.nlp_solver_type = upper(obj.opts_struct.nlp_solver);
+            model.acados_ocp_nlp_json.dims.N = upper(obj.opts_struct.param_scheme_N);
+            obj.acados_ocp_nlp_json = model.acados_ocp_nlp_json;
+
             % detect GNSF structure
             if (strcmp(obj.opts_struct.sim_method, 'irk_gnsf'))
                 if (strcmp(obj.opts_struct.gnsf_detect_struct, 'true'))
@@ -85,7 +93,10 @@ classdef acados_ocp < handle
 
         end
 
+
+
         function generate_c_code(obj)
+
             % generate C code for CasADi functions
             if (strcmp(obj.model_struct.dyn_type, 'explicit'))
                 acados_template_mex.generate_c_code_explicit_ode(obj.acados_ocp_nlp_json.model);
@@ -95,7 +106,6 @@ classdef acados_ocp < handle
                     acados_template_mex.generate_c_code_implicit_ode(obj.acados_ocp_nlp_json.model, opts);
                 end
             end
-
             
             % set include and lib path
             acados_folder = getenv('ACADOS_INSTALL_DIR');
@@ -125,7 +135,7 @@ classdef acados_ocp < handle
             obj.acados_ocp_nlp_json.con_p = con_p;
             
             con_p_e.name = obj.acados_ocp_nlp_json.con_p_e.name;
-            
+
             obj.acados_ocp_nlp_json.con_p_e = [];
             obj.acados_ocp_nlp_json.con_p_e = con_p_e;
             
@@ -172,7 +182,14 @@ classdef acados_ocp < handle
                     if length(constr_l.(fields{i}){2}) == 1
                         this_dims = [dims.(constr_l.(fields{i}){2}{1}), 1];
                     else
-                        this_dims = [dims.(constr_l.(fields{i}){2}{1}), dims.(constr_l.(fields{i}){2}{1})];
+                        this_dims = [dims.(constr_l.(fields{i}){2}{1}),...
+                                       dims.(constr_l.(fields{i}){2}{1})];
+                    end
+                    if prod(this_dims) ~= numel( constr.(fields{i}) )
+                        error(['setting field constr.' fields{i} ' failed.'...
+                            ' Wrong number of elements, got '...
+                           num2str(numel( constr.(fields{i}))) ' need '...
+                           num2str(prod(this_dims)) '.']);
                     end
                     constr.(fields{i}) = reshape(constr.(fields{i}), this_dims);
                 end
@@ -188,7 +205,14 @@ classdef acados_ocp < handle
                     if length(cost_l.(fields{i}){2}) == 1
                         this_dims = [dims.(cost_l.(fields{i}){2}{1}), 1];
                     else
-                        this_dims = [dims.(cost_l.(fields{i}){2}{1}), dims.(cost_l.(fields{i}){2}{2})];
+                        this_dims = [dims.(cost_l.(fields{i}){2}{1}),...
+                                        dims.(cost_l.(fields{i}){2}{2})];
+                    end
+                    if prod(this_dims) ~= numel( cost.(fields{i}) )
+                        error(['setting field cost.' fields{i} ' failed.'...
+                            ' Wrong number of elements, got '...
+                           num2str(numel( cost.(fields{i}))) ' need '...
+                           num2str(prod(this_dims)) '.']);
                     end
                     cost.(fields{i}) = reshape(cost.(fields{i}), this_dims);
                     % convert 1-dimensional arrays to cells
@@ -205,10 +229,12 @@ classdef acados_ocp < handle
             
             % dump JSON file
             json_string = jsonencode(obj.acados_ocp_nlp_json);
+            keyboard
             fid = fopen('acados_ocp_nlp.json', 'w');
             if fid == -1, error('Cannot create JSON file'); end
             fwrite(fid, json_string, 'char');
             fclose(fid);
+            
             % render templated C code
             acados_template_mex.generate_solver('acados_ocp_nlp.json', '/home/andrea/.acados_t/bin/python3')
         end

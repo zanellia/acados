@@ -36,7 +36,7 @@ clear all
 
 addpath('../simple_dae_model/');
 
-for itest = 1:2;
+for itest = 1:2
     %% options
     compile_mex = 'true'; % true, false
     codgen_model = 'true'; % true, false
@@ -62,9 +62,9 @@ for itest = 1:2;
     qp_solver_cond_ric_alg = 1; % 0: dont factorize hessian in the condensing; 1: factorize
     qp_solver_ric_alg = 1; % HPIPM specific
     if itest == 1
-        ocp_sim_method = 'irk_gnsf'; % irk, irk_gnsf
-    else
         ocp_sim_method = 'irk'; % irk, irk_gnsf
+    else
+        ocp_sim_method = 'irk_gnsf'; % irk, irk_gnsf
     end
     ocp_sim_method_num_stages = 6; % scalar or vector of size ocp_N;
     ocp_sim_method_num_steps = 4; % scalar or vector of size ocp_N;
@@ -135,6 +135,7 @@ for itest = 1:2;
         ocp_model.set('cost_type', 'linear_ls');
         ocp_model.set('cost_Vu', Vu);
         ocp_model.set('cost_Vz', Vx);
+        ocp_model.set('cost_Vx', zeros(ny,nx));
     else
         ocp_model.set('cost_type', 'nonlinear_ls');
         ocp_model.set('cost_expr_y', model.expr_y);
@@ -143,8 +144,8 @@ for itest = 1:2;
     ocp_model.set('cost_Vx_e', Vx_e);
     ocp_model.set('cost_W', W);
     ocp_model.set('cost_W_e', Wx);
-    %ocp_model.set('cost_y_ref', yr);
-    %ocp_model.set('cost_y_ref_e', yr_e);
+    ocp_model.set('cost_y_ref', zeros(ny,1));
+    ocp_model.set('cost_y_ref_e', zeros(ny_e,1));
 
     % dynamics
     ocp_model.set('dyn_type', 'implicit');
@@ -226,5 +227,9 @@ for itest = 1:2;
         error(['difference between x and z bigger than', num2str(tol_diff_xz, '%e'),...
         ' should be equal'])
     end
+    
+%     if strcmp(ocp_sim_method,'irk')
+%         ocp.generate_c_code;
+%     end
 end % itest
 
