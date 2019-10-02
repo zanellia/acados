@@ -1150,6 +1150,7 @@ class ocp_nlp_solver_config:
         self.__integrator_type  = 'ERK'                       #: integrator type
         self.__tf               = None                        #: prediction horizon
         self.__nlp_solver_type  = 'SQP_RTI'                   #: NLP solver 
+        self.__sim_method_num_stages = 1                      #: number of stages in the integrator
 
     @property
     def qp_solver(self):
@@ -1166,6 +1167,10 @@ class ocp_nlp_solver_config:
     @property
     def nlp_solver_type(self):
         return self.__nlp_solver_type
+
+    @property
+    def sim_method_num_stages(self):
+        return self.__sim_method_num_stages
 
     @qp_solver.setter
     def qp_solver(self, qp_solver):
@@ -1214,6 +1219,14 @@ class ocp_nlp_solver_config:
         else:
             raise Exception('Invalid nlp_solver_type value. Possible values are:\n\n' \
                     + ',\n'.join(nlp_solver_types) + '.\n\nYou have: ' + nlp_solver_type + '.\n\nExiting.')
+
+    @sim_method_num_stages.setter
+    def sim_method_num_stages(self, sim_method_num_stages):
+
+        if type(sim_method_num_stages) == int: 
+            self.__sim_method_num_stages = sim_method_num_stages
+        else:
+            raise Exception('Invalid sim_method_num_stages value. sim_method_num_stages must be an integer. Exiting.')
 
     def set(self, attr, value):
         setattr(self, attr, value)
