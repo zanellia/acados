@@ -64,10 +64,10 @@ def export_nonlinear_constraint():
     # voltage sphere
     constraint = acados_constraint()
 
-    constraint.expr = u
+    constraint.con_h_expr = u
     constraint.x = x
     constraint.u = u
-    constraint.nc = 1
+    constraint.nh = 1
     constraint.name = con_name
 
     return constraint
@@ -91,10 +91,10 @@ def export_terminal_nonlinear_constraint():
     # voltage sphere
     constraint = acados_constraint()
 
-    constraint.expr = x1
+    constraint.con_h_expr = x1
     constraint.x = x
     constraint.u = u
-    constraint.nc = 1
+    constraint.nh = 1
     constraint.name = con_name
 
     return constraint
@@ -182,21 +182,20 @@ nlp_cost.Vx_e = Vx_e
 nlp_cost.yref  = np.zeros((ny, ))
 nlp_cost.yref_e = np.zeros((ny_e, ))
 
-nlp_cost.zl = 500*np.ones((1, ))
-nlp_cost.Zl = 0*np.ones((1, 1))
-nlp_cost.zu = 500*np.ones((1, ))
-nlp_cost.Zu = 0*np.ones((1, 1))
+nlp_cost.zl = 500*np.ones((1,))
+nlp_cost.Zl = 0*np.ones((1,))
+nlp_cost.zu = 500*np.ones((1,))
+nlp_cost.Zu = 0*np.ones((1,))
 
-nlp_cost.zl_e = 5000*np.ones((1, ))
-nlp_cost.Zl_e = 0*np.ones((1, 1))
-nlp_cost.zu_e = 5000*np.ones((1, ))
-nlp_cost.Zu_e = 0*np.ones((1, 1))
+nlp_cost.zl_e = 5000*np.ones((1,))
+nlp_cost.Zl_e = 0*np.ones((1,))
+nlp_cost.zu_e = 5000*np.ones((1,))
+nlp_cost.Zu_e = 0*np.ones((1,))
 
 # setting bounds
 Fmax = 2.0
 nlp_con = ocp.constraints
 nlp_con.x0 = np.array([0.0, 3.14, 0.0, 0.0])
-
 
 con_h = export_nonlinear_constraint()
 con_h_e = export_terminal_nonlinear_constraint()
@@ -226,22 +225,17 @@ elif FORMULATION == 2:
     nlp_con.idxsh_e = np.array([0])
 
 # set QP solver
-ocp.solver_config.qp_solver = 'PARTIAL_CONDENSING_HPIPM'
-ocp.solver_config.hessian_approx = 'GAUSS_NEWTON'
-ocp.solver_config.integrator_type = 'ERK'
+ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM'
+ocp.solver_options.hessian_approx = 'GAUSS_NEWTON'
+ocp.solver_options.integrator_type = 'ERK'
 
 # set prediction horizon
-ocp.solver_config.tf = Tf
-ocp.solver_config.nlp_solver_type = 'SQP'
+ocp.solver_options.tf = Tf
+ocp.solver_options.nlp_solver_type = 'SQP'
 
 # set header path
-ocp.acados_include_path  = '~/acados/include'
-ocp.acados_lib_path      = '~/acados/lib'
-
-# json_layout = acados_ocp2json_layout(ocp)
-# with open('acados_layout.json', 'w') as f:
-#     json.dump(json_layout, f, default=np_array_to_list)
-# exit()
+ocp.acados_include_path  = '../../../../include'
+ocp.acados_lib_path      = '../../../../lib'
 
 if FORMULATION == 1:
     ocp.con_h = con_h
@@ -260,6 +254,9 @@ simU = np.ndarray((Nsim, nu))
 
 for i in range(Nsim):
     status = acados_solver.solve()
+
+    if status != 0:
+        raise Exception('acados returned status {}. Exiting.'.format(status))
 
     # get solution
     x0 = acados_solver.get(0, "x")
@@ -297,5 +294,7 @@ plt.plot(t, simX[:,1])
 plt.ylabel('x')
 plt.xlabel('t')
 plt.grid(True)
-plt.show()
+# avoid plotting when running on Travis
+if os.environ.get('ACADOS_ON_TRAVIS') is None: 
+    plt.show()
 

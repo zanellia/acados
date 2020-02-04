@@ -144,21 +144,19 @@ nlp_con.x0 = np.array([0.0, 3.14, 0.0, 0.0])
 nlp_con.idxbu = np.array([0])
 
 # set QP solver
-# ocp.solver_config.qp_solver = 'PARTIAL_CONDENSING_HPIPM'
-ocp.solver_config.qp_solver = 'FULL_CONDENSING_QPOASES'
-ocp.solver_config.hessian_approx = 'GAUSS_NEWTON'
-ocp.solver_config.integrator_type = 'ERK'
+# ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM'
+ocp.solver_options.qp_solver = 'FULL_CONDENSING_QPOASES'
+ocp.solver_options.hessian_approx = 'GAUSS_NEWTON'
+ocp.solver_options.integrator_type = 'ERK'
 
 # set prediction horizon
-ocp.solver_config.tf = Tf
-# ocp.solver_config.nlp_solver_type = 'SQP'
-ocp.solver_config.nlp_solver_type = 'SQP_RTI'
+ocp.solver_options.tf = Tf
+# ocp.solver_options.nlp_solver_type = 'SQP'
+ocp.solver_options.nlp_solver_type = 'SQP_RTI'
 
 # set header path
-# ocp.acados_include_path  = '/usr/local/include'
-# ocp.acados_lib_path      = '/usr/local/lib'
-ocp.acados_include_path  = '~/acados/include'
-ocp.acados_lib_path      = '~/acados/lib'
+ocp.acados_include_path  = '../../../../include'
+ocp.acados_lib_path      = '../../../../lib'
 
 acados_solver = generate_solver(ocp, json_file = 'acados_ocp.json')
 
@@ -169,6 +167,9 @@ simU = np.ndarray((Nsim, nu))
 
 for i in range(Nsim):
     status = acados_solver.solve()
+
+    if status != 0:
+        raise Exception('acados returned status {}. Exiting.'.format(status))
 
     # get solution
     x0 = acados_solver.get(0, "x")
@@ -206,5 +207,7 @@ plt.plot(t, simX[:,1])
 plt.ylabel('theta')
 plt.xlabel('t')
 plt.grid(True)
-plt.show()
+# avoid plotting when running on Travis
+if os.environ.get('ACADOS_ON_TRAVIS') is None: 
+    plt.show()
 

@@ -158,13 +158,13 @@ def export_voltage_sphere_con():
     constraint = acados_constraint()
 
     r = SX.sym('r', 2, 1)
-    constraint.con_h_expr = r[0]**2 + r[1]**2
+    constraint.con_phi_expr = r[0]**2 + r[1]**2
     constraint.con_r_expr = vertcat(u_d, u_q)
     constraint.x = x
     constraint.u = u
     constraint.r = r
     constraint.nr = 2
-    constraint.nh = 1
+    constraint.nphi = 1
     constraint.name = con_name
 
     return constraint
@@ -295,10 +295,9 @@ if FORMULATION == 1:
     nlp_dims.nh  = 1
 
 if FORMULATION == 2:
-    nlp_dims.ng  = 2
-    nlp_dims.npd  = 2
-    nlp_dims.nh  = 1
-    nlp_dims.nh_e = 0
+    nlp_dims.ng   = 2
+    nlp_dims.nr   = 2
+    nlp_dims.nphi = 1
 
 # nlp_dims.nbu  = 2
 # nlp_dims.ng   = 2
@@ -383,8 +382,8 @@ nlp_con.lbu = lbu
 nlp_con.ubu = ubu
 
 if FORMULATION > 0:
-    nlp_con.lh = nmp.array([-1.0e8])
-    nlp_con.uh = nmp.array([(u_max*sqrt(3)/2)**2])
+    nlp_con.lphi = nmp.array([-1.0e8])
+    nlp_con.uphi = nmp.array([(u_max*sqrt(3)/2)**2])
 
 nlp_con.x0 = nmp.array([0.0, -0.0])
 
@@ -395,32 +394,26 @@ if FORMULATION == 0 or FORMULATION == 2:
     nlp_con.C   = C
     nlp_con.lg  = lg
     nlp_con.ug  = ug
-    # nlp_con.C_e  = ...
-    # nlp_con.lg_e = ...
-    # nlp_con.ug_e = ...
 
 # setting parameters
 nlp_con.p = nmp.array([w_val, 0.0, 0.0])
 
-# set constants
-# ra.constants = []
-
 # set QP solver
-ra.solver_config.qp_solver = 'PARTIAL_CONDENSING_HPIPM'
-# ra.solver_config.qp_solver = 'FULL_CONDENSING_HPIPM'
-# ra.solver_config.qp_solver = 'FULL_CONDENSING_QPOASES'
-ra.solver_config.hessian_approx = 'GAUSS_NEWTON'
-# ra.solver_config.integrator_type = 'ERK'
-ra.solver_config.integrator_type = 'IRK'
+ra.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM'
+# ra.solver_options.qp_solver = 'FULL_CONDENSING_HPIPM'
+# ra.solver_options.qp_solver = 'FULL_CONDENSING_QPOASES'
+ra.solver_options.hessian_approx = 'GAUSS_NEWTON'
+# ra.solver_options.integrator_type = 'ERK'
+ra.solver_options.integrator_type = 'IRK'
 
 # set prediction horizon
-ra.solver_config.tf = Tf
-ra.solver_config.nlp_solver_type = 'SQP_RTI'
-# ra.solver_config.nlp_solver_type = 'SQP'
+ra.solver_options.tf = Tf
+ra.solver_options.nlp_solver_type = 'SQP_RTI'
+# ra.solver_options.nlp_solver_type = 'SQP'
 
 # set header path
-ra.acados_include_path = '../../../../../include'
-ra.acados_lib_path = '../../../../../lib'
+ra.acados_include_path = '../../../../include'
+ra.acados_lib_path = '../../../../lib'
 
 file_name = 'acados_ocp.json'
 
@@ -447,6 +440,9 @@ simU = nmp.ndarray((Nsim, nu))
 
 for i in range(Nsim):
     status = acados_solver.solve()
+
+    if status != 0:
+        raise Exception('acados returned status {}. Exiting.'.format(status))
 
     # get solution
     x0 = acados_solver.get(0, "x")
@@ -544,4 +540,8 @@ ax.set_xlim([-1.5*u_max, 1.5*u_max])
 ax.set_ylim([-1.5*u_max, 1.5*u_max])
 circle = plt.Circle((0, 0), u_max*nmp.sqrt(3)/2, color='red', fill=False)
 ax.add_artist(circle)
-plt.show()
+# avoid plotting when running on Travis
+if os.environ.get('ACADOS_ON_TRAVIS') is None: 
+    plt.show()
+
+
