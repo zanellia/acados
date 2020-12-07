@@ -38,6 +38,11 @@ import matplotlib
 import matplotlib.pyplot as plt
 import scipy.linalg
 
+# plt.rcParams['text.usetex'] = True
+# plt.rcParams['text.latex.preamble'] = [r'\usepackage{lmodern}']
+# font = {'family':'serif'}
+# plt.rc('font',**font)
+
 CODE_GEN = 1
 COMPILE = 1
 
@@ -55,6 +60,8 @@ udc = 580
 u_max = 2/3*udc
 
 x0 = nmp.array([0.0, 0.0])
+
+N   = 2
 
 # fitted psi_d map
 def psi_d_num(x,y):
@@ -201,9 +208,9 @@ if FORMULATION == 2:
     # constraints name
     ocp.constraints.constr_type = 'BGP'
 
-# Ts  = 0.0016
+Ts  = 0.0016
 # Ts  = 0.0012
-Ts  = 0.0008
+# Ts  = 0.0008
 # Ts  = 0.0004
 
 nx  = model.x.size()[0]
@@ -212,7 +219,6 @@ nz  = model.z.size()[0]
 np  = model.p.size()[0]
 ny  = nu + nx
 ny_e = nx
-N   = 2
 Tf  = N*Ts
 
 # set dimensions
@@ -324,9 +330,9 @@ if FORMULATION == 0 or FORMULATION == 2:
 ocp.parameter_values = nmp.array([w_val, 0.0, 0.0])
 
 # set QP solver
-ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM'
+# ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM'
 # ocp.solver_options.qp_solver = 'FULL_CONDENSING_HPIPM'
-# ocp.solver_options.qp_solver = 'FULL_CONDENSING_QPOASES'
+ocp.solver_options.qp_solver = 'FULL_CONDENSING_QPOASES'
 ocp.solver_options.hessian_approx = 'GAUSS_NEWTON'
 # ocp.solver_options.integrator_type = 'ERK'
 ocp.solver_options.integrator_type = 'IRK'
@@ -335,6 +341,8 @@ ocp.solver_options.integrator_type = 'IRK'
 ocp.solver_options.tf = Tf
 ocp.solver_options.nlp_solver_type = 'SQP_RTI'
 # ocp.solver_options.nlp_solver_type = 'SQP'
+ocp.solver_options.sim_method_num_stages = 1
+ocp.solver_options.sim_method_num_steps = 1
 
 file_name = 'acados_ocp.json'
 
@@ -362,16 +370,25 @@ simU = nmp.ndarray((Nsim, nu))
 for i in range(Nsim):
 
     # preparation rti_phase
-    acados_solver.options_set('rti_phase', 1)
-    status = acados_solver.solve()
+    # acados_solver.options_set('rti_phase', 1)
+    # status = acados_solver.solve()
 
     # update initial condition
     acados_solver.set(0, "lbx", x0)
     acados_solver.set(0, "ubx", x0)
 
     # feedback rti_phase
-    acados_solver.options_set('rti_phase', 2)
+    # acados_solver.options_set('rti_phase', 2)
+
+    # uncomment to avoid splitting of RTI phases
+    acados_solver.options_set('rti_phase', 0)
     status = acados_solver.solve()
+    ttot = acados_solver.get_stats('time_tot')
+    tlin = acados_solver.get_stats('time_lin')
+    tqp = acados_solver.get_stats('time_qp')
+    tqpcall = acados_solver.get_stats('time_qp_solver_call')
+    tcond= acados_solver.get_stats('time_qp_xcond')
+    print('Time tot. {}, time lin. {}, time qp {}, time qp call {}, time qp cond {}'.format(ttot, tlin, tqp, tqpcall, tcond))
 
     if status != 0:
         raise Exception('acados returned status {}. Exiting.'.format(status))
@@ -407,26 +424,26 @@ plt.subplot(4, 1, 1)
 plt.step(t, simU[:,0], color='r')
 plt.plot([0, Ts*Nsim], [ocp.cost.yref[2], ocp.cost.yref[2]], '--')
 plt.title('closed-loop simulation')
-plt.ylabel('u_d')
-plt.xlabel('t')
+plt.ylabel(r"$u_d$")
+plt.xlabel(r"$t$")
 plt.grid(True)
 plt.subplot(4, 1, 2)
 plt.step(t, simU[:,1], color='r')
 plt.plot([0, Ts*Nsim], [ocp.cost.yref[3], ocp.cost.yref[3]], '--')
-plt.ylabel('u_q')
+plt.ylabel(r"$u_q$")
 plt.xlabel('t')
 plt.grid(True)
 plt.subplot(4, 1, 3)
 plt.plot(t, simX[:,0])
 plt.plot([0, Ts*Nsim], [ocp.cost.yref[0], ocp.cost.yref[0]], '--')
-plt.ylabel('psi_d')
+plt.ylabel(r"$\psi_d$")
 plt.xlabel('t')
 plt.grid(True)
 plt.subplot(4, 1, 4)
 plt.plot(t, simX[:,1])
 plt.plot([0, Ts*Nsim], [ocp.cost.yref[1], ocp.cost.yref[1]], '--')
-plt.ylabel('psi_q')
-plt.xlabel('t')
+plt.ylabel(r"$\psi_q$")
+plt.xlabel(r"$t$")
 plt.grid(True)
 
 # plot hexagon
