@@ -55,6 +55,7 @@ extern "C" {
 typedef enum
 {
     SQP,
+    ZO_SQP,
     SQP_RTI,
     INVALID_NLP_SOLVER,
 } ocp_nlp_solver_t;

@@ -55,6 +55,7 @@
 #include "acados/ocp_nlp/ocp_nlp_reg_project_reduc_hess.h"
 #include "acados/ocp_nlp/ocp_nlp_reg_noreg.h"
 #include "acados/ocp_nlp/ocp_nlp_sqp.h"
+#include "acados/ocp_nlp/ocp_nlp_zo_sqp.h"
 #include "acados/ocp_nlp/ocp_nlp_sqp_rti.h"
 #include "acados/utils/mem.h"
 
@@ -185,6 +186,9 @@ ocp_nlp_config *ocp_nlp_config_create(ocp_nlp_plan plan)
     {
         case SQP:
             ocp_nlp_sqp_config_initialize_default(config);
+            break;
+        case ZO_SQP:
+            ocp_nlp_zo_sqp_config_initialize_default(config);
             break;
         case SQP_RTI:
             ocp_nlp_sqp_rti_config_initialize_default(config);

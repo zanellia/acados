@@ -197,10 +197,10 @@ def make_ocp_dims_consistent(acados_ocp):
         and dims.nbxe_0 == None \
         and (constraints.idxbxe_0.shape == constraints.idxbx_0.shape)\
         and all(constraints.idxbxe_0 == constraints.idxbx_0):
-        # case: x0 was set: nbx0 are all equlities.
+        # case: x0 was set: nbx0 are all equalities.
         dims.nbxe_0 = dims.nbx_0
     elif dims.nbxe_0 == None:
-        # case: x0 was not set -> dont assume nbx0 to be equality constraints.
+        # case: x0 was not set -> don't assume nbx0 to be equality constraints.
         dims.nbxe_0 = 0
 
     # path
@@ -744,6 +744,10 @@ class AcadosOcpSolver:
 
         if acados_ocp.solver_options.qp_solver == 'PARTIAL_CONDENSING_QPDUNES':
             remove_x0_elimination(acados_ocp)
+
+        if acados_ocp.solver_options.nlp_solver_type == 'ZO_SQP' and \
+            acados_ocp.solver_options.qp_solver != 'FULL_CONDENSING_QPOASES':
+                raise Exception('Not implemented: zero-order SQP only supports QPOASES as QP solver')
 
         # set integrator time automatically
         acados_ocp.solver_options.Tsim = acados_ocp.solver_options.time_steps[0]
