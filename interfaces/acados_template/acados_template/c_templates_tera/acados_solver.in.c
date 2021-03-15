@@ -134,8 +134,10 @@ int {{ model.name }}_acados_create(nlp_solver_capsule * capsule)
     ocp_nlp_plan * nlp_solver_plan = ocp_nlp_plan_create(N);
     capsule->nlp_solver_plan = nlp_solver_plan;
 
-    {%- if solver_options.nlp_solver_type == "SQP" %}
+    {%- if solver_options.nlp_solver_type == "SQP"%}
     nlp_solver_plan->nlp_solver = SQP;
+    {%- solver_options.nlp_solver_type == "ZO_SQP"%}
+    nlp_solver_plan->nlp_solver = ZO_SQP;
     {% else %}
     nlp_solver_plan->nlp_solver = SQP_RTI;
     {%- endif %}

@@ -911,6 +911,18 @@ class AcadosOcpSolver:
                     print('\t{:e}\t{:e}\t{:e}\t{:e}'.format( \
                         stat[7][jj], stat[8][jj], stat[9][jj], stat[10][jj]))
             print('\n')
+        if self.acados_ocp.solver_options.nlp_solver_type == 'ZO_SQP':
+            print('\niter\tres_stat\tres_eq\t\tres_ineq\tres_comp\tqp_stat\tqp_iter')
+            if stat.shape[0]>7:
+                print('\tqp_res_stat\tqp_res_eq\tqp_res_ineq\tqp_res_comp')
+            for jj in range(stat.shape[1]):
+                print('{:d}\t{:e}\t{:e}\t{:e}\t{:e}\t{:d}\t{:d}'.format( \
+                     int(stat[0][jj]), stat[1][jj], stat[2][jj], \
+                     stat[3][jj], stat[4][jj], int(stat[5][jj]), int(stat[6][jj])))
+                if stat.shape[0]>7:
+                    print('\t{:e}\t{:e}\t{:e}\t{:e}'.format( \
+                        stat[7][jj], stat[8][jj], stat[9][jj], stat[10][jj]))
+            print('\n')
         elif self.acados_ocp.solver_options.nlp_solver_type == 'SQP_RTI':
             print('\niter\tqp_stat\tqp_iter')
             if stat.shape[0]>3:
@@ -1205,14 +1217,14 @@ class AcadosOcpSolver:
             elif api=='warn':
                 if not np.all(np.ravel(value_, order='F')==np.ravel(value_, order='K')):
                     raise Exception("Ambiguity in API detected.\n"
-                                    "Are you making an acados model from scrach? Add api='new' to cost_set and carry on.\n"
+                                    "Are you making an acados model from scratch? Add api='new' to cost_set and carry on.\n"
                                     "Are you seeing this error suddenly in previously running code? Read on.\n"
                                     "  You are relying on a now-fixed bug in cost_set for field '{}'.\n".format(field_) +
                                     "  acados_template now correctly passes on any matrices to acados in column major format.\n" +
                                     "  Two options to fix this error: \n" +
                                     "   * Add api='old' to cost_set to restore old incorrect behaviour\n" +
                                     "   * Add api='new' to cost_set and remove any unnatural manipulation of the value argument " +
-                                    "such as non-mathematical transposes, reshaping, casting to fortran order, etc... " +
+                                    "such as non-mathematical transposes, reshaping, casting to Fortran order, etc... " +
                                     "If there is no such manipulation, then you have probably been getting an incorrect solution before.")
                 # Get elements in column major order
                 value_ = np.ravel(value_, order='F')
@@ -1272,14 +1284,14 @@ class AcadosOcpSolver:
             elif api=='warn':
                 if not np.all(np.ravel(value_, order='F')==np.ravel(value_, order='K')):
                     raise Exception("Ambiguity in API detected.\n"
-                                    "Are you making an acados model from scrach? Add api='new' to constraints_set and carry on.\n"
+                                    "Are you making an acados model from scratch? Add api='new' to constraints_set and carry on.\n"
                                     "Are you seeing this error suddenly in previously running code? Read on.\n"
                                     "  You are relying on a now-fixed bug in constraints_set for field '{}'.\n".format(field_) +
                                     "  acados_template now correctly passes on any matrices to acados in column major format.\n" +
                                     "  Two options to fix this error: \n" +
                                     "   * Add api='old' to constraints_set to restore old incorrect behaviour\n" +
                                     "   * Add api='new' to constraints_set and remove any unnatural manipulation of the value argument " +
-                                    "such as non-mathematical transposes, reshaping, casting to fortran order, etc... " +
+                                    "such as non-mathematical transposes, reshaping, casting to Fortran order, etc... " +
                                     "If there is no such manipulation, then you have probably been getting an incorrect solution before.")
                 # Get elements in column major order
                 value_ = np.ravel(value_, order='F')
