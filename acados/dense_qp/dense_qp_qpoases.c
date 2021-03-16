@@ -556,7 +556,7 @@ int dense_qp_qpoases(void *config_, dense_qp_in *qp_in, dense_qp_out *qp_out, vo
                     static Options options;
                     Options_setToMPC(&options);
                     options.terminationTolerance = opts->tolerance;
-                    QProblem_setOptions(QP, options);
+                    QProblem_setOptions(QPB, options);
                 }
                 QProblemB_init(QPB, H, g, d_lb, d_ub, &nwsr, &cputime);
                 memory->first_it = 0;
