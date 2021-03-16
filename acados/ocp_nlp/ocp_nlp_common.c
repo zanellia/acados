@@ -2417,9 +2417,13 @@ void ocp_nlp_update_variables_sqp(ocp_nlp_config *config, ocp_nlp_dims *dims, oc
 #if defined(ACADOS_WITH_OPENMP)
     #pragma omp parallel for
 #endif
+    double norm = 0.0;
+    double temp = 0.0;
     for (i = 0; i <= N; i++)
     {
         // step in primal variables
+        blasfeo_dvecnrm_inf(nv[i], mem->qp_out->ux + i, 0, &temp);
+        norm += temp*temp;
         blasfeo_daxpy(nv[i], alpha, mem->qp_out->ux + i, 0, out->ux + i, 0, out->ux + i, 0);
     
         // update dual variables
@@ -2443,6 +2447,7 @@ void ocp_nlp_update_variables_sqp(ocp_nlp_config *config, ocp_nlp_dims *dims, oc
                     mem->qp_out->ux+i, 0, 1.0, mem->z_alg+i, 0, out->z+i, 0);
         }
     }
+    // printf("||dux|| = %f\n", sqrt(norm));
 }
 
 

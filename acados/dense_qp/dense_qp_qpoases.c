@@ -558,6 +558,12 @@ int dense_qp_qpoases(void *config_, dense_qp_in *qp_in, dense_qp_out *qp_out, vo
                     options.terminationTolerance = opts->tolerance;
                     QProblem_setOptions(QPB, options);
                 }
+                // printf("dense Hessian:\n");
+                // for(int i = 0; i<nv; i++){
+                //     for(int j = 0; j<nv; j++)
+                //         printf("%f, ", i,j,H[i*nv + j]);
+                //     printf("\n");
+                // }
                 QProblemB_init(QPB, H, g, d_lb, d_ub, &nwsr, &cputime);
                 memory->first_it = 0;
 
@@ -575,6 +581,13 @@ int dense_qp_qpoases(void *config_, dense_qp_in *qp_in, dense_qp_out *qp_out, vo
     }
     else
     {  // hotstart = 0
+
+        // printf("dense Hessian:\n");
+        // for(int i = 0; i<nv; i++){
+        //     for(int j = 0; j<nv; j++)
+        //         printf("%f, ", i,j,H[i*nv + j]);
+        //     printf("\n");
+        // }
         if (ng > 0 || ns > 0)
         {
             QProblemCON(QP, nv2, ng2, HST_POSDEF);
