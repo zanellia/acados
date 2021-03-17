@@ -551,13 +551,13 @@ int dense_qp_qpoases(void *config_, dense_qp_in *qp_in, dense_qp_out *qp_out, vo
                 QProblemBCON(QPB, nv, HST_POSDEF);
                 QProblemB_setPrintLevel(QPB, PL_MEDIUM);
                 // QProblemB_setPrintLevel(QPB, PL_DEBUG_ITER);
-                if (opts->set_acado_opts)
-                {
-                    static Options options;
-                    Options_setToMPC(&options);
-                    options.terminationTolerance = opts->tolerance;
-                    QProblem_setOptions(QPB, options);
-                }
+                // if (opts->set_acado_opts)
+                // {
+                //     static Options options;
+                //     Options_setToMPC(&options);
+                //     options.terminationTolerance = opts->tolerance;
+                //     QProblem_setOptions(QPB, options);
+                // }
                 // printf("dense Hessian:\n");
                 // for(int i = 0; i<nv; i++){
                 //     for(int j = 0; j<nv; j++)

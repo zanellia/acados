@@ -98,6 +98,13 @@ typedef struct
     // nlp memory
     ocp_nlp_memory *nlp_mem;
 
+    // copy of outer loop solution (for globalization)
+    struct blasfeo_dvec *ux;  // NOTE: this contains [u; x; s_l; s_u]! - rename to uxs?
+    struct blasfeo_dvec *z;  // algebraic variables
+    struct blasfeo_dvec *pi;  // multipliers for dynamics
+    struct blasfeo_dvec *lam;  // inequality multipliers
+    struct blasfeo_dvec *t;  // slack variables corresponding to evaluation of all inequalities (at the solution)
+
     double time_qp_sol;
     double time_qp_solver_call;
     double time_qp_xcond;

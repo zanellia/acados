@@ -196,7 +196,7 @@ void ocp_nlp_zo_sqp_opts_set(void *config_, void *opts_, const char *field, void
     }
     else // nlp opts
     {
-        if (!strcmp(field, "max_outer_iter"))
+        if (!strcmp(field, "max_iter"))
         {
             int* max_outer_iter = (int *) value;
             opts->max_outer_iter = *max_outer_iter;
@@ -606,9 +606,67 @@ int ocp_nlp_zo_sqp(void *config_, void *dims_, void *nlp_in_, void *nlp_out_,
     int sqp_inner_iter = 0;
 
     nlp_mem->sqp_iter = &sqp_outer_iter;
+    
+    // store current solution
+    int *nv = dims->nv;
+    int *nx = dims->nx;
+    int *nu = dims->nu;
+    int *ni = dims->ni;
+    int *nz = dims->nz;
+    for (int i = 0; i <= N; i++)
+        blasfeo_dveccp(nv[i], nlp_out->ux+i, 0, nlp_work->tmp_nlp_out->ux+i, 0);
+
+    for (int i = 0; i < N; i++)
+        blasfeo_dveccp(nx[i+1], nlp_out->pi+i, 0, nlp_work->tmp_nlp_out->pi+i, 0);
+
+    for (int i = 0; i <= N; i++)
+        blasfeo_dveccp(2*ni[i], nlp_out->lam+i, 0, nlp_work->tmp_nlp_out->lam+i, 0);
+
+    bool sens_forw = true;
+    for (ii=0; ii<N; ii++)
+        config->dynamics[ii]->opts_set(config->dynamics[ii], nlp_opts->dynamics[ii],"sens_forw", &sens_forw);
 
     for (; sqp_outer_iter < opts->max_outer_iter; sqp_outer_iter++)
     {
+
+        // globalize outer iterates
+        double outer_alpha = 1.0; 
+        for (int i = 0; i <= N; i++)
+        {
+            // step in primal variables
+            blasfeo_daxpy(nv[i], outer_alpha, nlp_mem->qp_out->ux + i, 0, nlp_out->ux + i, 0, nlp_out->ux + i, 0);
+        
+            // update dual variables
+            if (i < N)
+            {
+                blasfeo_dvecsc(nx[i+1], 1.0-outer_alpha, nlp_out->pi+i, 0);
+                blasfeo_daxpy(nx[i+1], outer_alpha, nlp_mem->qp_out->pi+i, 0, nlp_out->pi+i, 0, nlp_out->pi+i, 0);
+            }
+
+            blasfeo_dvecsc(2*ni[i], 1.0-outer_alpha, nlp_out->lam+i, 0);
+            blasfeo_daxpy(2*ni[i], outer_alpha, nlp_mem->qp_out->lam+i, 0, nlp_out->lam+i, 0, nlp_out->lam+i, 0);
+
+            // update slack values
+            blasfeo_dvecsc(2*ni[i], 1.0-outer_alpha, nlp_out->t+i, 0);
+            blasfeo_daxpy(2*ni[i], outer_alpha, nlp_mem->qp_out->t+i, 0, nlp_out->t+i, 0, nlp_out->t+i, 0);
+
+            // linear update of algebraic variables using state and input sensitivity
+            if (i < N)
+            {
+                blasfeo_dgemv_t(nu[i]+nx[i], nz[i], outer_alpha, nlp_mem->dzduxt+i, 0, 0,
+                        nlp_mem->qp_out->ux+i, 0, 1.0, nlp_mem->z_alg+i, 0, nlp_out->z+i, 0);
+            }
+        }
+
+        // store current solution
+        for (int i = 0; i <= N; i++)
+            blasfeo_dveccp(nv[i], nlp_out->ux+i, 0, nlp_work->tmp_nlp_out->ux+i, 0);
+
+        for (int i = 0; i < N; i++)
+            blasfeo_dveccp(nx[i+1], nlp_out->pi+i, 0, nlp_work->tmp_nlp_out->pi+i, 0);
+
+        for (int i = 0; i <= N; i++)
+            blasfeo_dveccp(2*ni[i], nlp_out->lam+i, 0, nlp_work->tmp_nlp_out->lam+i, 0);
 
         bool sens_forw = true;
         for (ii=0; ii<N; ii++)
@@ -619,12 +677,14 @@ int ocp_nlp_zo_sqp(void *config_, void *dims_, void *nlp_in_, void *nlp_out_,
         // condense Hessian
         int hess = 1;
         // expand dual solution
-        int dual_sol = 0;
+        int dual_sol = 1;
 
         qp_solver->opts_set(qp_solver, opts->nlp_opts->qp_solver_opts, "warm_start", &warm_start);
         qp_solver->opts_set(qp_solver, opts->nlp_opts->qp_solver_opts, "cond_hess", &hess);
         qp_solver->opts_set(qp_solver, opts->nlp_opts->qp_solver_opts, "cond_dual_sol", &dual_sol);
 
+        ((dense_qp_qpoases_memory *)(nlp_mem->qp_solver_mem->solver_memory))->first_it = 1;
+        
         // linearize NLP and update QP matrices
         acados_tic(&timer1);
         ocp_nlp_approximate_qp_matrices(config, dims, nlp_in, nlp_out, nlp_opts, nlp_mem, nlp_work);
@@ -712,13 +772,13 @@ int ocp_nlp_zo_sqp(void *config_, void *dims_, void *nlp_in_, void *nlp_out_,
                                                opts->nlp_opts->regularize, nlp_mem->regularize_mem);
         mem->time_reg += acados_toc(&timer1);
 
-        // (typically) no warm start at first iteration
-        if (sqp_outer_iter == 0 && !opts->warm_start_first_qp)
-        {
-            int tmp_int = 0;
-            config->qp_solver->opts_set(config->qp_solver, opts->nlp_opts->qp_solver_opts,
-                                         "warm_start", &tmp_int);
-        }
+        // // (typically) no warm start at first iteration
+        // if (sqp_outer_iter == 0 && !opts->warm_start_first_qp)
+        // {
+        //     int tmp_int = 0;
+        //     config->qp_solver->opts_set(config->qp_solver, opts->nlp_opts->qp_solver_opts,
+        //                                  "warm_start", &tmp_int);
+        // }
 
         // solve qp
         acados_tic(&timer1);
@@ -819,24 +879,22 @@ int ocp_nlp_zo_sqp(void *config_, void *dims_, void *nlp_in_, void *nlp_out_,
         // ocp_nlp_out_print(dims, nlp_out);
         // exit(1);
 
-        sqp_inner_iter = 0;
-
         sens_forw = false;
         for (ii=0; ii < N; ii++)
             config->dynamics[ii]->opts_set(config->dynamics[ii], nlp_opts->dynamics[ii],"sens_forw", &sens_forw);
 
         // switch off hotstart
-        warm_start = 0;
+        warm_start = 2;
         // do not condense Hessian
         hess = 0;
         // do not expand dual solution
-        dual_sol = 1;
+        dual_sol = 0;
 
         qp_solver->opts_set(qp_solver, opts->nlp_opts->qp_solver_opts, "warm_start", &warm_start);
         qp_solver->opts_set(qp_solver, opts->nlp_opts->qp_solver_opts, "cond_hess", &hess);
         qp_solver->opts_set(qp_solver, opts->nlp_opts->qp_solver_opts, "cond_dual_sol", &dual_sol);
 
-        for (; sqp_inner_iter < opts->max_inner_iter; sqp_inner_iter++)
+        for (sqp_inner_iter = 0; sqp_inner_iter < opts->max_inner_iter; sqp_inner_iter++)
         {
 
             // linearize NLP and update QP matrices
@@ -884,7 +942,6 @@ int ocp_nlp_zo_sqp(void *config_, void *dims_, void *nlp_in_, void *nlp_out_,
 
             // terminate based on primal-step for now
 
-            int *nv = dims->nv;
             double temp = 0.0;
             double step_norm = 0.0;
             for (int i=0; i<=N;i++){
@@ -896,7 +953,7 @@ int ocp_nlp_zo_sqp(void *config_, void *dims_, void *nlp_in_, void *nlp_out_,
             if (opts->print_level > 0)
                 printf("%i\t%e.\n", sqp_inner_iter, step_norm);
 
-            if (step_norm < 1.0e-6) {
+            if (step_norm < 1e-6) {
                 if (sqp_inner_iter == 0)
                 {
                     if (opts->print_level > 0)
@@ -905,15 +962,14 @@ int ocp_nlp_zo_sqp(void *config_, void *dims_, void *nlp_in_, void *nlp_out_,
                     mem->status = ACADOS_SUCCESS;
                     return mem->status;
                 }
-                    else 
-                    {
+                else 
+                {
                     if (opts->print_level > 0)
                         printf("SOLVED INNER PROBLEM.\n");
                     break; 
-                    }
+                }
             }
 #endif
-
 
             // regularize Hessian
             acados_tic(&timer1);
