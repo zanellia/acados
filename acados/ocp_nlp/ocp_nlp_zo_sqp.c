@@ -61,6 +61,7 @@
 #include "acados/utils/types.h"
 #include "acados_c/ocp_qp_interface.h"
 
+#define HPIPM_ZO 1
 
 
 /************************************************
@@ -679,11 +680,13 @@ int ocp_nlp_zo_sqp(void *config_, void *dims_, void *nlp_in_, void *nlp_out_,
         // expand dual solution
         int dual_sol = 1;
 
+#if !HPIPM_ZO
         qp_solver->opts_set(qp_solver, opts->nlp_opts->qp_solver_opts, "warm_start", &warm_start);
         qp_solver->opts_set(qp_solver, opts->nlp_opts->qp_solver_opts, "cond_hess", &hess);
         qp_solver->opts_set(qp_solver, opts->nlp_opts->qp_solver_opts, "cond_dual_sol", &dual_sol);
 
         ((dense_qp_qpoases_memory *)(nlp_mem->qp_solver_mem->solver_memory))->first_it = 1;
+#endif
         
         // linearize NLP and update QP matrices
         acados_tic(&timer1);
@@ -890,9 +893,11 @@ int ocp_nlp_zo_sqp(void *config_, void *dims_, void *nlp_in_, void *nlp_out_,
         // do not expand dual solution
         dual_sol = 0;
 
+#if !HPIPM_ZO
         qp_solver->opts_set(qp_solver, opts->nlp_opts->qp_solver_opts, "warm_start", &warm_start);
         qp_solver->opts_set(qp_solver, opts->nlp_opts->qp_solver_opts, "cond_hess", &hess);
         qp_solver->opts_set(qp_solver, opts->nlp_opts->qp_solver_opts, "cond_dual_sol", &dual_sol);
+#endif
 
         for (sqp_inner_iter = 0; sqp_inner_iter < opts->max_inner_iter; sqp_inner_iter++)
         {

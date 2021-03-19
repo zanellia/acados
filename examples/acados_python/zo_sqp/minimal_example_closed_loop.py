@@ -92,8 +92,8 @@ ocp.constraints.ubu = np.array([+Fmax])
 ocp.constraints.x0 = x0
 ocp.constraints.idxbu = np.array([0])
 
-# ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM' # FULL_CONDENSING_QPOASES
-ocp.solver_options.qp_solver = 'FULL_CONDENSING_QPOASES'
+ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM'
+# ocp.solver_options.qp_solver = 'FULL_CONDENSING_QPOASES'
 ocp.solver_options.nlp_solver_type = 'ZO_SQP' # SQP_RTI
 ocp.solver_options.hessian_approx = 'GAUSS_NEWTON'
 ocp.solver_options.integrator_type = 'ERK'

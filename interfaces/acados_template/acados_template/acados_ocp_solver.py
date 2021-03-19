@@ -745,9 +745,9 @@ class AcadosOcpSolver:
         if acados_ocp.solver_options.qp_solver == 'PARTIAL_CONDENSING_QPDUNES':
             remove_x0_elimination(acados_ocp)
 
-        if acados_ocp.solver_options.nlp_solver_type == 'ZO_SQP' and \
-            acados_ocp.solver_options.qp_solver != 'FULL_CONDENSING_QPOASES':
-                raise Exception('Not implemented: zero-order SQP only supports QPOASES as QP solver')
+        # if acados_ocp.solver_options.nlp_solver_type == 'ZO_SQP' and \
+        #     acados_ocp.solver_options.qp_solver != 'FULL_CONDENSING_QPOASES':
+        #         raise Exception('Not implemented: zero-order SQP only supports QPOASES as QP solver')
 
         # set integrator time automatically
         acados_ocp.solver_options.Tsim = acados_ocp.solver_options.time_steps[0]
