@@ -119,7 +119,7 @@ void ocp_nlp_zo_sqp_opts_initialize_default(void *config_, void *dims_, void *op
     ocp_nlp_opts_initialize_default(config, dims, nlp_opts);
 
     // SQP opts
-    opts->max_outer_iter = 10;
+    opts->max_outer_iter = 100;
     opts->max_inner_iter = 10;
     opts->tol_stat = 1e-6;
     opts->tol_eq   = 1e-6;
@@ -488,6 +488,7 @@ int ocp_nlp_zo_sqp(void *config_, void *dims_, void *nlp_in_, void *nlp_out_,
     ocp_nlp_zo_sqp_workspace *work = work_;
     ocp_nlp_zo_sqp_cast_workspace(config, dims, opts, mem, work);
     ocp_nlp_workspace *nlp_work = work->nlp_work;
+    ocp_nlp_out *inner_nlp_out = nlp_work->inner_nlp_out;
 
     // zero timers
     double total_time = 0.0;
@@ -596,8 +597,8 @@ int ocp_nlp_zo_sqp(void *config_, void *dims_, void *nlp_in_, void *nlp_out_,
 #endif
 
     //
-    if (opts->initialize_t_slacks > 0)
-        ocp_nlp_initialize_t_slacks(config, dims, nlp_in, nlp_out, nlp_opts, nlp_mem, nlp_work);
+    // if (opts->initialize_t_slacks > 0)
+    //     ocp_nlp_initialize_t_slacks(config, dims, nlp_in, nlp_out, nlp_opts, nlp_mem, nlp_work);
 
     // initialize QP
     ocp_nlp_initialize_qp(config, dims, nlp_in, nlp_out, nlp_opts, nlp_mem, nlp_work);
@@ -614,60 +615,53 @@ int ocp_nlp_zo_sqp(void *config_, void *dims_, void *nlp_in_, void *nlp_out_,
     int *nu = dims->nu;
     int *ni = dims->ni;
     int *nz = dims->nz;
-    for (int i = 0; i <= N; i++)
-        blasfeo_dveccp(nv[i], nlp_out->ux+i, 0, nlp_work->tmp_nlp_out->ux+i, 0);
-
-    for (int i = 0; i < N; i++)
-        blasfeo_dveccp(nx[i+1], nlp_out->pi+i, 0, nlp_work->tmp_nlp_out->pi+i, 0);
-
-    for (int i = 0; i <= N; i++)
-        blasfeo_dveccp(2*ni[i], nlp_out->lam+i, 0, nlp_work->tmp_nlp_out->lam+i, 0);
 
     bool sens_forw = true;
     for (ii=0; ii<N; ii++)
         config->dynamics[ii]->opts_set(config->dynamics[ii], nlp_opts->dynamics[ii],"sens_forw", &sens_forw);
 
-    for (; sqp_outer_iter < opts->max_outer_iter; sqp_outer_iter++)
+    for (sqp_outer_iter = 0; sqp_outer_iter < opts->max_outer_iter; sqp_outer_iter++)
     {
 
         // globalize outer iterates
-        double outer_alpha = 1.0; 
-        for (int i = 0; i <= N; i++)
-        {
-            // step in primal variables
-            blasfeo_daxpy(nv[i], outer_alpha, nlp_mem->qp_out->ux + i, 0, nlp_out->ux + i, 0, nlp_out->ux + i, 0);
+        // double outer_alpha = 1.0; 
+        // for (int i = 0; i <= N; i++)
+        // {
+        //     // step in primal variables
+        //     blasfeo_daxpy(nv[i], 1.0-outer_alpha, nlp_out->ux + i, 0, nlp_work->tmp_nlp_out->ux + i, 0, nlp_out->ux + i, 0);
         
-            // update dual variables
-            if (i < N)
+        //     // update dual variables
+        //     if (i < N)
+        //     {
+        //         blasfeo_dvecsc(nx[i+1], 1.0-outer_alpha, nlp_out->pi+i, 0);
+        //         blasfeo_daxpy(nx[i+1], outer_alpha, nlp_out->pi+i, 0, nlp_work->tmp_nlp_out->pi+i, 0, nlp_out->pi+i, 0);
+        //     }
+
+        //     blasfeo_dvecsc(2*ni[i], 1.0-outer_alpha, nlp_out->lam+i, 0);
+        //     blasfeo_daxpy(2*ni[i], outer_alpha, nlp_out->lam+i, 0, nlp_work->tmp_nlp_out->lam+i, 0, nlp_out->lam+i, 0);
+
+        //     // update slack values
+        //     blasfeo_dvecsc(2*ni[i], 1.0-outer_alpha, nlp_out->t+i, 0);
+        //     blasfeo_daxpy(2*ni[i], outer_alpha, nlp_out->t+i, 0, nlp_work->tmp_nlp_out->t+i, 0, nlp_out->t+i, 0);
+
+        // }
+
+        if (sqp_outer_iter > 0) 
+        {
+            // update outer iterations
+            for (int i = 0; i <= N; i++)
+                blasfeo_dveccp(nv[i], inner_nlp_out->ux+i, 0, nlp_out->ux+i, 0);
+                // TODO(andrea): slacks????
+
+            for (int i = 0; i < N; i++)
+                blasfeo_dveccp(nx[i+1], inner_nlp_out->pi+i, 0, nlp_out->pi+i, 0);
+
+            for (int i = 0; i <= N; i++)
             {
-                blasfeo_dvecsc(nx[i+1], 1.0-outer_alpha, nlp_out->pi+i, 0);
-                blasfeo_daxpy(nx[i+1], outer_alpha, nlp_mem->qp_out->pi+i, 0, nlp_out->pi+i, 0, nlp_out->pi+i, 0);
-            }
-
-            blasfeo_dvecsc(2*ni[i], 1.0-outer_alpha, nlp_out->lam+i, 0);
-            blasfeo_daxpy(2*ni[i], outer_alpha, nlp_mem->qp_out->lam+i, 0, nlp_out->lam+i, 0, nlp_out->lam+i, 0);
-
-            // update slack values
-            blasfeo_dvecsc(2*ni[i], 1.0-outer_alpha, nlp_out->t+i, 0);
-            blasfeo_daxpy(2*ni[i], outer_alpha, nlp_mem->qp_out->t+i, 0, nlp_out->t+i, 0, nlp_out->t+i, 0);
-
-            // linear update of algebraic variables using state and input sensitivity
-            if (i < N)
-            {
-                blasfeo_dgemv_t(nu[i]+nx[i], nz[i], outer_alpha, nlp_mem->dzduxt+i, 0, 0,
-                        nlp_mem->qp_out->ux+i, 0, 1.0, nlp_mem->z_alg+i, 0, nlp_out->z+i, 0);
+                blasfeo_dveccp(2*ni[i], inner_nlp_out->lam+i, 0, nlp_out->lam+i, 0);
+                blasfeo_dveccp(2*ni[i], inner_nlp_out->t+i, 0, nlp_out->t+i, 0);
             }
         }
-
-        // store current solution
-        for (int i = 0; i <= N; i++)
-            blasfeo_dveccp(nv[i], nlp_out->ux+i, 0, nlp_work->tmp_nlp_out->ux+i, 0);
-
-        for (int i = 0; i < N; i++)
-            blasfeo_dveccp(nx[i+1], nlp_out->pi+i, 0, nlp_work->tmp_nlp_out->pi+i, 0);
-
-        for (int i = 0; i <= N; i++)
-            blasfeo_dveccp(2*ni[i], nlp_out->lam+i, 0, nlp_work->tmp_nlp_out->lam+i, 0);
 
         bool sens_forw = true;
         for (ii=0; ii<N; ii++)
@@ -688,14 +682,7 @@ int ocp_nlp_zo_sqp(void *config_, void *dims_, void *nlp_in_, void *nlp_out_,
         ((dense_qp_qpoases_memory *)(nlp_mem->qp_solver_mem->solver_memory))->first_it = 1;
 #endif
         
-        // linearize NLP and update QP matrices
-        acados_tic(&timer1);
-        ocp_nlp_approximate_qp_matrices(config, dims, nlp_in, nlp_out, nlp_opts, nlp_mem, nlp_work);
-        mem->time_lin += acados_toc(&timer1);
-
-        // update QP rhs for SQP (step prim var, abs dual var)
-        ocp_nlp_approximate_qp_vectors_sqp(config, dims, nlp_in, nlp_out, nlp_opts, nlp_mem, nlp_work);
-
+        printf("res before linearization:\n");
 #if 0
         // compute nlp residuals
         ocp_nlp_res_compute(dims, nlp_in, nlp_out, nlp_mem->nlp_res, nlp_mem);
@@ -736,7 +723,7 @@ int ocp_nlp_zo_sqp(void *config_, void *dims_, void *nlp_in_, void *nlp_out_,
         if ((nlp_mem->nlp_res->inf_norm_res_stat < opts->tol_stat) &
             (nlp_mem->nlp_res->inf_norm_res_eq < opts->tol_eq) &
             (nlp_mem->nlp_res->inf_norm_res_ineq < opts->tol_ineq) &
-            (nlp_mem->nlp_res->inf_norm_res_comp < opts->tol_comp))
+            (nlp_mem->nlp_res->inf_norm_res_comp < opts->tol_comp) & sqp_outer_iter != 0)
         {
             // save sqp iterations number
             mem->sqp_outer_iter = sqp_outer_iter;
@@ -767,6 +754,14 @@ int ocp_nlp_zo_sqp(void *config_, void *dims_, void *nlp_in_, void *nlp_out_,
             return mem->status;
         }
 #endif
+        // linearize NLP and update QP matrices
+        acados_tic(&timer1);
+        ocp_nlp_approximate_qp_matrices(config, dims, nlp_in, nlp_out, nlp_opts, nlp_mem, nlp_work);
+        mem->time_lin += acados_toc(&timer1);
+
+        // update QP rhs for SQP (step prim var, abs dual var)
+        ocp_nlp_approximate_qp_vectors_sqp(config, dims, nlp_in, nlp_out, nlp_opts, nlp_mem, nlp_work);
+
 
 
         // regularize Hessian
@@ -800,12 +795,12 @@ int ocp_nlp_zo_sqp(void *config_, void *dims_, void *nlp_in_, void *nlp_out_,
                                              opts->nlp_opts->regularize, nlp_mem->regularize_mem);
         mem->time_reg += acados_toc(&timer1);
 
-        // restore default warm start
-        if (sqp_outer_iter==0)
-        {
-            config->qp_solver->opts_set(config->qp_solver, opts->nlp_opts->qp_solver_opts,
-                                        "warm_start", &opts->qp_warm_start);
-        }
+        // // restore default warm start
+        // if (sqp_outer_iter==0)
+        // {
+        //     config->qp_solver->opts_set(config->qp_solver, opts->nlp_opts->qp_solver_opts,
+        //                                 "warm_start", &opts->qp_warm_start);
+        // }
 
         // TODO move into QP solver memory ???
         qp_info *qp_info_;
@@ -876,13 +871,99 @@ int ocp_nlp_zo_sqp(void *config_, void *dims_, void *nlp_in_, void *nlp_out_,
         mem->time_glob += acados_toc(&timer1);
 
         // update variables
-        // printf("alpha = %f\n", alpha);
+        printf("alpha = %f\n", alpha);
         ocp_nlp_update_variables_sqp(config, dims, nlp_in, nlp_out, nlp_opts, nlp_mem, nlp_work, alpha);
+        printf("res after linearization and QP step:\n");
+#if 0
+        // compute nlp residuals
+        ocp_nlp_res_compute(dims, nlp_in, nlp_out, nlp_mem->nlp_res, nlp_mem);
+
+        nlp_out->inf_norm_res = nlp_mem->nlp_res->inf_norm_res_stat;
+        nlp_out->inf_norm_res = (nlp_mem->nlp_res->inf_norm_res_eq > nlp_out->inf_norm_res) ?
+                                    nlp_mem->nlp_res->inf_norm_res_eq :
+                                    nlp_out->inf_norm_res;
+        nlp_out->inf_norm_res = (nlp_mem->nlp_res->inf_norm_res_ineq > nlp_out->inf_norm_res) ?
+                                    nlp_mem->nlp_res->inf_norm_res_ineq :
+                                    nlp_out->inf_norm_res;
+        nlp_out->inf_norm_res = (nlp_mem->nlp_res->inf_norm_res_comp > nlp_out->inf_norm_res) ?
+                                    nlp_mem->nlp_res->inf_norm_res_comp :
+                                    nlp_out->inf_norm_res;
+
+        if (opts->print_level > 0)
+        {
+            printf("-%i\t%e\t%e\t%e\t%e.\n", sqp_outer_iter, nlp_mem->nlp_res->inf_norm_res_stat,
+                    nlp_mem->nlp_res->inf_norm_res_eq, nlp_mem->nlp_res->inf_norm_res_ineq,
+                    nlp_mem->nlp_res->inf_norm_res_comp );
+        }
+
+        // printf("outer qp:\n");
+        // print_ocp_qp_in(nlp_mem->qp_in);
+        if (opts->print_level > sqp_outer_iter + 1)
+            print_ocp_qp_in(nlp_mem->qp_in);
+
+        // save statistics
+        if (sqp_outer_iter < mem->stat_m)
+        {
+            mem->stat[mem->stat_n*sqp_outer_iter+0] = nlp_mem->nlp_res->inf_norm_res_stat;
+            mem->stat[mem->stat_n*sqp_outer_iter+1] = nlp_mem->nlp_res->inf_norm_res_eq;
+            mem->stat[mem->stat_n*sqp_outer_iter+2] = nlp_mem->nlp_res->inf_norm_res_ineq;
+            mem->stat[mem->stat_n*sqp_outer_iter+3] = nlp_mem->nlp_res->inf_norm_res_comp;
+        }
+
+        // exit conditions on residuals
+        if ((nlp_mem->nlp_res->inf_norm_res_stat < opts->tol_stat) &
+            (nlp_mem->nlp_res->inf_norm_res_eq < opts->tol_eq) &
+            (nlp_mem->nlp_res->inf_norm_res_ineq < opts->tol_ineq) &
+            (nlp_mem->nlp_res->inf_norm_res_comp < opts->tol_comp) & sqp_outer_iter != 0)
+        {
+            // save sqp iterations number
+            mem->sqp_outer_iter = sqp_outer_iter;
+            nlp_out->sqp_iter = sqp_outer_iter;
+
+            // stop timer
+            total_time += acados_toc(&timer0);
+
+            // save time
+            nlp_out->total_time = total_time;
+            mem->time_tot = total_time;
+
+#if defined(ACADOS_WITH_OPENMP)
+            // restore number of threads
+            omp_set_num_threads(num_threads_bkp);
+#endif
+            mem->status = ACADOS_SUCCESS;
+
+            if (opts->print_level > 0)
+            {
+                printf("%i\t%e\t%e\t%e\t%e.\n", sqp_outer_iter, nlp_mem->nlp_res->inf_norm_res_stat,
+                    nlp_mem->nlp_res->inf_norm_res_eq, nlp_mem->nlp_res->inf_norm_res_ineq,
+                    nlp_mem->nlp_res->inf_norm_res_comp );
+                printf("\n\n");
+            }
+
+            printf("  -> SOLVED OUTER PROBLEM.\n\n");
+            return mem->status;
+        }
+#endif
         // ocp_nlp_dims_print(nlp_out->dims);
         // ocp_nlp_out_print(dims, nlp_out);
         // exit(1);
 
-        sens_forw = false;
+        // init inner iterations
+        for (int i = 0; i <= N; i++)
+            blasfeo_dveccp(nv[i], nlp_out->ux+i, 0, inner_nlp_out->ux+i, 0);
+            // TODO(andrea): slacks????
+
+        for (int i = 0; i < N; i++)
+            blasfeo_dveccp(nx[i+1], nlp_out->pi+i, 0, inner_nlp_out->pi+i, 0);
+
+        for (int i = 0; i <= N; i++)
+        {
+            blasfeo_dveccp(2*ni[i], nlp_out->lam+i, 0, inner_nlp_out->lam+i, 0);
+            blasfeo_dveccp(2*ni[i], nlp_out->t+i, 0, inner_nlp_out->t+i, 0);
+        }
+
+        sens_forw = true;
         for (ii=0; ii < N; ii++)
             config->dynamics[ii]->opts_set(config->dynamics[ii], nlp_opts->dynamics[ii],"sens_forw", &sens_forw);
 
@@ -902,28 +983,106 @@ int ocp_nlp_zo_sqp(void *config_, void *dims_, void *nlp_in_, void *nlp_out_,
         for (sqp_inner_iter = 0; sqp_inner_iter < opts->max_inner_iter; sqp_inner_iter++)
         {
 
+            // print_ocp_qp_out(nlp_mem->qp_out);
+            // print_ocp_qp_in(nlp_mem->qp_in);
             // linearize NLP and update QP matrices
             acados_tic(&timer1);
-            ocp_nlp_approximate_qp_matrices(config, dims, nlp_in, nlp_out, nlp_opts, nlp_mem, nlp_work);
+            ocp_nlp_approximate_qp_matrices(config, dims, nlp_in, inner_nlp_out, nlp_opts, nlp_mem, nlp_work);
             mem->time_lin += acados_toc(&timer1);
 
             // update QP rhs for SQP (step prim var, abs dual var)
-            ocp_nlp_approximate_qp_vectors_sqp(config, dims, nlp_in, nlp_out, nlp_opts, nlp_mem, nlp_work);
+            ocp_nlp_approximate_qp_vectors_sqp(config, dims, nlp_in, inner_nlp_out, nlp_opts, nlp_mem, nlp_work);
+
+
+            // regularize Hessian
+            acados_tic(&timer1);
+            config->regularize->regularize_hessian(config->regularize, dims->regularize,
+                                                   opts->nlp_opts->regularize, nlp_mem->regularize_mem);
+            mem->time_reg += acados_toc(&timer1);
+
+            // solve qp
+            acados_tic(&timer1);
+            qp_status = qp_solver->evaluate(qp_solver, dims->qp_solver, nlp_mem->qp_in, nlp_mem->qp_out,
+                                            opts->nlp_opts->qp_solver_opts, nlp_mem->qp_solver_mem, nlp_work->qp_work);
+            mem->time_qp_sol += acados_toc(&timer1);
+
+            qp_solver->memory_get(qp_solver, nlp_mem->qp_solver_mem, "time_qp_solver_call", &tmp_time);
+            mem->time_qp_solver_call += tmp_time;
+            qp_solver->memory_get(qp_solver, nlp_mem->qp_solver_mem, "time_qp_xcond", &tmp_time);
+            mem->time_qp_xcond += tmp_time;
+
+            // compute correct dual solution in case of Hessian regularization
+            acados_tic(&timer1);
+            config->regularize->correct_dual_sol(config->regularize, dims->regularize,
+                                                 opts->nlp_opts->regularize, nlp_mem->regularize_mem);
+            mem->time_reg += acados_toc(&timer1);
+
+            // TODO move into QP solver memory ???
+            qp_info *qp_info_;
+            ocp_qp_out_get(nlp_mem->qp_out, "qp_info", &qp_info_);
+            inner_nlp_out->qp_iter = qp_info_->num_iter;
+            // printf("\nqp_iter = %d, sqp_iter = %d, max_sqp_iter = %d\n", nlp_out->qp_iter, sqp_iter, opts->max_outer_iter);
+            qp_iter = qp_info_->num_iter;
+
+
+            // printf("inner qp:\n");
+            // print_ocp_qp_in(nlp_mem->qp_in);
+
+            if ((qp_status!=ACADOS_SUCCESS) & (qp_status!=ACADOS_MAXITER))
+            {
+                // print_ocp_qp_in(nlp_mem->qp_in);
+                if (opts->print_level > 0)
+                {
+                    printf("%i\t%e\t%e\t%e\t%e.\n", sqp_inner_iter, nlp_mem->nlp_res->inf_norm_res_stat,
+                        nlp_mem->nlp_res->inf_norm_res_eq, nlp_mem->nlp_res->inf_norm_res_ineq,
+                        nlp_mem->nlp_res->inf_norm_res_comp );
+                    printf("\n\n");
+                }
+
+                // stop timer
+                total_time += acados_toc(&timer0);
+
+                // save time
+                mem->time_tot = total_time;
+                inner_nlp_out->total_time = total_time;
+#ifndef ACADOS_SILENT
+                printf("QP solver returned error status %d in iteration %d\n", qp_status, sqp_inner_iter);
+#endif
+#if defined(ACADOS_WITH_OPENMP)
+                // restore number of threads
+                omp_set_num_threads(num_threads_bkp);
+#endif
+
+                mem->status = ACADOS_QP_FAILURE;
+                return mem->status;
+            }
+
+            // globalization
+            acados_tic(&timer1);
+            // double alpha = ocp_nlp_line_search(config, dims, nlp_in, inner_nlp_out, nlp_opts, nlp_mem, nlp_work);
+            alpha = 1.0;
+            mem->time_glob += acados_toc(&timer1);
+
+            // update variables
+            ocp_nlp_update_variables_sqp(config, dims, nlp_in, inner_nlp_out, nlp_opts, nlp_mem, nlp_work, alpha);
+            // ocp_nlp_dims_print(inner_nlp_out->dims);
+            // ocp_nlp_out_print(dims, inner_nlp_out);
+            // exit(1);
 
 #if 0
             // compute nlp residuals
-            ocp_nlp_res_compute(dims, nlp_in, nlp_out, nlp_mem->nlp_res, nlp_mem);
+            ocp_nlp_res_compute(dims, nlp_in, inner_nlp_out, nlp_mem->nlp_res, nlp_mem);
 
-            nlp_out->inf_norm_res = nlp_mem->nlp_res->inf_norm_res_stat;
-            nlp_out->inf_norm_res = (nlp_mem->nlp_res->inf_norm_res_eq > nlp_out->inf_norm_res) ?
+            inner_nlp_out->inf_norm_res = nlp_mem->nlp_res->inf_norm_res_stat;
+            inner_nlp_out->inf_norm_res = (nlp_mem->nlp_res->inf_norm_res_eq > inner_nlp_out->inf_norm_res) ?
                                         nlp_mem->nlp_res->inf_norm_res_eq :
-                                        nlp_out->inf_norm_res;
-            nlp_out->inf_norm_res = (nlp_mem->nlp_res->inf_norm_res_ineq > nlp_out->inf_norm_res) ?
+                                        inner_nlp_out->inf_norm_res;
+            inner_nlp_out->inf_norm_res = (nlp_mem->nlp_res->inf_norm_res_ineq > inner_nlp_out->inf_norm_res) ?
                                         nlp_mem->nlp_res->inf_norm_res_ineq :
-                                        nlp_out->inf_norm_res;
-            nlp_out->inf_norm_res = (nlp_mem->nlp_res->inf_norm_res_comp > nlp_out->inf_norm_res) ?
+                                        inner_nlp_out->inf_norm_res;
+            inner_nlp_out->inf_norm_res = (nlp_mem->nlp_res->inf_norm_res_comp > inner_nlp_out->inf_norm_res) ?
                                         nlp_mem->nlp_res->inf_norm_res_comp :
-                                        nlp_out->inf_norm_res;
+                                        inner_nlp_out->inf_norm_res;
 
             if (opts->print_level > 0)
             {
@@ -958,16 +1117,16 @@ int ocp_nlp_zo_sqp(void *config_, void *dims_, void *nlp_in_, void *nlp_out_,
             if (opts->print_level > 0)
                 printf("%i\t%e.\n", sqp_inner_iter, step_norm);
 
-            if (step_norm < 1e-6) {
-                if (sqp_inner_iter == 0)
-                {
-                    if (opts->print_level > 0)
-                        printf("  ->  SOLVED OUTER PROBLEM.\n\n");
+            if (step_norm < opts->tol_stat && sqp_inner_iter == 0)
+            {
+                if (opts->print_level > 0)
+                    printf("  ->  SOLVED OUTER PROBLEM.\n\n");
 
-                    mem->status = ACADOS_SUCCESS;
-                    return mem->status;
-                }
-                else 
+                mem->status = ACADOS_SUCCESS;
+                return mem->status;
+            }
+
+            if (step_norm < 1e-10) {
                 {
                     if (opts->print_level > 0)
                         printf("SOLVED INNER PROBLEM.\n");
@@ -975,81 +1134,6 @@ int ocp_nlp_zo_sqp(void *config_, void *dims_, void *nlp_in_, void *nlp_out_,
                 }
             }
 #endif
-
-            // regularize Hessian
-            acados_tic(&timer1);
-            config->regularize->regularize_hessian(config->regularize, dims->regularize,
-                                                   opts->nlp_opts->regularize, nlp_mem->regularize_mem);
-            mem->time_reg += acados_toc(&timer1);
-
-            // solve qp
-            acados_tic(&timer1);
-            qp_status = qp_solver->evaluate(qp_solver, dims->qp_solver, nlp_mem->qp_in, nlp_mem->qp_out,
-                                            opts->nlp_opts->qp_solver_opts, nlp_mem->qp_solver_mem, nlp_work->qp_work);
-            mem->time_qp_sol += acados_toc(&timer1);
-
-            qp_solver->memory_get(qp_solver, nlp_mem->qp_solver_mem, "time_qp_solver_call", &tmp_time);
-            mem->time_qp_solver_call += tmp_time;
-            qp_solver->memory_get(qp_solver, nlp_mem->qp_solver_mem, "time_qp_xcond", &tmp_time);
-            mem->time_qp_xcond += tmp_time;
-
-            // compute correct dual solution in case of Hessian regularization
-            acados_tic(&timer1);
-            config->regularize->correct_dual_sol(config->regularize, dims->regularize,
-                                                 opts->nlp_opts->regularize, nlp_mem->regularize_mem);
-            mem->time_reg += acados_toc(&timer1);
-
-            // TODO move into QP solver memory ???
-            qp_info *qp_info_;
-            ocp_qp_out_get(nlp_mem->qp_out, "qp_info", &qp_info_);
-            nlp_out->qp_iter = qp_info_->num_iter;
-            // printf("\nqp_iter = %d, sqp_iter = %d, max_sqp_iter = %d\n", nlp_out->qp_iter, sqp_iter, opts->max_outer_iter);
-            qp_iter = qp_info_->num_iter;
-
-
-            // printf("inner qp:\n");
-            // print_ocp_qp_in(nlp_mem->qp_in);
-
-            if ((qp_status!=ACADOS_SUCCESS) & (qp_status!=ACADOS_MAXITER))
-            {
-                // print_ocp_qp_in(nlp_mem->qp_in);
-                if (opts->print_level > 0)
-                {
-                    printf("%i\t%e\t%e\t%e\t%e.\n", sqp_inner_iter, nlp_mem->nlp_res->inf_norm_res_stat,
-                        nlp_mem->nlp_res->inf_norm_res_eq, nlp_mem->nlp_res->inf_norm_res_ineq,
-                        nlp_mem->nlp_res->inf_norm_res_comp );
-                    printf("\n\n");
-                }
-
-                // stop timer
-                total_time += acados_toc(&timer0);
-
-                // save time
-                mem->time_tot = total_time;
-                nlp_out->total_time = total_time;
-#ifndef ACADOS_SILENT
-                printf("QP solver returned error status %d in iteration %d\n", qp_status, sqp_inner_iter);
-#endif
-#if defined(ACADOS_WITH_OPENMP)
-                // restore number of threads
-                omp_set_num_threads(num_threads_bkp);
-#endif
-
-                mem->status = ACADOS_QP_FAILURE;
-                return mem->status;
-            }
-
-            // globalization
-            acados_tic(&timer1);
-            double alpha = ocp_nlp_line_search(config, dims, nlp_in, nlp_out, nlp_opts, nlp_mem, nlp_work);
-            mem->time_glob += acados_toc(&timer1);
-
-            // update variables
-            ocp_nlp_update_variables_sqp(config, dims, nlp_in, nlp_out, nlp_opts, nlp_mem, nlp_work, alpha);
-            // ocp_nlp_dims_print(nlp_out->dims);
-            // ocp_nlp_out_print(dims, nlp_out);
-            // exit(1);
-
         }
     }
 
@@ -1060,15 +1144,15 @@ int ocp_nlp_zo_sqp(void *config_, void *dims_, void *nlp_in_, void *nlp_out_,
     if (opts->print_level > 0)
         printf("\n\n");
 
-    // ocp_nlp_out_print(nlp_out);
+    // ocp_nlp_out_print(inner_nlp_out);
 
     // save sqp iterations number
     mem->sqp_outer_iter = sqp_outer_iter;
-    nlp_out->sqp_iter = sqp_outer_iter;
+    inner_nlp_out->sqp_iter = sqp_outer_iter;
 
     // save time
     mem->time_tot = total_time;
-    nlp_out->total_time = total_time;
+    inner_nlp_out->total_time = total_time;
 
     // maximum number of iterations reached
 #if defined(ACADOS_WITH_OPENMP)
@@ -1077,8 +1161,8 @@ int ocp_nlp_zo_sqp(void *config_, void *dims_, void *nlp_in_, void *nlp_out_,
 #endif
     // do not return ACADOS_MAXITER since we are interested in using 
     // this solver with a limited number of iterations
-    // mem->status = ACADOS_MAXITER;
-    mem->status = ACADOS_SUCCESS;
+    mem->status = ACADOS_MAXITER;
+    // mem->status = ACADOS_SUCCESS;
 #ifndef ACADOS_SILENT
     printf("\n ocp_nlp_zo_sqp: maximum iterations reached\n");
 #endif

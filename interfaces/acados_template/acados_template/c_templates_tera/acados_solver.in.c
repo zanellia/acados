@@ -1649,7 +1649,7 @@ int {{ model.name }}_acados_create(nlp_solver_capsule * capsule)
     ocp_nlp_solver_opts_set(nlp_config, capsule->nlp_opts, "qp_warm_start", &qp_solver_warm_start);
     {%- endif -%}
     
-{% if solver_options.nlp_solver_type == "SQP" %}
+{% if solver_options.nlp_solver_type == "SQP" or solver_options.nlp_solver_type == "ZO_SQP" %}
     // set SQP specific options
     double nlp_solver_tol_stat = {{ solver_options.nlp_solver_tol_stat }};
     ocp_nlp_solver_opts_set(nlp_config, capsule->nlp_opts, "tol_stat", &nlp_solver_tol_stat);

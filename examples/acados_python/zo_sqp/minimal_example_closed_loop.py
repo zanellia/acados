@@ -52,7 +52,7 @@ nx = model.x.size()[0]
 nu = model.u.size()[0]
 ny = nx + nu
 ny_e = nx
-N = 10
+N = 2
 nsim = 100
 
 # set dimensions
@@ -94,9 +94,12 @@ ocp.constraints.idxbu = np.array([0])
 
 ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM'
 # ocp.solver_options.qp_solver = 'FULL_CONDENSING_QPOASES'
-ocp.solver_options.nlp_solver_type = 'ZO_SQP' # SQP_RTI
+# ocp.solver_options.nlp_solver_type = 'ZO_SQP' # SQP_RTI
+ocp.solver_options.nlp_solver_type = 'SQP' # SQP_RTI
 ocp.solver_options.hessian_approx = 'GAUSS_NEWTON'
+# ocp.solver_options.hessian_approx = 'EXACT'
 ocp.solver_options.integrator_type = 'ERK'
+ocp.solver_options.nlp_solver_max_iter = 10
 
 ocp.solver_options.qp_solver_cond_N = N
 
@@ -123,6 +126,7 @@ for i in range(nsim):
     status = acados_ocp_solver.solve()
 
     if status != 0:
+        print(i, xcurrent)
         raise Exception('acados acados_ocp_solver returned status {}. Exiting.'.format(status))
 
     simU[i,:] = acados_ocp_solver.get(0, "u")

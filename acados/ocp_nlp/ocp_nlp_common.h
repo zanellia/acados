@@ -221,11 +221,11 @@ ocp_nlp_in *ocp_nlp_in_assign(ocp_nlp_config *config, ocp_nlp_dims *dims, void *
 
 typedef struct ocp_nlp_out
 {
-    struct blasfeo_dvec *ux;  // NOTE: this contains [u; x; s_l; s_u]! - rename to uxs?
-    struct blasfeo_dvec *z;  // algebraic vairables
-    struct blasfeo_dvec *pi;  // multipliers for dynamics
-    struct blasfeo_dvec *lam;  // inequality mulitpliers
-    struct blasfeo_dvec *t;  // slack variables corresponding to evaluation of all inequalities (at the solution)
+    struct blasfeo_dvec *ux;    // NOTE: this contains [u; x; s_l; s_u]! - rename to uxs?
+    struct blasfeo_dvec *z;     // algebraic variables
+    struct blasfeo_dvec *pi;    // multipliers for dynamics
+    struct blasfeo_dvec *lam;   // inequality multipliers
+    struct blasfeo_dvec *t;     // slack variables corresponding to evaluation of all inequalities (at the solution)
 
     // NOTE: the inequalities are internally organized in the following order:
     // [ lbu lbx lg lh lphi ubu ubx ug uh uphi; lsbu lsbx lsg lsh lsphi usbu usbx usg ush usphi]
@@ -369,6 +369,7 @@ typedef struct ocp_nlp_workspace
     void **constraints;  // constraints_workspace
 
 	ocp_nlp_out *tmp_nlp_out;
+	ocp_nlp_out *inner_nlp_out; // for ZO_SQP
 	ocp_nlp_out *weight_merit_fun;
 
 } ocp_nlp_workspace;
