@@ -604,8 +604,14 @@ int ocp_nlp_sqp(void *config_, void *dims_, void *nlp_in_, void *nlp_out_,
 
     for (; sqp_iter < opts->max_iter; sqp_iter++)
     {
-        // linearize NLP and update QP matrices
-        printf("res before lin:\n");
+        // linearizate NLP and update QP matrices
+        acados_tic(&timer1);
+        ocp_nlp_approximate_qp_matrices(config, dims, nlp_in, nlp_out, nlp_opts, nlp_mem, nlp_work);
+        mem->time_lin += acados_toc(&timer1);
+
+        // update QP rhs for SQP (step prim var, abs dual var)
+        ocp_nlp_approximate_qp_vectors_sqp(config, dims, nlp_in, nlp_out, nlp_opts, nlp_mem, nlp_work);
+
         // compute nlp residuals
         ocp_nlp_res_compute(dims, nlp_in, nlp_out, nlp_mem->nlp_res, nlp_mem);
 
@@ -632,40 +638,39 @@ int ocp_nlp_sqp(void *config_, void *dims_, void *nlp_in_, void *nlp_out_,
             mem->stat[mem->stat_n*sqp_iter+3] = nlp_mem->nlp_res->inf_norm_res_comp;
         }
 
-        // save sqp iterations number
-        mem->sqp_iter = sqp_iter;
-        nlp_out->sqp_iter = sqp_iter;
+        // exit conditions on residuals
+        if ((nlp_mem->nlp_res->inf_norm_res_stat < opts->tol_stat) &
+            (nlp_mem->nlp_res->inf_norm_res_eq < opts->tol_eq) &
+            (nlp_mem->nlp_res->inf_norm_res_ineq < opts->tol_ineq) &
+            (nlp_mem->nlp_res->inf_norm_res_comp < opts->tol_comp))
+        {
+            // save sqp iterations number
+            mem->sqp_iter = sqp_iter;
+            nlp_out->sqp_iter = sqp_iter;
 
-        // stop timer
-        total_time += acados_toc(&timer0);
+            // stop timer
+            total_time += acados_toc(&timer0);
 
-        // save time
-        nlp_out->total_time = total_time;
-        mem->time_tot = total_time;
+            // save time
+            nlp_out->total_time = total_time;
+            mem->time_tot = total_time;
 
 #if defined(ACADOS_WITH_OPENMP)
-        // restore number of threads
-        omp_set_num_threads(num_threads_bkp);
+            // restore number of threads
+            omp_set_num_threads(num_threads_bkp);
 #endif
-        mem->status = ACADOS_SUCCESS;
+            mem->status = ACADOS_SUCCESS;
 
-        if (opts->print_level > 0)
-        {
-            printf("%i\t%e\t%e\t%e\t%e.\n", sqp_iter, nlp_mem->nlp_res->inf_norm_res_stat,
-                nlp_mem->nlp_res->inf_norm_res_eq, nlp_mem->nlp_res->inf_norm_res_ineq,
-                nlp_mem->nlp_res->inf_norm_res_comp );
-            printf("\n\n");
+            if (opts->print_level > 0)
+            {
+                printf("%i\t%e\t%e\t%e\t%e.\n", sqp_iter, nlp_mem->nlp_res->inf_norm_res_stat,
+                    nlp_mem->nlp_res->inf_norm_res_eq, nlp_mem->nlp_res->inf_norm_res_ineq,
+                    nlp_mem->nlp_res->inf_norm_res_comp );
+                printf("\n\n");
+            }
+
+            return mem->status;
         }
-
-
-        acados_tic(&timer1);
-        ocp_nlp_approximate_qp_matrices(config, dims, nlp_in, nlp_out, nlp_opts, nlp_mem, nlp_work);
-        mem->time_lin += acados_toc(&timer1);
-
-        // update QP rhs for SQP (step prim var, abs dual var)
-        ocp_nlp_approximate_qp_vectors_sqp(config, dims, nlp_in, nlp_out, nlp_opts, nlp_mem, nlp_work);
-
-        
 
 
         // regularize Hessian
@@ -776,66 +781,6 @@ int ocp_nlp_sqp(void *config_, void *dims_, void *nlp_in_, void *nlp_out_,
 
         // update variables
         ocp_nlp_update_variables_sqp(config, dims, nlp_in, nlp_out, nlp_opts, nlp_mem, nlp_work, alpha);
-        printf("res after step:\n");
-        // compute nlp residuals
-        ocp_nlp_res_compute(dims, nlp_in, nlp_out, nlp_mem->nlp_res, nlp_mem);
-
-        nlp_out->inf_norm_res = nlp_mem->nlp_res->inf_norm_res_stat;
-        nlp_out->inf_norm_res = (nlp_mem->nlp_res->inf_norm_res_eq > nlp_out->inf_norm_res) ?
-                                    nlp_mem->nlp_res->inf_norm_res_eq :
-                                    nlp_out->inf_norm_res;
-        nlp_out->inf_norm_res = (nlp_mem->nlp_res->inf_norm_res_ineq > nlp_out->inf_norm_res) ?
-                                    nlp_mem->nlp_res->inf_norm_res_ineq :
-                                    nlp_out->inf_norm_res;
-        nlp_out->inf_norm_res = (nlp_mem->nlp_res->inf_norm_res_comp > nlp_out->inf_norm_res) ?
-                                    nlp_mem->nlp_res->inf_norm_res_comp :
-                                    nlp_out->inf_norm_res;
-
-        if (opts->print_level > sqp_iter + 1)
-            print_ocp_qp_in(nlp_mem->qp_in);
-
-        // save statistics
-        if (sqp_iter < mem->stat_m)
-        {
-            mem->stat[mem->stat_n*sqp_iter+0] = nlp_mem->nlp_res->inf_norm_res_stat;
-            mem->stat[mem->stat_n*sqp_iter+1] = nlp_mem->nlp_res->inf_norm_res_eq;
-            mem->stat[mem->stat_n*sqp_iter+2] = nlp_mem->nlp_res->inf_norm_res_ineq;
-            mem->stat[mem->stat_n*sqp_iter+3] = nlp_mem->nlp_res->inf_norm_res_comp;
-        }
-
-        // exit conditions on residuals
-        if ((nlp_mem->nlp_res->inf_norm_res_stat < opts->tol_stat) &
-            (nlp_mem->nlp_res->inf_norm_res_eq < opts->tol_eq) &
-            (nlp_mem->nlp_res->inf_norm_res_ineq < opts->tol_ineq) &
-            (nlp_mem->nlp_res->inf_norm_res_comp < opts->tol_comp))
-        {
-            // save sqp iterations number
-            mem->sqp_iter = sqp_iter;
-            nlp_out->sqp_iter = sqp_iter;
-
-            // stop timer
-            total_time += acados_toc(&timer0);
-
-            // save time
-            nlp_out->total_time = total_time;
-            mem->time_tot = total_time;
-
-#if defined(ACADOS_WITH_OPENMP)
-            // restore number of threads
-            omp_set_num_threads(num_threads_bkp);
-#endif
-            mem->status = ACADOS_SUCCESS;
-
-            if (opts->print_level > 0)
-            {
-                printf("%i\t%e\t%e\t%e\t%e.\n", sqp_iter, nlp_mem->nlp_res->inf_norm_res_stat,
-                    nlp_mem->nlp_res->inf_norm_res_eq, nlp_mem->nlp_res->inf_norm_res_ineq,
-                    nlp_mem->nlp_res->inf_norm_res_comp );
-                printf("\n\n");
-            }
-
-            return mem->status;
-        }
         // ocp_nlp_dims_print(nlp_out->dims);
         // ocp_nlp_out_print(nlp_out);
         // exit(1);

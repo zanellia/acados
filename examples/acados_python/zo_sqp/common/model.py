@@ -61,8 +61,8 @@ def export_model():
     
     # dynamics
 
-    gamma = 0.5
-    f_expl = vertcat(0.1*x1 - 1.0*x2, gamma*sin(x2) + 0.4*x2 + 0.1*u)
+    gamma = 1.9
+    f_expl = vertcat(0.9*x1 - 1.0*x2, gamma*sin(x2)*x1 + 0.4*x2 + 0.1*x1 + 0.1*u)
     f_impl = xdot - f_expl
 
     model = AcadosModel()

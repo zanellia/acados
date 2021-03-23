@@ -1613,7 +1613,7 @@ acados_size_t ocp_nlp_workspace_calculate_size(ocp_nlp_config *config, ocp_nlp_d
     // tmp_nlp_out
     size += ocp_nlp_out_calculate_size(config, dims);
     
-    // inner_nlp_out
+    // outer_nlp_out
     size += ocp_nlp_out_calculate_size(config, dims);
 
     // weight_merit_fun
@@ -1758,8 +1758,8 @@ ocp_nlp_workspace *ocp_nlp_workspace_assign(ocp_nlp_config *config, ocp_nlp_dims
     work->tmp_nlp_out = ocp_nlp_out_assign(config, dims, c_ptr);
     c_ptr += ocp_nlp_out_calculate_size(config, dims);
     
-    // inner_nlp_out
-    work->inner_nlp_out = ocp_nlp_out_assign(config, dims, c_ptr);
+    // outer_nlp_out
+    work->outer_nlp_out = ocp_nlp_out_assign(config, dims, c_ptr);
     c_ptr += ocp_nlp_out_calculate_size(config, dims);
 
     // weight_merit_fun

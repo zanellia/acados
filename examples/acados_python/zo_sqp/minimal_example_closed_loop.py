@@ -52,8 +52,8 @@ nx = model.x.size()[0]
 nu = model.u.size()[0]
 ny = nx + nu
 ny_e = nx
-N = 2
-nsim = 100
+N = 5
+nsim = 50
 
 # set dimensions
 ocp.dims.N = N
@@ -84,7 +84,7 @@ ocp.cost.yref  = np.zeros((ny, ))
 ocp.cost.yref_e = np.zeros((ny_e, ))
 
 # set constraints
-Fmax = 10
+Fmax = 12
 x0 = np.array([0.5, 1.0])
 ocp.constraints.constr_type = 'BGH'
 ocp.constraints.lbu = np.array([-Fmax])
@@ -92,14 +92,15 @@ ocp.constraints.ubu = np.array([+Fmax])
 ocp.constraints.x0 = x0
 ocp.constraints.idxbu = np.array([0])
 
-ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM'
-# ocp.solver_options.qp_solver = 'FULL_CONDENSING_QPOASES'
-# ocp.solver_options.nlp_solver_type = 'ZO_SQP' # SQP_RTI
-ocp.solver_options.nlp_solver_type = 'SQP' # SQP_RTI
+# ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM'
+ocp.solver_options.qp_solver = 'FULL_CONDENSING_QPOASES'
+ocp.solver_options.nlp_solver_type = 'ZO_SQP' # SQP_RTI
+# ocp.solver_options.nlp_solver_type = 'SQP' # SQP_RTI
 ocp.solver_options.hessian_approx = 'GAUSS_NEWTON'
 # ocp.solver_options.hessian_approx = 'EXACT'
 ocp.solver_options.integrator_type = 'ERK'
-ocp.solver_options.nlp_solver_max_iter = 10
+ocp.solver_options.nlp_solver_max_iter = 100
+ocp.solver_options.nlp_solver_tol_stat = 1e-8
 
 ocp.solver_options.qp_solver_cond_N = N
 
