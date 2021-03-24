@@ -119,7 +119,7 @@ void ocp_nlp_zo_sqp_opts_initialize_default(void *config_, void *dims_, void *op
     ocp_nlp_opts_initialize_default(config, dims, nlp_opts);
 
     // SQP opts
-    opts->max_outer_iter = 100;
+    opts->max_iter = 100;
     opts->max_inner_iter = 10;
     opts->tol_stat = 1e-6;
     opts->tol_eq   = 1e-6;
@@ -199,8 +199,8 @@ void ocp_nlp_zo_sqp_opts_set(void *config_, void *opts_, const char *field, void
     {
         if (!strcmp(field, "max_iter"))
         {
-            int* max_outer_iter = (int *) value;
-            opts->max_outer_iter = *max_outer_iter;
+            int* max_iter = (int *) value;
+            opts->max_iter = *max_iter;
         }
         else if (!strcmp(field, "tol_stat"))
         {
@@ -319,7 +319,7 @@ acados_size_t ocp_nlp_zo_sqp_memory_calculate_size(void *config_, void *dims_, v
     size += ocp_nlp_memory_calculate_size(config, dims, nlp_opts);
 
     // stat
-    int stat_m = opts->max_outer_iter+1;
+    int stat_m = opts->max_iter+1;
     int stat_n = 6;
     if (opts->ext_qp_res)
         stat_n += 4;
@@ -367,7 +367,7 @@ void *ocp_nlp_zo_sqp_memory_assign(void *config_, void *dims_, void *opts_, void
 
     // stat
     mem->stat = (double *) c_ptr;
-    mem->stat_m = opts->max_outer_iter+1;
+    mem->stat_m = opts->max_iter+1;
     mem->stat_n = 6;
     if (opts->ext_qp_res)
         mem->stat_n += 4;
@@ -604,10 +604,10 @@ int ocp_nlp_zo_sqp(void *config_, void *dims_, void *nlp_in_, void *nlp_out_,
     ocp_nlp_initialize_qp(config, dims, nlp_in, nlp_out, nlp_opts, nlp_mem, nlp_work);
 
     // main sqp loop
-    int sqp_outer_iter = 0;
+    int sqp_iter = 0;
     int sqp_inner_iter = 0;
 
-    nlp_mem->sqp_iter = &sqp_outer_iter;
+    nlp_mem->sqp_iter = &sqp_iter;
     
     // store current solution
     int *nv = dims->nv;
@@ -616,7 +616,7 @@ int ocp_nlp_zo_sqp(void *config_, void *dims_, void *nlp_in_, void *nlp_out_,
     int *ni = dims->ni;
     int *nz = dims->nz;
 
-    for (sqp_outer_iter = 0; sqp_outer_iter < opts->max_outer_iter; sqp_outer_iter++)
+    for (sqp_iter = 0; sqp_iter < opts->max_iter; sqp_iter++)
     {
 
         bool sens_forw = true;
@@ -673,22 +673,22 @@ int ocp_nlp_zo_sqp(void *config_, void *dims_, void *nlp_in_, void *nlp_out_,
         qp_info *qp_info_;
         ocp_qp_out_get(nlp_mem->qp_out, "qp_info", &qp_info_);
         nlp_out->qp_iter = qp_info_->num_iter;
-        // printf("\nqp_iter = %d, sqp_outer_iter = %d, max_sqp_outer_iter = %d\n", nlp_out->qp_iter, sqp_outer_iter, opts->max_outer_iter);
+        // printf("\nqp_iter = %d, sqp_iter = %d, max_sqp_iter = %d\n", nlp_out->qp_iter, sqp_iter, opts->max_iter);
         qp_iter = qp_info_->num_iter;
 
         // save statistics of last qp solver call
-        if (sqp_outer_iter+1 < mem->stat_m)
+        if (sqp_iter+1 < mem->stat_m)
         {
-            mem->stat[mem->stat_n*(sqp_outer_iter+1)+4] = qp_status;
-            mem->stat[mem->stat_n*(sqp_outer_iter+1)+5] = qp_iter;
+            mem->stat[mem->stat_n*(sqp_iter+1)+4] = qp_status;
+            mem->stat[mem->stat_n*(sqp_iter+1)+5] = qp_iter;
         }
 
         // compute external QP residuals (for debugging)
         if (opts->ext_qp_res)
         {
             ocp_qp_res_compute(nlp_mem->qp_in, nlp_mem->qp_out, work->qp_res, work->qp_res_ws);
-            if (sqp_outer_iter+1 < mem->stat_m)
-                ocp_qp_res_compute_nrm_inf(work->qp_res, mem->stat+(mem->stat_n*(sqp_outer_iter+1)+6));
+            if (sqp_iter+1 < mem->stat_m)
+                ocp_qp_res_compute_nrm_inf(work->qp_res, mem->stat+(mem->stat_n*(sqp_iter+1)+6));
         }
 
 
@@ -697,15 +697,15 @@ int ocp_nlp_zo_sqp(void *config_, void *dims_, void *nlp_in_, void *nlp_out_,
             // print_ocp_qp_in(nlp_mem->qp_in);
             if (opts->print_level > 0)
             {
-                printf("%i\t%e\t%e\t%e\t%e.\n", sqp_outer_iter, nlp_mem->nlp_res->inf_norm_res_stat,
+                printf("%i\t%e\t%e\t%e\t%e.\n", sqp_iter, nlp_mem->nlp_res->inf_norm_res_stat,
                     nlp_mem->nlp_res->inf_norm_res_eq, nlp_mem->nlp_res->inf_norm_res_ineq,
                     nlp_mem->nlp_res->inf_norm_res_comp );
                 printf("\n\n");
             }
 
             // save sqp iterations number
-            mem->sqp_outer_iter = sqp_outer_iter;
-            nlp_out->sqp_iter = sqp_outer_iter;
+            mem->sqp_iter = sqp_iter;
+            nlp_out->sqp_iter = sqp_iter;
 
             // stop timer
             total_time += acados_toc(&timer0);
@@ -714,7 +714,7 @@ int ocp_nlp_zo_sqp(void *config_, void *dims_, void *nlp_in_, void *nlp_out_,
             mem->time_tot = total_time;
             nlp_out->total_time = total_time;
 #ifndef ACADOS_SILENT
-            printf("QP solver returned error status %d in iteration %d\n", qp_status, sqp_outer_iter);
+            printf("QP solver returned error status %d in iteration %d\n", qp_status, sqp_iter);
 #endif
 #if defined(ACADOS_WITH_OPENMP)
             // restore number of threads
@@ -723,8 +723,9 @@ int ocp_nlp_zo_sqp(void *config_, void *dims_, void *nlp_in_, void *nlp_out_,
 
             if (opts->print_level > 1)
             {
+
                 printf("\n Failed to solve the following QP:\n");
-                if (opts->print_level > sqp_outer_iter + 1)
+                if (opts->print_level > sqp_iter + 1)
                     print_ocp_qp_in(nlp_mem->qp_in);
             }
 
@@ -799,7 +800,7 @@ int ocp_nlp_zo_sqp(void *config_, void *dims_, void *nlp_in_, void *nlp_out_,
             qp_info *qp_info_;
             ocp_qp_out_get(nlp_mem->qp_out, "qp_info", &qp_info_);
             nlp_out->qp_iter = qp_info_->num_iter;
-            // printf("\nqp_iter = %d, sqp_iter = %d, max_sqp_iter = %d\n", nlp_out->qp_iter, sqp_iter, opts->max_outer_iter);
+            // printf("\nqp_iter = %d, sqp_iter = %d, max_sqp_iter = %d\n", nlp_out->qp_iter, sqp_iter, opts->max_iter);
             qp_iter = qp_info_->num_iter;
 
             if ((qp_status!=ACADOS_SUCCESS) & (qp_status!=ACADOS_MAXITER))
@@ -858,6 +859,24 @@ int ocp_nlp_zo_sqp(void *config_, void *dims_, void *nlp_in_, void *nlp_out_,
                     printf("  ->  SOLVED OUTER PROBLEM.\n\n");
 
                 mem->status = ACADOS_SUCCESS;
+                
+                // stop timer
+                total_time += acados_toc(&timer0);
+
+                if (opts->print_level > 0)
+                    printf("\n\n");
+
+                // ocp_nlp_out_print(nlp_out);
+
+                // save sqp iterations number
+                mem->sqp_iter = sqp_iter;
+                nlp_out->sqp_iter = sqp_iter;
+
+                // save time
+                mem->time_tot = total_time;
+                printf("total time = %f\n", total_time);
+                nlp_out->total_time = total_time;
+
                 return mem->status;
             }
 
@@ -887,8 +906,8 @@ int ocp_nlp_zo_sqp(void *config_, void *dims_, void *nlp_in_, void *nlp_out_,
     // ocp_nlp_out_print(nlp_out);
 
     // save sqp iterations number
-    mem->sqp_outer_iter = sqp_outer_iter;
-    nlp_out->sqp_iter = sqp_outer_iter;
+    mem->sqp_iter = sqp_iter;
+    nlp_out->sqp_iter = sqp_iter;
 
     // save time
     mem->time_tot = total_time;
@@ -1035,12 +1054,12 @@ void ocp_nlp_zo_sqp_get(void *config_, void *dims_, void *mem_, const char *fiel
     ocp_nlp_dims *dims = dims_;
     ocp_nlp_zo_sqp_memory *mem = mem_;
 
-    if (!strcmp("sqp_outer_iter", field))
+    if (!strcmp("sqp_iter", field))
     {
         int *value = return_value_;
-        *value = mem->sqp_outer_iter;
+        *value = mem->sqp_iter;
     }
-    if (!strcmp("sqp_inner_iter", field))
+    else if (!strcmp("sqp_inner_iter", field))
     {
         int *value = return_value_;
         *value = mem->sqp_inner_iter;
@@ -1104,7 +1123,7 @@ void ocp_nlp_zo_sqp_get(void *config_, void *dims_, void *mem_, const char *fiel
     }
     else if (!strcmp("statistics", field))
     {
-        int n_row = mem->stat_m < mem->sqp_outer_iter+1 ? mem->stat_m : mem->sqp_outer_iter+1;
+        int n_row = mem->stat_m < mem->sqp_iter+1 ? mem->stat_m : mem->sqp_iter+1;
         double *value = return_value_;
         for (int ii=0; ii<n_row; ii++)
         {

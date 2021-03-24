@@ -130,6 +130,10 @@ for i in range(nsim):
         print(i, xcurrent)
         raise Exception('acados acados_ocp_solver returned status {}. Exiting.'.format(status))
 
+    # acados_ocp_solver.print_statistics()
+    stats = acados_ocp_solver.get_stats('time_tot')
+    import pdb; pdb.set_trace()
+    print('CPU time = {}'.format(stats))
     simU[i,:] = acados_ocp_solver.get(0, "u")
 
     # simulate system
