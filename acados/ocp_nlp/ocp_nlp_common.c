@@ -1952,7 +1952,7 @@ void ocp_nlp_approximate_qp_matrices(ocp_nlp_config *config, ocp_nlp_dims *dims,
     int *nu = dims->nu;
     int *ni = dims->ni;
 
-    /* stage-wise multiple shooting lagrangian evaluation */
+    /* stage-wise multiple shooting Lagrangian evaluation */
 
 #if defined(ACADOS_WITH_OPENMP)
     #pragma omp parallel for

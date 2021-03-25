@@ -65,6 +65,9 @@ typedef struct
     double tol_comp;     // exit tolerance on complementarity condition
     int max_iter;
     int max_inner_iter;
+    double kappa_max;
+    double theta_max;
+    double min_alpha_inner;
     int ext_qp_res;      // compute external QP residuals (i.e. at SQP level) at each SQP iteration (for debugging)
     int qp_warm_start;   // qp_warm_start in all but the first sqp iterations
     bool warm_start_first_qp; // to set qp_warm_start in first iteration

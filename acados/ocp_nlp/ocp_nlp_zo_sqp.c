@@ -121,6 +121,9 @@ void ocp_nlp_zo_sqp_opts_initialize_default(void *config_, void *dims_, void *op
     // SQP opts
     opts->max_iter = 100;
     opts->max_inner_iter = 10;
+    opts->kappa_max = 0.7;
+    opts->theta_max = 0.7;
+    opts->min_alpha_inner = 0.01;
     opts->tol_stat = 1e-6;
     opts->tol_eq   = 1e-6;
     opts->tol_ineq = 1e-6;
@@ -652,11 +655,18 @@ int ocp_nlp_zo_sqp(void *config_, void *dims_, void *nlp_in_, void *nlp_out_,
                                                opts->nlp_opts->regularize, nlp_mem->regularize_mem);
         mem->time_reg += acados_toc(&timer1);
 
+        // print_ocp_qp_in(nlp_mem->qp_in);
+        // exit(1);
         // solve qp
         acados_tic(&timer1);
         qp_status = qp_solver->evaluate(qp_solver, dims->qp_solver, nlp_mem->qp_in, nlp_mem->qp_out,
                                         opts->nlp_opts->qp_solver_opts, nlp_mem->qp_solver_mem, nlp_work->qp_work);
+        // print_ocp_qp_in(nlp_mem->qp_in);
+        // exit(1);
+        //TODO(andrea): why is the call to the QP solver changing the vectors in BAbt, RSQrq etc????
         mem->time_qp_sol += acados_toc(&timer1);
+        // print_ocp_qp_out(nlp_mem->qp_out);
+        // exit(1);
 
         qp_solver->memory_get(qp_solver, nlp_mem->qp_solver_mem, "time_qp_solver_call", &tmp_time);
         mem->time_qp_solver_call += tmp_time;
@@ -684,12 +694,6 @@ int ocp_nlp_zo_sqp(void *config_, void *dims_, void *nlp_in_, void *nlp_out_,
         }
 
         // compute external QP residuals (for debugging)
-        if (opts->ext_qp_res)
-        {
-            ocp_qp_res_compute(nlp_mem->qp_in, nlp_mem->qp_out, work->qp_res, work->qp_res_ws);
-            if (sqp_iter+1 < mem->stat_m)
-                ocp_qp_res_compute_nrm_inf(work->qp_res, mem->stat+(mem->stat_n*(sqp_iter+1)+6));
-        }
 
 
         if ((qp_status!=ACADOS_SUCCESS) & (qp_status!=ACADOS_MAXITER))
@@ -741,10 +745,12 @@ int ocp_nlp_zo_sqp(void *config_, void *dims_, void *nlp_in_, void *nlp_out_,
         // TODO(andrea): why is this breaking convergence??
         // update variables
         // printf("alpha = %f\n", alpha);
-        // ocp_nlp_update_variables_sqp(config, dims, nlp_in, nlp_out, nlp_opts, nlp_mem, nlp_work, alpha);
+        ocp_nlp_update_variables_sqp(config, dims, nlp_in, nlp_out, nlp_opts, nlp_mem, nlp_work, alpha);
         // printf("res after linearization and QP step:\n");
 
-        sens_forw = false;
+        // TODO(something breaks here! even when the NLP solution is not 
+        // updated the QP changes if this is set to false!!)
+        // sens_forw = false;
         for (ii=0; ii<N; ii++)
             config->dynamics[ii]->opts_set(config->dynamics[ii], nlp_opts->dynamics[ii],"sens_forw", &sens_forw);
 
@@ -756,21 +762,51 @@ int ocp_nlp_zo_sqp(void *config_, void *dims_, void *nlp_in_, void *nlp_out_,
         dual_sol = 0;
 
 #if !HPIPM_ZO
-        qp_solver->opts_set(qp_solver, opts->nlp_opts->qp_solver_opts, "warm_start", &warm_start);
         qp_solver->opts_set(qp_solver, opts->nlp_opts->qp_solver_opts, "cond_hess", &hess);
         qp_solver->opts_set(qp_solver, opts->nlp_opts->qp_solver_opts, "cond_dual_sol", &dual_sol);
+        qp_solver->opts_set(qp_solver, opts->nlp_opts->qp_solver_opts, "warm_start", &warm_start);
 #endif
+
+        //////
+        double temp = 0.0;
+        double step_norm = 0.0;
+        for (int i=0; i<=N;i++){
+            // step in primal variables
+            blasfeo_dvecnrm_inf(nv[i], nlp_mem->qp_out->ux + i, 0, &temp);
+            step_norm += temp*temp;
+        }
+
+        // if (opts->print_level > 0)
+        //     printf("%i\t%e.\n", sqp_outer_iter, step_norm);
+
+        // if (step_norm < opts->tol_stat)
+        // {
+        //     if (opts->print_level > 0)
+        //         printf("  ->  SOLVED OUTER PROBLEM.\n\n");
+
+        //     mem->status = ACADOS_SUCCESS;
+        //     return mem->status;
+        // }
+        ////
+
+        double prev_step_norm = 1E12;
+        double alpha_inner = 1.0;
 
         for (sqp_inner_iter = 0; sqp_inner_iter < opts->max_inner_iter; sqp_inner_iter++)
         {
 
             // linearize NLP and update QP matrices
             acados_tic(&timer1);
+            // TODO(andrea): this function call changes the QP solution even if there is no update of the NLP solution (call to update_variables)!!!!!!
             ocp_nlp_approximate_qp_matrices(config, dims, nlp_in, nlp_out, nlp_opts, nlp_mem, nlp_work);
             mem->time_lin += acados_toc(&timer1);
 
+            // scale gradients to globalize inner iterations
+            for (int i=0; i <= N; i++)
+                blasfeo_dvecsc(nv[i], alpha_inner, nlp_mem->cost_grad + i, 0);
             // update QP rhs for SQP (step prim var, abs dual var)
             ocp_nlp_approximate_qp_vectors_sqp(config, dims, nlp_in, nlp_out, nlp_opts, nlp_mem, nlp_work);
+
 
 
             // regularize Hessian
@@ -779,11 +815,15 @@ int ocp_nlp_zo_sqp(void *config_, void *dims_, void *nlp_in_, void *nlp_out_,
                                                    opts->nlp_opts->regularize, nlp_mem->regularize_mem);
             mem->time_reg += acados_toc(&timer1);
 
+            // print_ocp_qp_in(nlp_mem->qp_in);
+            // exit(1);
             // solve qp
             acados_tic(&timer1);
             qp_status = qp_solver->evaluate(qp_solver, dims->qp_solver, nlp_mem->qp_in, nlp_mem->qp_out,
                                             opts->nlp_opts->qp_solver_opts, nlp_mem->qp_solver_mem, nlp_work->qp_work);
             mem->time_qp_sol += acados_toc(&timer1);
+            // print_ocp_qp_out(nlp_mem->qp_out);
+            // exit(1);
 
             qp_solver->memory_get(qp_solver, nlp_mem->qp_solver_mem, "time_qp_solver_call", &tmp_time);
             mem->time_qp_solver_call += tmp_time;
@@ -880,21 +920,36 @@ int ocp_nlp_zo_sqp(void *config_, void *dims_, void *nlp_in_, void *nlp_out_,
                 return mem->status;
             }
 
-            if (step_norm < 1e-10) {
+            if (step_norm < 1e-4) {
                 {
                     if (opts->print_level > 0)
                         printf("SOLVED INNER PROBLEM.\n");
                     break; 
                 }
             }
+            double kappa = step_norm/prev_step_norm;
+            if (kappa > opts->kappa_max)
+            {
+                printf("alpha_inner = %f, kappa = %f", alpha_inner, kappa);
+                alpha_inner = alpha_inner * opts->theta_max;
+            }
+
+            prev_step_norm = step_norm;
+
+            if (alpha_inner < opts->min_alpha_inner) {
+                printf("\nneed to relinearize!\n");
+                break;
+                // exit(1);
+            }
         }
 
-        if (sqp_inner_iter >= opts->max_inner_iter)
-        {
-            printf("maximum number of inner iterations reached!\n");
-            mem->status = ACADOS_MAXITER;
-            return mem->status;
-        }
+
+        // if (sqp_inner_iter >= opts->max_inner_iter)
+        // {
+        //     printf("maximum number of inner iterations reached!\n");
+        //     mem->status = ACADOS_MAXITER;
+        //     return mem->status;
+        // }
     }
 
     // stop timer
