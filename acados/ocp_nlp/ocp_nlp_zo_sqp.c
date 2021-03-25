@@ -61,7 +61,7 @@
 #include "acados/utils/types.h"
 #include "acados_c/ocp_qp_interface.h"
 
-#define HPIPM_ZO 1
+#define HPIPM_ZO 0
 
 
 /************************************************
@@ -750,7 +750,8 @@ int ocp_nlp_zo_sqp(void *config_, void *dims_, void *nlp_in_, void *nlp_out_,
 
         // TODO(something breaks here! even when the NLP solution is not 
         // updated the QP changes if this is set to false!!)
-        // sens_forw = false;
+
+        sens_forw = false;
         for (ii=0; ii<N; ii++)
             config->dynamics[ii]->opts_set(config->dynamics[ii], nlp_opts->dynamics[ii],"sens_forw", &sens_forw);
 
@@ -798,7 +799,8 @@ int ocp_nlp_zo_sqp(void *config_, void *dims_, void *nlp_in_, void *nlp_out_,
             // linearize NLP and update QP matrices
             acados_tic(&timer1);
             // TODO(andrea): this function call changes the QP solution even if there is no update of the NLP solution (call to update_variables)!!!!!!
-            ocp_nlp_approximate_qp_matrices(config, dims, nlp_in, nlp_out, nlp_opts, nlp_mem, nlp_work);
+            // ocp_nlp_approximate_qp_matrices(config, dims, nlp_in, nlp_out, nlp_opts, nlp_mem, nlp_work);
+            ocp_nlp_evaluate_functions(config, dims, nlp_in, nlp_out, nlp_opts, nlp_mem, nlp_work);
             mem->time_lin += acados_toc(&timer1);
 
             // scale gradients to globalize inner iterations
@@ -930,7 +932,7 @@ int ocp_nlp_zo_sqp(void *config_, void *dims_, void *nlp_in_, void *nlp_out_,
             double kappa = step_norm/prev_step_norm;
             if (kappa > opts->kappa_max)
             {
-                printf("alpha_inner = %f, kappa = %f", alpha_inner, kappa);
+                printf("alpha_inner = %f, kappa = %f\n", alpha_inner, kappa);
                 alpha_inner = alpha_inner * opts->theta_max;
             }
 

@@ -132,8 +132,7 @@ for i in range(nsim):
 
     # acados_ocp_solver.print_statistics()
     stats = acados_ocp_solver.get_stats('time_tot')
-    import pdb; pdb.set_trace()
-    print('CPU time = {}'.format(stats))
+    # print('CPU time = {}'.format(stats))
     simU[i,:] = acados_ocp_solver.get(0, "u")
 
     # simulate system

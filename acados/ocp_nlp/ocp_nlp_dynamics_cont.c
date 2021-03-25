@@ -856,6 +856,123 @@ void ocp_nlp_dynamics_cont_update_qp_matrices(void *config_, void *dims_, void *
 
 
 
+void ocp_nlp_dynamics_cont_update_qp_vectors(void *config_, void *dims_, void *model_, void *opts_, void *mem_, void *work_)
+{
+    ocp_nlp_dynamics_cont_cast_workspace(config_, dims_, opts_, work_);
+
+    ocp_nlp_dynamics_config *config = config_;
+    ocp_nlp_dynamics_cont_dims *dims = dims_;
+    ocp_nlp_dynamics_cont_opts *opts = opts_;
+    ocp_nlp_dynamics_cont_workspace *work = work_;
+    ocp_nlp_dynamics_cont_memory *mem = mem_;
+    ocp_nlp_dynamics_cont_model *model = model_;
+
+    int jj;
+
+    int nx = dims->nx;
+    int nu = dims->nu;
+    int nz = dims->nz;
+    int nx1 = dims->nx1;
+    int nu1 = dims->nu1;
+
+    // setup model
+    work->sim_in->model = model->sim_model;
+    work->sim_in->T = model->T;
+
+    // pass state and control to integrator
+    blasfeo_unpack_dvec(nu, mem->ux, 0, work->sim_in->u, 1);
+    blasfeo_unpack_dvec(nx, mem->ux, nu, work->sim_in->x, 1);
+
+    // printf("sim_guess, bool %d\n", mem->set_sim_guess[0]);
+    // blasfeo_print_exp_dvec(nx + nz, mem->sim_guess, 0);
+
+    if (mem->set_sim_guess!=NULL && mem->set_sim_guess[0])
+    {
+        config->sim_solver->memory_set(config->sim_solver, work->sim_in->dims, mem->sim_solver,
+                                        "guesses_blasfeo", mem->sim_guess);
+        // only use/pass the initial guess once
+        mem->set_sim_guess[0] = false;
+    }
+
+    // initialize seeds
+    // TODO fix dims if nx!=nx1 !!!!!!!!!!!!!!!!!
+    // set S_forw = [eye(nx), zeros(nx x nu)]
+    for(jj = 0; jj < nx1 * (nx + nu); jj++)
+        work->sim_in->S_forw[jj] = 0.0;
+    for(jj = 0; jj < nx1; jj++)
+        work->sim_in->S_forw[jj * (nx + 1)] = 1.0;
+    work->sim_in->identity_seed = true;
+
+    // adjoint seed
+    for(jj = 0; jj < nx + nu; jj++)
+        work->sim_in->S_adj[jj] = 0.0;
+    blasfeo_unpack_dvec(nx1, mem->pi, 0, work->sim_in->S_adj, 1);
+
+    // call integrator
+    config->sim_solver->evaluate(config->sim_solver, work->sim_in, work->sim_out, opts->sim_solver,
+            mem->sim_solver, work->sim_solver);
+
+    // TODO transition functions for changing dimensions not yet implemented!
+
+    // B
+    // blasfeo_pack_tran_dmat(nx1, nu, work->sim_out->S_forw + nx1 * nx, nx1, mem->BAbt, 0, 0);
+    // A
+    // blasfeo_pack_tran_dmat(nx1, nx, work->sim_out->S_forw + 0, nx1, mem->BAbt, nu, 0);
+    // dzduxt
+    // blasfeo_pack_tran_dmat(nz, nu, work->sim_out->S_algebraic + nx*nz, nz, mem->dzduxt, 0, 0);
+    // blasfeo_pack_tran_dmat(nz, nx, work->sim_out->S_algebraic + 0, nz, mem->dzduxt, nu, 0);
+    // blasfeo_print_dmat(nx + nu, nz, mem->dzduxt, 0, 0);
+
+    // function
+    blasfeo_pack_dvec(nx1, work->sim_out->xn, 1, &mem->fun, 0);
+    blasfeo_daxpy(nx1, -1.0, mem->ux1, nu1, &mem->fun, 0, &mem->fun, 0);
+    blasfeo_pack_dvec(nz, work->sim_out->zn, 1, mem->z_alg, 0);
+
+    // adjoint
+    if (opts->compute_adj)
+    {
+        // check if adjoints computed in integrator
+        bool adjoint_integrator;
+        sim_opts_get(config->sim_solver, opts->sim_solver, "sens_adj", &adjoint_integrator);
+
+        if (adjoint_integrator)
+        {
+            blasfeo_pack_dvec(nu, work->sim_out->S_adj+nx, 1, &mem->adj, 0);
+            blasfeo_pack_dvec(nx, work->sim_out->S_adj+0, 1, &mem->adj, nu);
+            blasfeo_dvecsc(nu+nx, -1.0, &mem->adj, 0);
+        }
+        // compute as forward * adj_seed
+        else
+        {
+            blasfeo_dgemv_n(nu+nx, nx1, -1.0, mem->BAbt, 0, 0, mem->pi, 0, 0.0, &mem->adj, 0, &mem->adj, 0);
+        }
+        blasfeo_dveccp(nx1, mem->pi, 0, &mem->adj, nu+nx);
+    }
+
+    // hessian
+    if (opts->compute_hess)
+    {
+
+//        d_print_mat(nu+nx, nu+nx, work->sim_out->S_hess, nu+nx);
+
+        // unpack d*_d2u
+        // blasfeo_pack_dmat(nu, nu, &work->sim_out->S_hess[(nx+nu)*nx + nx], nx+nu, &work->hess, 0, 0);
+        // unpack d*_dux: mem-hess: nx x nu
+        // blasfeo_pack_dmat(nx, nu, &work->sim_out->S_hess[(nx + nu)*nx], nx+nu, &work->hess, nu, 0);
+        // unpack d*_d2x
+        // blasfeo_pack_dmat(nx, nx, &work->sim_out->S_hess[0], nx+nu, &work->hess, nu, nu);
+
+        // Add hessian contribution
+        // blasfeo_dgead(nx+nu, nx+nu, 1.0, &work->hess, 0, 0, mem->RSQrq, 0, 0);
+    }
+
+    return;
+
+}
+
+
+
+
 void ocp_nlp_dynamics_cont_compute_fun(void *config_, void *dims_, void *model_, void *opts_, void *mem_, void *work_)
 {
     ocp_nlp_dynamics_cont_cast_workspace(config_, dims_, opts_, work_);
@@ -987,6 +1104,7 @@ void ocp_nlp_dynamics_cont_config_initialize_default(void *config_)
     config->workspace_calculate_size = &ocp_nlp_dynamics_cont_workspace_calculate_size;
     config->initialize = &ocp_nlp_dynamics_cont_initialize;
     config->update_qp_matrices = &ocp_nlp_dynamics_cont_update_qp_matrices;
+    config->update_qp_vectors = &ocp_nlp_dynamics_cont_update_qp_vectors;
     config->compute_fun = &ocp_nlp_dynamics_cont_compute_fun;
     config->precompute = &ocp_nlp_dynamics_cont_precompute;
     config->config_initialize_default = &ocp_nlp_dynamics_cont_config_initialize_default;
