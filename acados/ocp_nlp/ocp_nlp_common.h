@@ -242,7 +242,10 @@ acados_size_t ocp_nlp_out_calculate_size(ocp_nlp_config *config, ocp_nlp_dims *d
 //
 ocp_nlp_out *ocp_nlp_out_assign(ocp_nlp_config *config, ocp_nlp_dims *dims,
                                 void *raw_memory);
-
+//
+void *ocp_nlp_out_copy(ocp_nlp_dims *dims, ocp_nlp_out *source, ocp_nlp_out *target);
+//
+void *ocp_nlp_out_primal_dual_cvx_combination(ocp_nlp_dims *dims, ocp_nlp_out *source, ocp_nlp_out *target, ocp_nlp_out *cvx, double alpha);
 
 
 /************************************************
@@ -369,7 +372,6 @@ typedef struct ocp_nlp_workspace
     void **constraints;  // constraints_workspace
 
 	ocp_nlp_out *tmp_nlp_out;
-	ocp_nlp_out *outer_nlp_out; // for ZO_SQP
 	ocp_nlp_out *weight_merit_fun;
 
 } ocp_nlp_workspace;

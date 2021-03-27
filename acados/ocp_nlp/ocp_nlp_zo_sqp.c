@@ -119,7 +119,7 @@ void ocp_nlp_zo_sqp_opts_initialize_default(void *config_, void *dims_, void *op
     ocp_nlp_opts_initialize_default(config, dims, nlp_opts);
 
     // SQP opts
-    opts->max_outer_iter = 100;
+    opts->max_iter = 100;
     opts->max_inner_iter = 20;
     opts->kappa_max = 1.0;
     opts->kappa_bar = 0.6;
@@ -321,6 +321,12 @@ acados_size_t ocp_nlp_zo_sqp_memory_calculate_size(void *config_, void *dims_, v
 
     // nlp mem
     size += ocp_nlp_memory_calculate_size(config, dims, nlp_opts);
+    
+    // outer_nlp_out
+    size += ocp_nlp_out_calculate_size(config, dims);
+    
+    // trial_nlp_out
+    size += ocp_nlp_out_calculate_size(config, dims);
 
     // stat
     int stat_m = opts->max_iter+1;
@@ -368,6 +374,14 @@ void *ocp_nlp_zo_sqp_memory_assign(void *config_, void *dims_, void *opts_, void
     // nlp mem
     mem->nlp_mem = ocp_nlp_memory_assign(config, dims, nlp_opts, c_ptr);
     c_ptr += ocp_nlp_memory_calculate_size(config, dims, nlp_opts);
+    
+    // outer_nlp_out
+    mem->outer_nlp_out = ocp_nlp_out_assign(config, dims, c_ptr);
+    c_ptr += ocp_nlp_out_calculate_size(config, dims);
+    
+    // trial_nlp_out
+    mem->trial_nlp_out = ocp_nlp_out_assign(config, dims, c_ptr);
+    c_ptr += ocp_nlp_out_calculate_size(config, dims);
 
     // stat
     mem->stat = (double *) c_ptr;
@@ -492,7 +506,6 @@ int ocp_nlp_zo_sqp(void *config_, void *dims_, void *nlp_in_, void *nlp_out_,
     ocp_nlp_zo_sqp_workspace *work = work_;
     ocp_nlp_zo_sqp_cast_workspace(config, dims, opts, mem, work);
     ocp_nlp_workspace *nlp_work = work->nlp_work;
-    ocp_nlp_out *outer_nlp_out = nlp_work->outer_nlp_out;
 
     // zero timers
     double total_time = 0.0;
@@ -620,14 +633,72 @@ int ocp_nlp_zo_sqp(void *config_, void *dims_, void *nlp_in_, void *nlp_out_,
     int *ni = dims->ni;
     int *nz = dims->nz;
 
+    double *cost;
+    double *prev_cost;
+
+    ocp_nlp_out * outer_nlp_out = mem->outer_nlp_out;
+    ocp_nlp_out * trial_nlp_out = mem->trial_nlp_out;
+
     for (sqp_iter = 0; sqp_iter < opts->max_iter; sqp_iter++)
     {
+
+        if (sqp_iter > 0) 
+        {
+            // globalize
+            double outer_alpha = 1.0;
+
+            while(1)
+            {
+                ocp_nlp_out_primal_dual_cvx_combination(dims, outer_nlp_out, nlp_out, trial_nlp_out, outer_alpha);
+
+                // evaluate cost
+                for (int ii; ii <=N; ii++)
+                {
+                    config->cost[ii]->memory_set_tmp_ux_ptr(trial_nlp_out->ux+ii, nlp_mem->cost[ii]);
+
+                    config->cost[ii]->compute_fun(config->cost[ii], dims->cost[ii], nlp_in->cost[ii],
+                                nlp_opts->cost[ii], nlp_mem->cost[ii], nlp_work->cost[ii]);
+                }
+
+                cost = config->cost[ii]->memory_get_fun_ptr(nlp_mem->cost[ii]);
+
+                // TODO(andrea): add Armijo condition
+                if (*cost <= *prev_cost)
+                {
+                    
+                    // copy solution (for globalization)
+                    ocp_nlp_out_copy(dims, trial_nlp_out, outer_nlp_out);
+                    *prev_cost = *cost;
+                    break;
+                } else {
+                    outer_alpha *= nlp_opts->alpha_reduction;
+                }
+
+                if (outer_alpha < nlp_opts->alpha_min) 
+                {
+                    printf("Min alpha = %f reached. Outer globalization failed!", outer_alpha);
+                    mem->status = ACADOS_MAXITER;
+                }
+            }
+
+        } else 
+        {
+            // evaluate cost
+            config->cost[ii]->memory_set_tmp_ux_ptr(nlp_out->ux+ii, nlp_mem->cost[ii]);
+
+            config->cost[ii]->compute_fun(config->cost[ii], dims->cost[ii], nlp_in->cost[ii],
+                        nlp_opts->cost[ii], nlp_mem->cost[ii], nlp_work->cost[ii]);
+            prev_cost = config->cost[ii]->memory_get_fun_ptr(nlp_mem->cost[ii]);
+
+            // copy solution (for globalization)
+            ocp_nlp_out_copy(dims, nlp_out, outer_nlp_out);
+        }
 
         bool sens_forw = true;
         for (ii=0; ii<N; ii++)
             config->dynamics[ii]->opts_set(config->dynamics[ii], nlp_opts->dynamics[ii],"sens_forw", &sens_forw);
         
-        // switch off hotstart
+        // hotstart
         int warm_start = 2;
         // condense Hessian
         int hess = 1;
@@ -743,20 +814,13 @@ int ocp_nlp_zo_sqp(void *config_, void *dims_, void *nlp_in_, void *nlp_out_,
         double alpha = ocp_nlp_line_search(config, dims, nlp_in, nlp_out, nlp_opts, nlp_mem, nlp_work);
         mem->time_glob += acados_toc(&timer1);
 
-        // TODO(andrea): why is this breaking convergence??
-        // update variables
-        // printf("alpha = %f\n", alpha);
         ocp_nlp_update_variables_sqp(config, dims, nlp_in, nlp_out, nlp_opts, nlp_mem, nlp_work, alpha);
-        // printf("res after linearization and QP step:\n");
-
-        // TODO(something breaks here! even when the NLP solution is not 
-        // updated the QP changes if this is set to false!!)
 
         sens_forw = false;
         for (ii=0; ii<N; ii++)
             config->dynamics[ii]->opts_set(config->dynamics[ii], nlp_opts->dynamics[ii],"sens_forw", &sens_forw);
 
-        // switch off hotstart
+        // hotstart
         warm_start = 2;
         // do not condense Hessian
         hess = 0;

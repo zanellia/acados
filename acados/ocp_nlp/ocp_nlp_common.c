@@ -922,6 +922,60 @@ ocp_nlp_out *ocp_nlp_out_assign(ocp_nlp_config *config, ocp_nlp_dims *dims, void
 
 
 
+void *ocp_nlp_out_copy(ocp_nlp_dims *dims, ocp_nlp_out *source, ocp_nlp_out *target)
+{
+    // extract sizes
+    int N = dims->N;
+    int *nv = dims->nv;
+    int *nx = dims->nx;
+    int *ni = dims->ni;
+    int *nz = dims->nz;
+
+    int ii;
+    for(ii = 0; ii< N; ii++)
+    {
+        blasfeo_dveccp(nv[ii],   source->ux+ii,  0, target->ux+ii,  0);
+        blasfeo_dveccp(nz[ii],   source->z+ii,   0, target->z+ii,   0);
+        blasfeo_dveccp(nx[ii+1], source->pi+ii,  0, target->pi+ii,  0);
+        blasfeo_dveccp(2*ni[ii], source->lam+ii, 0, target->lam+ii, 0);
+        blasfeo_dveccp(2*ni[ii], source->t+ii,   0, target->t+ii,   0);
+    }
+    ii = N;
+    blasfeo_dveccp(nv[ii],   source->ux+ii,  0, target->ux+ii,  0);
+    blasfeo_dveccp(nz[ii],   source->z+ii,   0, target->z+ii,   0);
+    blasfeo_dveccp(2*ni[ii], source->lam+ii, 0, target->lam+ii, 0);
+    blasfeo_dveccp(2*ni[ii], source->t+ii,   0, target->t+ii,   0);
+}
+
+
+
+void *ocp_nlp_out_primal_dual_cvx_combination(ocp_nlp_dims *dims, ocp_nlp_out *source, ocp_nlp_out *target, ocp_nlp_out *cvx, double alpha)
+{
+    // extract sizes
+    int N = dims->N;
+    int *nv = dims->nv;
+    int *nx = dims->nx;
+    int *ni = dims->ni;
+    int *nz = dims->nz;
+
+    int ii;
+    for(ii = 0; ii< N; ii++)
+    {
+
+        blasfeo_daxpy(nv[ii],   alpha, source->ux+ii,  0, target->ux+ii,  0, cvx->ux+ii, 0);
+        blasfeo_daxpy(nz[ii],   alpha, source->z+ii,   0, target->z+ii,   0, cvx->z+ii, 0);
+        blasfeo_daxpy(nx[ii+1], alpha, source->pi+ii,  0, target->pi+ii,  0, cvx->pi+ii, 0);
+        blasfeo_daxpy(2*ni[ii], alpha, source->lam+ii, 0, target->lam+ii, 0, cvx->lam+ii, 0);
+        blasfeo_daxpy(2*ni[ii], alpha, source->t+ii,   0, target->t+ii,   0, cvx->t+ii, 0);
+    }
+
+    ii = N;
+    blasfeo_daxpy(nv[ii],   alpha, source->ux+ii,  0, target->ux+ii,  0, cvx->ux+ii, 0);
+    blasfeo_daxpy(nz[ii],   alpha, source->z+ii,   0, target->z+ii,   0, cvx->z+ii, 0);
+    blasfeo_daxpy(2*ni[ii], alpha, source->lam+ii, 0, target->lam+ii, 0, cvx->lam+ii, 0);
+    blasfeo_daxpy(2*ni[ii], alpha, source->t+ii,   0, target->t+ii,   0, cvx->t+ii, 0);
+}
+
 /************************************************
  * options
  ************************************************/
@@ -1613,9 +1667,6 @@ acados_size_t ocp_nlp_workspace_calculate_size(ocp_nlp_config *config, ocp_nlp_d
     // tmp_nlp_out
     size += ocp_nlp_out_calculate_size(config, dims);
     
-    // outer_nlp_out
-    size += ocp_nlp_out_calculate_size(config, dims);
-
     // weight_merit_fun
     size += ocp_nlp_out_calculate_size(config, dims);
 
@@ -1758,10 +1809,6 @@ ocp_nlp_workspace *ocp_nlp_workspace_assign(ocp_nlp_config *config, ocp_nlp_dims
     work->tmp_nlp_out = ocp_nlp_out_assign(config, dims, c_ptr);
     c_ptr += ocp_nlp_out_calculate_size(config, dims);
     
-    // outer_nlp_out
-    work->outer_nlp_out = ocp_nlp_out_assign(config, dims, c_ptr);
-    c_ptr += ocp_nlp_out_calculate_size(config, dims);
-
     // weight_merit_fun
     work->weight_merit_fun = ocp_nlp_out_assign(config, dims, c_ptr);
     c_ptr += ocp_nlp_out_calculate_size(config, dims);
@@ -2752,6 +2799,9 @@ void ocp_nlp_cost_compute(ocp_nlp_config *config, ocp_nlp_dims *dims, ocp_nlp_in
         // NOTE(oj): the cost compute function takes the tmp_ux_ptr as input,
         //  since it is also used for globalization,
         //  especially with primal variables that are NOT current SQP iterates.
+        //  NOTE(andrea): why not adding an argument of type ocp_nlp_out
+        //  to cost_compute_fun() and evaluate the cost at that point?
+        
         config->cost[ii]->memory_set_tmp_ux_ptr(out->ux+ii, mem->cost[ii]);
 
         config->cost[ii]->compute_fun(config->cost[ii], dims->cost[ii], in->cost[ii],
