@@ -66,7 +66,8 @@ typedef struct
     int max_iter;
     int max_inner_iter;
     double kappa_max;
-    double theta_max;
+    double kappa_bar;
+    double theta_bar;
     double min_alpha_inner;
     int ext_qp_res;      // compute external QP residuals (i.e. at SQP level) at each SQP iteration (for debugging)
     int qp_warm_start;   // qp_warm_start in all but the first sqp iterations

@@ -152,13 +152,15 @@ def acados_settings(Tf, N, track_file):
 
     # set QP solver and integration
     ocp.solver_options.tf = Tf
-    # ocp.solver_options.qp_solver = 'FULL_CONDENSING_QPOASES'
-    ocp.solver_options.qp_solver = "PARTIAL_CONDENSING_HPIPM"
-    ocp.solver_options.nlp_solver_type = "SQP"
+    ocp.solver_options.qp_solver = 'FULL_CONDENSING_QPOASES'
+    # ocp.solver_options.qp_solver = "PARTIAL_CONDENSING_HPIPM"
+    # ocp.solver_options.nlp_solver_type = "SQP"
+    ocp.solver_options.nlp_solver_type = "ZO_SQP"
     ocp.solver_options.hessian_approx = "GAUSS_NEWTON"
     ocp.solver_options.integrator_type = "ERK"
     ocp.solver_options.sim_method_num_stages = 4
     ocp.solver_options.sim_method_num_steps = 3
+    ocp.solver_options.qp_solver_iter_max = 1000
     # ocp.solver_options.nlp_solver_step_length = 0.05
     ocp.solver_options.nlp_solver_max_iter = 200
     ocp.solver_options.tol = 1e-4

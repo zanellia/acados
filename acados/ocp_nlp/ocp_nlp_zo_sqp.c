@@ -119,10 +119,11 @@ void ocp_nlp_zo_sqp_opts_initialize_default(void *config_, void *dims_, void *op
     ocp_nlp_opts_initialize_default(config, dims, nlp_opts);
 
     // SQP opts
-    opts->max_iter = 100;
-    opts->max_inner_iter = 10;
-    opts->kappa_max = 0.7;
-    opts->theta_max = 0.7;
+    opts->max_outer_iter = 100;
+    opts->max_inner_iter = 20;
+    opts->kappa_max = 1.0;
+    opts->kappa_bar = 0.6;
+    opts->theta_bar = 0.7;
     opts->min_alpha_inner = 0.01;
     opts->tol_stat = 1e-6;
     opts->tol_eq   = 1e-6;
@@ -879,11 +880,8 @@ int ocp_nlp_zo_sqp(void *config_, void *dims_, void *nlp_in_, void *nlp_out_,
             alpha = 1.0;
             mem->time_glob += acados_toc(&timer1);
 
-            // update variables
-            ocp_nlp_update_variables_sqp(config, dims, nlp_in, nlp_out, nlp_opts, nlp_mem, nlp_work, alpha);
             
             // terminate based on primal-step for now
-
             double temp = 0.0;
             double step_norm = 0.0;
             for (int i=0; i<=N;i++){
@@ -929,11 +927,17 @@ int ocp_nlp_zo_sqp(void *config_, void *dims_, void *nlp_in_, void *nlp_out_,
                     break; 
                 }
             }
+
             double kappa = step_norm/prev_step_norm;
-            if (kappa > opts->kappa_max)
+            if (kappa > opts->kappa_bar)
             {
+                // if (kappa > opts->kappa_max)
+                // {
+                //     printf("\n kappa > kappa_max!\n");
+                //     break;
+                // } 
+                alpha_inner = alpha_inner * opts->theta_bar;
                 printf("alpha_inner = %f, kappa = %f\n", alpha_inner, kappa);
-                alpha_inner = alpha_inner * opts->theta_max;
             }
 
             prev_step_norm = step_norm;
@@ -943,15 +947,18 @@ int ocp_nlp_zo_sqp(void *config_, void *dims_, void *nlp_in_, void *nlp_out_,
                 break;
                 // exit(1);
             }
+            
+            // update variables
+            ocp_nlp_update_variables_sqp(config, dims, nlp_in, nlp_out, nlp_opts, nlp_mem, nlp_work, alpha);
         }
 
 
-        // if (sqp_inner_iter >= opts->max_inner_iter)
-        // {
-        //     printf("maximum number of inner iterations reached!\n");
-        //     mem->status = ACADOS_MAXITER;
-        //     return mem->status;
-        // }
+        if (sqp_inner_iter >= opts->max_inner_iter)
+        {
+            printf("maximum number of inner iterations reached!\n");
+            mem->status = ACADOS_MAXITER;
+            return mem->status;
+        }
     }
 
     // stop timer
